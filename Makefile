@@ -1,4 +1,4 @@
-# Copyright 2010-2018, Stephen Fryatt (info@stevefryatt.org.uk)
+# Copyright 2010-2019, Stephen Fryatt (info@stevefryatt.org.uk)
 #
 # This file is part of CashBook:
 #
@@ -77,6 +77,7 @@ OBJS = account.o			\
        iconbar.o			\
        import_dialogue.o		\
        interest.o			\
+       list_window.o			\
        main.o				\
        preset.o				\
        preset_dialogue.o		\

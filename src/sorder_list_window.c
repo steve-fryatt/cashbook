@@ -76,6 +76,7 @@
 #include "file.h"
 #include "filing.h"
 #include "flexutils.h"
+#include "list_window.h"
 #include "print_dialogue.h"
 #include "sorder.h"
 #include "sorder_dialogue.h"
@@ -197,6 +198,16 @@ static struct sort_dialogue_icon sorder_list_window_sort_directions[] = {
 };
 
 /**
+ * The Standing Order List Window definition.
+ */
+
+static struct list_window_definition sorder_list_window_definition = {
+	"SOrder",
+	"SOrderTB",
+	NULL
+};
+
+/**
  * Standing Order List Window line redraw data.
  */
 
@@ -259,16 +270,10 @@ struct sorder_list_window {
 };
 
 /**
- * The definition for the Standing Order List Window.
+ * The Standing Order List Window base instance.
  */
 
-static wimp_window			*sorder_list_window_def = NULL;
-
-/**
- * The definition for the Standing Order List Window toolbar pane.
- */
-
-static wimp_window			*sorder_list_window_pane_def = NULL;
+static struct list_window_block		*sorder_list_window_block = NULL;
 
 /**
  * The handle of the Standing Order List Window menu.
@@ -361,11 +366,7 @@ void sorder_list_window_initialise(osspriteop_area *sprites)
 	sorder_list_window_sort_callbacks.compare = sorder_list_window_sort_compare;
 	sorder_list_window_sort_callbacks.swap = sorder_list_window_sort_swap;
 
-	sorder_list_window_def = templates_load_window("SOrder");
-	sorder_list_window_def->icon_count = 0;
-
-	sorder_list_window_pane_def = templates_load_window("SOrderTB");
-	sorder_list_window_pane_def->sprite_area = sprites;
+	sorder_list_window_block = list_window_create(&sorder_list_window_definition, sprites);
 
 	sorder_list_window_menu = templates_get_menu("SOrderMenu");
 	ihelp_add_menu(sorder_list_window_menu, "SorderMenu");
@@ -465,6 +466,7 @@ void sorder_list_window_open(struct sorder_list_window *windat)
 	os_error		*error;
 	wimp_window_state	parent;
 	struct file_block	*file;
+	wimp_window		*window_def, *pane_def;
 
 	if (windat == NULL || windat->instance == NULL)
 		return;
@@ -486,19 +488,22 @@ void sorder_list_window_open(struct sorder_list_window *windat)
 
 	/* Create the new window data and build the window. */
 
+	window_def = list_window_get_window_def(sorder_list_window_block);
+	pane_def = list_window_get_toolbar_def(sorder_list_window_block);
+
 	*(windat->window_title) = '\0';
-	sorder_list_window_def->title_data.indirected_text.text = windat->window_title;
+	window_def->title_data.indirected_text.text = windat->window_title;
 
 	height = (windat->display_lines > SORDER_LIST_WINDOW_MIN_ENTRIES) ? windat->display_lines : SORDER_LIST_WINDOW_MIN_ENTRIES;
 
 	transact_get_window_state(file, &parent);
 
-	window_set_initial_area(sorder_list_window_def, column_get_window_width(windat->columns),
+	window_set_initial_area(window_def, column_get_window_width(windat->columns),
 			(height * WINDOW_ROW_HEIGHT) + SORDER_LIST_WINDOW_TOOLBAR_HEIGHT,
 			parent.visible.x0 + CHILD_WINDOW_OFFSET + file_get_next_open_offset(file),
 			parent.visible.y0 - CHILD_WINDOW_OFFSET, 0);
 
-	error = xwimp_create_window(sorder_list_window_def, &(windat->sorder_window));
+	error = xwimp_create_window(window_def, &(windat->sorder_window));
 	if (error != NULL) {
 		sorder_list_window_delete(windat);
 		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
@@ -507,27 +512,27 @@ void sorder_list_window_open(struct sorder_list_window *windat)
 
 	/* Create the toolbar. */
 
-	windows_place_as_toolbar(sorder_list_window_def, sorder_list_window_pane_def, SORDER_LIST_WINDOW_TOOLBAR_HEIGHT-4);
+	windows_place_as_toolbar(window_def, pane_def, SORDER_LIST_WINDOW_TOOLBAR_HEIGHT-4);
 
 	#ifdef DEBUG
 	debug_printf("Window extents set...");
 	#endif
 
-	columns_place_heading_icons(windat->columns, sorder_list_window_pane_def);
+	columns_place_heading_icons(windat->columns, pane_def);
 
-	sorder_list_window_pane_def->icons[SORDER_LIST_WINDOW_PANE_SORT_DIR_ICON].data.indirected_sprite.id =
+	pane_def->icons[SORDER_LIST_WINDOW_PANE_SORT_DIR_ICON].data.indirected_sprite.id =
 			(osspriteop_id) windat->sort_sprite;
-	sorder_list_window_pane_def->icons[SORDER_LIST_WINDOW_PANE_SORT_DIR_ICON].data.indirected_sprite.area =
-			sorder_list_window_pane_def->sprite_area;
-	sorder_list_window_pane_def->icons[SORDER_LIST_WINDOW_PANE_SORT_DIR_ICON].data.indirected_sprite.size = COLUMN_SORT_SPRITE_LEN;
+	pane_def->icons[SORDER_LIST_WINDOW_PANE_SORT_DIR_ICON].data.indirected_sprite.area =
+			pane_def->sprite_area;
+	pane_def->icons[SORDER_LIST_WINDOW_PANE_SORT_DIR_ICON].data.indirected_sprite.size = COLUMN_SORT_SPRITE_LEN;
 
-	sorder_list_window_adjust_sort_icon_data(windat, &(sorder_list_window_pane_def->icons[SORDER_LIST_WINDOW_PANE_SORT_DIR_ICON]));
+	sorder_list_window_adjust_sort_icon_data(windat, &(pane_def->icons[SORDER_LIST_WINDOW_PANE_SORT_DIR_ICON]));
 
 	#ifdef DEBUG
 	debug_printf("Toolbar icons adjusted...");
 	#endif
 
-	error = xwimp_create_window(sorder_list_window_pane_def, &(windat->sorder_pane));
+	error = xwimp_create_window(pane_def, &(windat->sorder_pane));
 	if (error != NULL) {
 		sorder_list_window_delete(windat);
 		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
@@ -923,6 +928,7 @@ static void sorder_list_window_window_redraw_handler(wimp_draw *redraw)
 	int				top, base, y, select;
 	char				icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN]; /* Assumes descript is longest. */
 	osbool				more;
+	wimp_window			*window_def;
 
 	windat = event_get_window_user_data(redraw->w);
 	if (windat == NULL || windat->instance == NULL || windat->columns == NULL)
@@ -930,6 +936,10 @@ static void sorder_list_window_window_redraw_handler(wimp_draw *redraw)
 
 	file = sorder_get_file(windat->instance);
 	if (file == NULL)
+		return;
+
+	window_def = list_window_get_window_def(sorder_list_window_block);
+	if (window_def == NULL)
 		return;
 
 	/* Identify if there is a selected line to highlight. */
@@ -941,9 +951,9 @@ static void sorder_list_window_window_redraw_handler(wimp_draw *redraw)
 
 	/* Set the horizontal positions of the icons. */
 
-	columns_place_table_icons_horizontally(windat->columns, sorder_list_window_def, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
+	columns_place_table_icons_horizontally(windat->columns, window_def, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
 
-	window_set_icon_templates(sorder_list_window_def);
+	window_set_icon_templates(window_def);
 
 	/* Perform the redraw. */
 
@@ -959,7 +969,7 @@ static void sorder_list_window_window_redraw_handler(wimp_draw *redraw)
 
 			/* Place the icons in the current row. */
 
-			columns_place_table_icons_vertically(windat->columns, sorder_list_window_def,
+			columns_place_table_icons_vertically(windat->columns, window_def,
 					WINDOW_ROW_Y0(SORDER_LIST_WINDOW_TOOLBAR_HEIGHT, y), WINDOW_ROW_Y1(SORDER_LIST_WINDOW_TOOLBAR_HEIGHT, y));
 
 			/* If we're off the end of the data, plot a blank line and continue. */
@@ -1100,13 +1110,18 @@ static void sorder_list_window_adjust_sort_icon(struct sorder_list_window *winda
 static void sorder_list_window_adjust_sort_icon_data(struct sorder_list_window *windat, wimp_icon *icon)
 {
 	enum sort_type	sort_order;
+	wimp_window	*window_pane_def;
 
 	if (windat == NULL)
 		return;
 
+	window_pane_def = list_window_get_toolbar_def(sorder_list_window_block);
+	if (window_pane_def == NULL)
+		return;
+
 	sort_order = sort_get_order(windat->sort);
 
-	column_update_sort_indicator(windat->columns, icon, sorder_list_window_pane_def, sort_order);
+	column_update_sort_indicator(windat->columns, icon, window_pane_def, sort_order);
 }
 
 
@@ -1243,11 +1258,16 @@ static void sorder_list_window_decode_help(char *buffer, wimp_w w, wimp_i i, os_
 	wimp_i				icon;
 	wimp_window_state		window;
 	struct sorder_list_window	*windat;
+	wimp_window			*window_def;
 
 	*buffer = '\0';
 
 	windat = event_get_window_user_data(w);
 	if (windat == NULL)
+		return;
+
+	window_def = list_window_get_toolbar_def(sorder_list_window_block);
+	if (window_def == NULL)
 		return;
 
 	window.w = w;
@@ -1259,7 +1279,7 @@ static void sorder_list_window_decode_help(char *buffer, wimp_w w, wimp_i i, os_
 	if (icon == wimp_ICON_WINDOW)
 		return;
 
-	if (!icons_extract_validation_command(buffer, IHELP_INAME_LEN, sorder_list_window_def->icons[icon].data.indirected_text.validation, 'N'))
+	if (!icons_extract_validation_command(buffer, IHELP_INAME_LEN, window_def->icons[icon].data.indirected_text.validation, 'N'))
 		string_printf(buffer, IHELP_INAME_LEN, "Col%d", icon);
 }
 

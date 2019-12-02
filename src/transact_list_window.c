@@ -87,6 +87,7 @@
 #include "find.h"
 #include "flexutils.h"
 #include "goto.h"
+#include "list_window.h"
 #include "preset.h"
 #include "preset_menu.h"
 #include "print_dialogue.h"
@@ -275,6 +276,16 @@ static struct sort_dialogue_icon transact_list_window_sort_directions[] = {
 };
 
 /**
+ * The Transaction List Window definition.
+ */
+
+static struct list_window_definition window_definition = {
+	"Transact",
+	"TransactTB",
+	NULL
+};
+
+/**
  * Transaction List Window line redraw data.
  */
 
@@ -352,16 +363,10 @@ struct transact_list_window {
 };
 
 /**
- * The definition for the Transaction List Window.
+ * The Transaction List Window base instance.
  */
 
-static wimp_window			*transact_list_window_def = NULL;
-
-/**
- * The definition for the Transaction List Window toolbar pane.
- */
-
-static wimp_window			*transact_list_window_pane_def = NULL;
+static struct list_window_block		*transact_list_window_block = NULL;
 
 /**
  * The handle of the Transaction List Window menu.
@@ -578,11 +583,7 @@ void transact_list_window_initialise(osspriteop_area *sprites)
 	transact_list_window_sort_callbacks.compare = transact_list_window_sort_compare;
 	transact_list_window_sort_callbacks.swap = transact_list_window_sort_swap;
 
-	transact_list_window_def = templates_load_window("Transact");
-	transact_list_window_def->icon_count = 0;
-
-	transact_list_window_pane_def = templates_load_window("TransactTB");
-	transact_list_window_pane_def->sprite_area = sprites;
+	transact_list_window_block = list_window_create(&window_definition, sprites);
 
 	transact_list_window_menu = templates_get_menu("MainMenu");
 	ihelp_add_menu(transact_list_window_menu, "MainMenu");
@@ -698,6 +699,7 @@ void transact_list_window_open(struct transact_list_window *windat)
 	int			height;
 	os_error		*error;
 	struct file_block	*file;
+	wimp_window		*window_def, *pane_def;
 
 	if (windat == NULL || windat->instance == NULL)
 		return;
@@ -724,16 +726,19 @@ void transact_list_window_open(struct transact_list_window *windat)
 
 	/* Create the new window data and build the window. */
 
+	window_def = list_window_get_window_def(transact_list_window_block);
+	pane_def = list_window_get_toolbar_def(transact_list_window_block);
+
 	*(windat->window_title) = '\0';
-	transact_list_window_def->title_data.indirected_text.text = windat->window_title;
+	window_def->title_data.indirected_text.text = windat->window_title;
 
 	height =  windat->visible_lines;
 
-	window_set_initial_area(transact_list_window_def, column_get_window_width(windat->columns),
+	window_set_initial_area(window_def, column_get_window_width(windat->columns),
 			(height * WINDOW_ROW_HEIGHT) + TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT,
 			-1, -1, transact_list_window_new_offset * TRANSACT_LIST_WINDOW_OPEN_OFFSET);
 
-	error = xwimp_create_window(transact_list_window_def, &(windat->transaction_window));
+	error = xwimp_create_window(window_def, &(windat->transaction_window));
 	if (error != NULL) {
 		transact_list_window_delete(windat);
 		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
@@ -746,18 +751,18 @@ void transact_list_window_open(struct transact_list_window *windat)
 
 	/* Create the toolbar pane. */
 
-	windows_place_as_toolbar(transact_list_window_def, transact_list_window_pane_def, TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT-4);
-	columns_place_heading_icons(windat->columns, transact_list_window_pane_def);
+	windows_place_as_toolbar(window_def, pane_def, TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT-4);
+	columns_place_heading_icons(windat->columns, pane_def);
 
-	transact_list_window_pane_def->icons[TRANSACT_LIST_WINDOW_PANE_SORT_DIR_ICON].data.indirected_sprite.id =
+	pane_def->icons[TRANSACT_LIST_WINDOW_PANE_SORT_DIR_ICON].data.indirected_sprite.id =
 			(osspriteop_id) windat->sort_sprite;
-	transact_list_window_pane_def->icons[TRANSACT_LIST_WINDOW_PANE_SORT_DIR_ICON].data.indirected_sprite.area =
-			transact_list_window_pane_def->sprite_area;
-	transact_list_window_pane_def->icons[TRANSACT_LIST_WINDOW_PANE_SORT_DIR_ICON].data.indirected_sprite.size = COLUMN_SORT_SPRITE_LEN;
+	pane_def->icons[TRANSACT_LIST_WINDOW_PANE_SORT_DIR_ICON].data.indirected_sprite.area =
+			pane_def->sprite_area;
+	pane_def->icons[TRANSACT_LIST_WINDOW_PANE_SORT_DIR_ICON].data.indirected_sprite.size = COLUMN_SORT_SPRITE_LEN;
 
-	transact_list_window_adjust_sort_icon_data(windat, &(transact_list_window_pane_def->icons[TRANSACT_LIST_WINDOW_PANE_SORT_DIR_ICON]));
+	transact_list_window_adjust_sort_icon_data(windat, &(pane_def->icons[TRANSACT_LIST_WINDOW_PANE_SORT_DIR_ICON]));
 
-	error = xwimp_create_window(transact_list_window_pane_def, &(windat->transaction_pane));
+	error = xwimp_create_window(pane_def, &(windat->transaction_pane));
 	if (error != NULL) {
 		transact_list_window_delete(windat);
 		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
@@ -766,7 +771,7 @@ void transact_list_window_open(struct transact_list_window *windat)
 
 	/* Construct the edit line. */
 
-	windat->edit_line = edit_create_instance(file, transact_list_window_def, windat->transaction_window,
+	windat->edit_line = edit_create_instance(file, window_def, windat->transaction_window,
 			windat->columns, TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT,
 			&transact_list_window_edit_callbacks, windat);
 	if (windat->edit_line == NULL) {
@@ -1730,6 +1735,7 @@ static void transact_list_window_redraw_handler(wimp_draw *redraw)
 	wimp_colour			shade_rec_col, icon_fg_col;
 	char				icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN]; /* Assumes descript is longest. */
 	osbool				shade_rec, more;
+	wimp_window			*window_def;
 
 	windat = event_get_window_user_data(redraw->w);
 	if (windat == NULL || windat->instance == NULL || windat->columns == NULL)
@@ -1739,6 +1745,10 @@ static void transact_list_window_redraw_handler(wimp_draw *redraw)
 	if (file == NULL)
 		return;
 
+	window_def = list_window_get_window_def(transact_list_window_block);
+	if (window_def == NULL)
+		return;
+
 	more = wimp_redraw_window(redraw);
 
 	shade_rec = config_opt_read("ShadeReconciled");
@@ -1746,10 +1756,10 @@ static void transact_list_window_redraw_handler(wimp_draw *redraw)
 
 	/* Set the horizontal positions of the icons. */
 
-	columns_place_table_icons_horizontally(windat->columns, transact_list_window_def, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
+	columns_place_table_icons_horizontally(windat->columns, window_def, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
 	entry_line = edit_get_line(windat->edit_line);
 
-	window_set_icon_templates(transact_list_window_def);
+	window_set_icon_templates(window_def);
 
 	/* Perform the redraw. */
 
@@ -1780,7 +1790,7 @@ static void transact_list_window_redraw_handler(wimp_draw *redraw)
 
 			/* Place the icons in the current row. */
 
-			columns_place_table_icons_vertically(windat->columns, transact_list_window_def,
+			columns_place_table_icons_vertically(windat->columns, window_def,
 					WINDOW_ROW_Y0(TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT, y), WINDOW_ROW_Y1(TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT, y));
 
 			/* If we're off the end of the data, plot a blank line and continue. */
@@ -1930,13 +1940,18 @@ static void transact_list_window_adjust_sort_icon(struct transact_list_window *w
 static void transact_list_window_adjust_sort_icon_data(struct transact_list_window *windat, wimp_icon *icon)
 {
 	enum sort_type	sort_order;
+	wimp_window	*pane_def;
 
 	if (windat == NULL)
 		return;
 
+	pane_def = list_window_get_toolbar_def(transact_list_window_block);
+	if (pane_def == NULL)
+		return;
+
 	sort_order = sort_get_order(windat->sort);
 
-	column_update_sort_indicator(windat->columns, icon, transact_list_window_pane_def, sort_order);
+	column_update_sort_indicator(windat->columns, icon, pane_def, sort_order);
 }
 
 
@@ -2301,11 +2316,16 @@ static void transact_list_window_decode_help(char *buffer, wimp_w w, wimp_i i, o
 	wimp_i				icon;
 	wimp_window_state		window;
 	struct transact_list_window	*windat;
+	wimp_window			*window_def;
 
 	*buffer = '\0';
 
 	windat = event_get_window_user_data(w);
 	if (windat == NULL)
+		return;
+
+	window_def = list_window_get_window_def(transact_list_window_block);
+	if (window_def == NULL)
 		return;
 
 	window.w = w;
@@ -2317,7 +2337,7 @@ static void transact_list_window_decode_help(char *buffer, wimp_w w, wimp_i i, o
 	if (icon == wimp_ICON_WINDOW)
 		return;
 
-	if (!icons_extract_validation_command(buffer, IHELP_INAME_LEN, transact_list_window_def->icons[icon].data.indirected_text.validation, 'N'))
+	if (!icons_extract_validation_command(buffer, IHELP_INAME_LEN, window_def->icons[icon].data.indirected_text.validation, 'N'))
 		string_printf(buffer, IHELP_INAME_LEN, "Col%d", icon);
 }
 

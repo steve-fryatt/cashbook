@@ -72,6 +72,7 @@
 #include "file.h"
 #include "filing.h"
 #include "flexutils.h"
+#include "list_window.h"
 #include "preset.h"
 #include "preset_dialogue.h"
 #include "print_dialogue.h"
@@ -192,6 +193,16 @@ static struct sort_dialogue_icon preset_list_window_sort_directions[] = {
 };
 
 /**
+ * The Preset List Window definition.
+ */
+
+static struct list_window_definition preset_list_window_definition = {
+	"Preset",
+	"PresetTB",
+	NULL
+};
+
+/**
  * Preset List Window line redraw data.
  */
 
@@ -254,16 +265,10 @@ struct preset_list_window {
 };
 
 /**
- * The definition for the Preset List Window.
+ * The Preset List Window base instance.
  */
 
-static wimp_window			*preset_list_window_def = NULL;
-
-/**
- * The definition for the Preset List Window toolbar pane.
- */
-
-static wimp_window			*preset_list_window_pane_def = NULL;
+static struct list_window_block		*preset_list_window_block = NULL;
 
 /**
  * The handle of the Preset List Window menu.
@@ -355,11 +360,7 @@ void preset_list_window_initialise(osspriteop_area *sprites)
 	preset_list_window_sort_callbacks.compare = preset_list_window_sort_compare;
 	preset_list_window_sort_callbacks.swap = preset_list_window_sort_swap;
 
-	preset_list_window_def = templates_load_window("Preset");
-	preset_list_window_def->icon_count = 0;
-
-	preset_list_window_pane_def = templates_load_window("PresetTB");
-	preset_list_window_pane_def->sprite_area = sprites;
+	preset_list_window_block = list_window_create(&preset_list_window_definition, sprites);
 
 	preset_list_window_menu = templates_get_menu("PresetMenu");
 	ihelp_add_menu(preset_list_window_menu, "PresetMenu");
@@ -459,6 +460,7 @@ void preset_list_window_open(struct preset_list_window *windat)
 	os_error		*error;
 	wimp_window_state	parent;
 	struct file_block	*file;
+	wimp_window		*window_def, *pane_def;
 
 	if (windat == NULL || windat->instance == NULL)
 		return;
@@ -480,19 +482,22 @@ void preset_list_window_open(struct preset_list_window *windat)
 
 	/* Create the new window data and build the window. */
 
+	window_def = list_window_get_window_def(preset_list_window_block);
+	pane_def = list_window_get_toolbar_def(preset_list_window_block);
+
 	*(windat->window_title) = '\0';
-	preset_list_window_def->title_data.indirected_text.text = windat->window_title;
+	window_def->title_data.indirected_text.text = windat->window_title;
 
 	height = (windat->display_lines > PRESET_LIST_WINDOW_MIN_ENTRIES) ? windat->display_lines : PRESET_LIST_WINDOW_MIN_ENTRIES;
 
 	transact_get_window_state(file, &parent);
 
-	window_set_initial_area(preset_list_window_def, column_get_window_width(windat->columns),
+	window_set_initial_area(window_def, column_get_window_width(windat->columns),
 			(height * WINDOW_ROW_HEIGHT) + PRESET_LIST_WINDOW_TOOLBAR_HEIGHT,
 			parent.visible.x0 + CHILD_WINDOW_OFFSET + file_get_next_open_offset(file),
 			parent.visible.y0 - CHILD_WINDOW_OFFSET, 0);
 
-	error = xwimp_create_window(preset_list_window_def, &(windat->preset_window));
+	error = xwimp_create_window(window_def, &(windat->preset_window));
 	if (error != NULL) {
 		preset_list_window_delete(windat);
 		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
@@ -501,27 +506,27 @@ void preset_list_window_open(struct preset_list_window *windat)
 
 	/* Create the toolbar. */
 
-	windows_place_as_toolbar(preset_list_window_def, preset_list_window_pane_def, PRESET_LIST_WINDOW_TOOLBAR_HEIGHT-4);
+	windows_place_as_toolbar(window_def, pane_def, PRESET_LIST_WINDOW_TOOLBAR_HEIGHT-4);
 
 	#ifdef DEBUG
 	debug_printf ("Window extents set...");
 	#endif
 
-	columns_place_heading_icons(windat->columns, preset_list_window_pane_def);
+	columns_place_heading_icons(windat->columns, pane_def);
 
-	preset_list_window_pane_def->icons[PRESET_LIST_WINDOW_PANE_SORT_DIR_ICON].data.indirected_sprite.id =
+	pane_def->icons[PRESET_LIST_WINDOW_PANE_SORT_DIR_ICON].data.indirected_sprite.id =
 			(osspriteop_id) windat->sort_sprite;
-	preset_list_window_pane_def->icons[PRESET_LIST_WINDOW_PANE_SORT_DIR_ICON].data.indirected_sprite.area =
-			preset_list_window_pane_def->sprite_area;
-	preset_list_window_pane_def->icons[PRESET_LIST_WINDOW_PANE_SORT_DIR_ICON].data.indirected_sprite.size = COLUMN_SORT_SPRITE_LEN;
+	pane_def->icons[PRESET_LIST_WINDOW_PANE_SORT_DIR_ICON].data.indirected_sprite.area =
+			pane_def->sprite_area;
+	pane_def->icons[PRESET_LIST_WINDOW_PANE_SORT_DIR_ICON].data.indirected_sprite.size = COLUMN_SORT_SPRITE_LEN;
 
-	preset_list_window_adjust_sort_icon_data(windat, &(preset_list_window_pane_def->icons[PRESET_LIST_WINDOW_PANE_SORT_DIR_ICON]));
+	preset_list_window_adjust_sort_icon_data(windat, &(pane_def->icons[PRESET_LIST_WINDOW_PANE_SORT_DIR_ICON]));
 
 	#ifdef DEBUG
 	debug_printf ("Toolbar icons adjusted...");
 	#endif
 
-	error = xwimp_create_window(preset_list_window_pane_def, &(windat->preset_pane));
+	error = xwimp_create_window(pane_def, &(windat->preset_pane));
 	if (error != NULL) {
 		preset_list_window_delete(windat);
 		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
@@ -912,6 +917,7 @@ static void preset_list_window_redraw_handler(wimp_draw *redraw)
 	preset_t			preset;
 	char				icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN]; /* Assumes descript is longest. */
 	osbool				more;
+	wimp_window			*window_def;
 
 	windat = event_get_window_user_data(redraw->w);
 	if (windat == NULL || windat->instance == NULL || windat->columns == NULL)
@@ -919,6 +925,10 @@ static void preset_list_window_redraw_handler(wimp_draw *redraw)
 
 	file = preset_get_file(windat->instance);
 	if (file == NULL)
+		return;
+
+	window_def = list_window_get_window_def(preset_list_window_block);
+	if (window_def == NULL)
 		return;
 
 	/* Identify if there is a selected line to highlight. */
@@ -930,9 +940,9 @@ static void preset_list_window_redraw_handler(wimp_draw *redraw)
 
 	/* Set the horizontal positions of the icons. */
 
-	columns_place_table_icons_horizontally(windat->columns, preset_list_window_def, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
+	columns_place_table_icons_horizontally(windat->columns, window_def, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
 
-	window_set_icon_templates(preset_list_window_def);
+	window_set_icon_templates(window_def);
 
 	/* Perform the redraw. */
 
@@ -948,7 +958,7 @@ static void preset_list_window_redraw_handler(wimp_draw *redraw)
 
 			/* Place the icons in the current row. */
 
-			columns_place_table_icons_vertically(windat->columns, preset_list_window_def,
+			columns_place_table_icons_vertically(windat->columns, window_def,
 					WINDOW_ROW_Y0(PRESET_LIST_WINDOW_TOOLBAR_HEIGHT, y), WINDOW_ROW_Y1(PRESET_LIST_WINDOW_TOOLBAR_HEIGHT, y));
 
 			/* If we're off the end of the data, plot a blank line and continue. */
@@ -1083,13 +1093,18 @@ static void preset_list_window_adjust_sort_icon(struct preset_list_window *winda
 static void preset_list_window_adjust_sort_icon_data(struct preset_list_window *windat, wimp_icon *icon)
 {
 	enum sort_type	sort_order;
+	wimp_window	*window_pane_def;
 
 	if (windat == NULL)
 		return;
 
+	window_pane_def = list_window_get_toolbar_def(preset_list_window_block);
+	if (window_pane_def == NULL)
+		return;
+
 	sort_order = sort_get_order(windat->sort);
 
-	column_update_sort_indicator(windat->columns, icon, preset_list_window_pane_def, sort_order);
+	column_update_sort_indicator(windat->columns, icon, window_pane_def, sort_order);
 }
 
 /**
@@ -1217,11 +1232,16 @@ static void preset_list_window_decode_help(char *buffer, wimp_w w, wimp_i i, os_
 	wimp_i				icon;
 	wimp_window_state		window;
 	struct preset_list_window	*windat;
+	wimp_window			*window_def;
 
 	*buffer = '\0';
 
 	windat = event_get_window_user_data(w);
 	if (windat == NULL)
+		return;
+
+	window_def = list_window_get_toolbar_def(preset_list_window_block);
+	if (window_def == NULL)
 		return;
 
 	window.w = w;
@@ -1233,7 +1253,7 @@ static void preset_list_window_decode_help(char *buffer, wimp_w w, wimp_i i, os_
 	if (icon == wimp_ICON_WINDOW)
 		return;
 
-	if (!icons_extract_validation_command(buffer, IHELP_INAME_LEN, preset_list_window_def->icons[icon].data.indirected_text.validation, 'N'))
+	if (!icons_extract_validation_command(buffer, IHELP_INAME_LEN, window_def->icons[icon].data.indirected_text.validation, 'N'))
 		string_printf(buffer, IHELP_INAME_LEN, "Col%d", icon);
 }
 

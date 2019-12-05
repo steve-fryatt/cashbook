@@ -199,7 +199,19 @@ static struct sort_dialogue_icon preset_list_window_sort_directions[] = {
 static struct list_window_definition preset_list_window_definition = {
 	"Preset",
 	"PresetTB",
-	NULL
+	NULL,
+	PRESET_LIST_WINDOW_TOOLBAR_HEIGHT,
+	0,
+	preset_list_window_columns,
+	NULL,
+	PRESET_LIST_WINDOW_COLUMNS,
+	PRESET_LIST_WINDOW_PANE_SORT_DIR_ICON,
+	"LimPresetCols",
+	"PresetCols",
+	"Preset",
+	"PresetTB",
+	NULL,
+	PRESET_LIST_WINDOW_MIN_ENTRIES
 };
 
 /**
@@ -222,6 +234,11 @@ struct preset_list_window {
 	 * The presets instance owning the Preset List Window.
 	 */
 	struct preset_block			*instance;
+
+	/**
+	 * The list window for the Preset List Window.
+	 */
+	struct list_window			*window;
 
 	/**
 	 * Wimp window handle for the main Preset List Window.
@@ -387,6 +404,7 @@ struct preset_list_window *preset_list_window_create_instance(struct preset_bloc
 
 	new->instance = parent;
 
+	new->window = NULL;
 	new->preset_window = NULL;
 	new->preset_pane = NULL;
 	new->columns = NULL;
@@ -395,16 +413,24 @@ struct preset_list_window *preset_list_window_create_instance(struct preset_bloc
 	new->display_lines = 0;
 	new->line_data = NULL;
 
-	/* Initialise the window columns. */
+	/* Initialise the List Window. */
 
-	new-> columns = column_create_instance(PRESET_LIST_WINDOW_COLUMNS, preset_list_window_columns, NULL, PRESET_LIST_WINDOW_PANE_SORT_DIR_ICON);
-	if (new->columns == NULL) {
+	new->window = list_window_create_instance(preset_list_window_block);
+	if (new->window == NULL) {
 		preset_list_window_delete_instance(new);
 		return NULL;
 	}
 
-	column_set_minimum_widths(new->columns, config_str_read("LimPresetCols"));
-	column_init_window(new->columns, 0, FALSE, config_str_read("PresetCols"));
+	/* Initialise the window columns. */
+
+//	new-> columns = column_create_instance(PRESET_LIST_WINDOW_COLUMNS, preset_list_window_columns, NULL, PRESET_LIST_WINDOW_PANE_SORT_DIR_ICON);
+//	if (new->columns == NULL) {
+//		preset_list_window_delete_instance(new);
+//		return NULL;
+//	}
+
+//	column_set_minimum_widths(new->columns, config_str_read("LimPresetCols"));
+//	column_init_window(new->columns, 0, FALSE, config_str_read("PresetCols"));
 
 	/* Initialise the window sort. */
 
@@ -439,8 +465,10 @@ void preset_list_window_delete_instance(struct preset_list_window *windat)
 	if (windat->line_data != NULL)
 		flexutils_free((void **) &(windat->line_data));
 
-	column_delete_instance(windat->columns);
+//	column_delete_instance(windat->columns);
 	sort_delete_instance(windat->sort);
+
+	list_window_delete_instance(windat->window);
 
 	preset_list_window_delete(windat);
 

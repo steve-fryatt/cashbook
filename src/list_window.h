@@ -40,7 +40,7 @@ struct list_window_block;
  * A list window instance.
  */
 
-struct list_window_instance;
+struct list_window;
 
 /**
  * Definition of a list window object.
@@ -50,18 +50,104 @@ struct list_window_definition {
 	/**
 	 * The name of the template for the list window itself.
 	 */
-	char		*main_template_name;
+	char			*main_template_name;
 
 	/**
 	 * The name of the template for the toolbar pane.
 	 */
-	char		*toolbar_template_name;
+	char			*toolbar_template_name;
 
 	/**
 	 * The name of the template for the footer pane.
 	 */
-	char		*footer_template_name;
+	char			*footer_template_name;
+
+	/**
+	 * The height of the toolbar pane, in OS Units.
+	 */
+	int			toolbar_height;
+
+	/**
+	 * The height of the footer pane, in OS Units.
+	 */
+	int			footer_height;
+
+	/**
+	 * The window column map.
+	 */
+	struct column_map	*column_map;
+
+	/**
+	 * The window column extra data.
+	 */
+	struct column_extra	*column_extra;
+
+	/**
+	 * The number of columns in the window.
+	 */
+	int			column_count;
+
+	/**
+	 * The icon used to show the sort direction.
+	 */
+	wimp_i			sort_dir_icon;
+
+	/**
+	 * The column limit settings token.
+	 */
+	char			*column_limits;
+
+	/**
+	 * The column width settings token.
+	 */
+	char			*column_widths;
+
+	/**
+	 * Base help token for the main window.
+	 */
+	char			*window_help;
+
+	/**
+	 * Base help token for the toolbar pane.
+	 */
+	char			*toolbar_help;
+
+	/**
+	 * Base help token for the footer pane.
+	 */
+	char			*footer_help;
+
+	/**
+	 * The minimum number of entries in the window.
+	 */
+	int			minimum_entries;
+
+
+	/**
+	 * The callback handlers below this point are subject to implementation change!
+	 * They also probably require a void *data pointer, for the client to pass the
+	 * windat pointer in.
+	 */
+
+	void		(*callback_window_click_handler)(wimp_pointer *pointer);
+
+	void		(*callback_pane_click_handler)(wimp_pointer *pointer);
+
+	void		(*callback_redraw_handler)(wimp_draw *redraw);
+
+	void		(*callback_scroll_handler)(wimp_scroll *scroll);
+
+	void		(*callback_decode_help)(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
+
+	void		(*callback_menu_prepare_handler)(wimp_w w, wimp_menu *menu, wimp_pointer *pointer);
+
+	void		(*callback_menu_selection_handler)(wimp_w w, wimp_menu *menu, wimp_selection *selection);
+
+	void		(*callback_menu_warning_handler)(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning);
+
+	void		(*callback_menu_close_handler)(wimp_w w, wimp_menu *menu);
 };
+
 
 /**
  * Create a new list window template block, and load the window template
@@ -73,6 +159,23 @@ struct list_window_definition {
  */
 
 struct list_window_block *list_window_create(struct list_window_definition *definition, osspriteop_area *sprites);
+
+
+/**
+ * Create a new List Window instance.
+ *
+ * \param *parent		The List Window to own the instance.
+ * \return			Pointer to the new instance, or NULL.
+ */
+struct list_window *list_window_create_instance(struct list_window_block *parent);
+
+
+/**
+ * Delete a List Window instance.
+ *
+ * \param *instance		The List Window instance to delete.
+ */
+void list_window_delete_instance(struct list_window *instance);
 
 wimp_window *list_window_get_window_def(struct list_window_block *block);
 wimp_window *list_window_get_toolbar_def(struct list_window_block *block);

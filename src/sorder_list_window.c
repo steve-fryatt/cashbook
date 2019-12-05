@@ -204,7 +204,19 @@ static struct sort_dialogue_icon sorder_list_window_sort_directions[] = {
 static struct list_window_definition sorder_list_window_definition = {
 	"SOrder",
 	"SOrderTB",
-	NULL
+	NULL,
+	SORDER_LIST_WINDOW_TOOLBAR_HEIGHT,
+	0,
+	sorder_list_window_columns,
+	NULL,
+	SORDER_LIST_WINDOW_COLUMNS,
+	SORDER_LIST_WINDOW_PANE_SORT_DIR_ICON,
+	"LimSOrderCols",
+	"SOrderCols",
+	"SOrder",
+	"SOrderTB",
+	NULL,
+	SORDER_LIST_WINDOW_MIN_ENTRIES
 };
 
 /**

@@ -282,7 +282,19 @@ static struct sort_dialogue_icon transact_list_window_sort_directions[] = {
 static struct list_window_definition window_definition = {
 	"Transact",
 	"TransactTB",
-	NULL
+	NULL,
+	TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT,
+	0,
+	transact_list_window_columns,
+	NULL,
+	TRANSACT_LIST_WINDOW_COLUMNS,
+	TRANSACT_LIST_WINDOW_PANE_SORT_DIR_ICON,
+	"LimTransactCols",
+	"TransacttCols",
+	"Transact",
+	"TransactTB",
+	NULL,
+	TRANSACT_LIST_WINDOW_MIN_ENTRIES
 };
 
 /**

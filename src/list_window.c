@@ -315,7 +315,7 @@ struct list_window *list_window_create_instance(struct list_window_block *parent
 
 	new->sort = sort_create_instance(SORT_CHAR | SORT_ASCENDING, SORT_NONE, &(parent->sort_callbacks), new);
 	if (new->sort == NULL) {
-		preset_list_window_delete_instance(new);
+		list_window_delete_instance(new);
 		return NULL;
 	}
 
@@ -348,10 +348,13 @@ void list_window_delete_instance(struct list_window *instance)
 	if (instance == NULL)
 		return;
 
-	list_window_delete_instance(instance);
+	if (instance->line_data != NULL)
+		flexutils_free((void **) &(instance->line_data));
 
 	column_delete_instance(instance->columns);
 	sort_delete_instance(instance->sort);
+
+	list_window_delete(instance);
 
 	/* De-link the instance from the list of instances. */
 

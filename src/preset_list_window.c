@@ -335,15 +335,14 @@ static struct saveas_block		*preset_list_window_saveas_tsv = NULL;
 /* Static Function Prototypes. */
 
 static void preset_list_window_delete(void *data);
-static void preset_list_window_click_handler(wimp_pointer *pointer);
-static void preset_list_window_pane_click_handler(wimp_pointer *pointer);
+static void preset_list_window_click_handler(wimp_pointer *pointer, int index, struct file_block *file, void *data);
+static void preset_list_window_pane_click_handler(wimp_pointer *pointer, struct file_block *file, void *data);
 static void preset_list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer);
 static void preset_list_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection);
 static void preset_list_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning);
 static void preset_list_window_menu_close_handler(wimp_w w, wimp_menu *menu);
 static void preset_list_window_scroll_handler(wimp_scroll *scroll);
 static void preset_list_window_redraw_handler(int index, struct file_block *file, void *data);
-static void preset_list_window_adjust_columns(void *data, wimp_i group, int width);
 static void preset_list_window_force_redraw(struct preset_list_window *windat, int from, int to, wimp_i column);
 static void preset_list_window_decode_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
 static int preset_list_window_get_line_from_preset(struct preset_list_window *windat, preset_t preset);
@@ -375,6 +374,8 @@ void preset_list_window_initialise(osspriteop_area *sprites)
 	wimp_w sort_window;
 
 	preset_list_window_definition.callback_window_close_handler = preset_list_window_delete;
+	preset_list_window_definition.callback_window_click_handler = preset_list_window_click_handler;
+	preset_list_window_definition.callback_pane_click_handler = preset_list_window_pane_click_handler;
 	preset_list_window_definition.callback_redraw_handler = preset_list_window_redraw_handler;
 
 	sort_window = templates_create_window("SortPreset");
@@ -468,6 +469,10 @@ void preset_list_window_open(struct preset_list_window *windat)
 /**
  * Close and delete a Preset List Window associated with the given
  * instance.
+ * 
+ * TODO -- This is probably unnecessary, if dialogues are opened with
+ * the list window instance handle as their reference. Should it, and
+ * its associated callback, be removed?
  *
  * \param *data		The instance being closed.
  */
@@ -494,34 +499,15 @@ static void preset_list_window_delete(void *data)
  * Process mouse clicks in the Preset List window.
  *
  * \param *pointer		The mouse event block to handle.
+ * \param index			The preset under the pointer.
+ * \param *file			The file owining the window.
+ * \param *data			The Preset List Window instance.
  */
 
-static void preset_list_window_click_handler(wimp_pointer *pointer)
+static void preset_list_window_click_handler(wimp_pointer *pointer, int index, struct file_block *file, void *data)
 {
-	struct preset_list_window	*windat;
-	struct file_block		*file;
-	int				line;
-	wimp_window_state		window;
-
-	windat = event_get_window_user_data(pointer->w);
-	if (windat == NULL || windat->instance == NULL)
-		return;
-
-	file = preset_get_file(windat->instance);
-	if (file == NULL)
-		return;
-
-	/* Find the window type and get the line clicked on. */
-
-	window.w = pointer->w;
-	wimp_get_window_state(&window);
-
-	line = window_calculate_click_row(&(pointer->pos), &window, PRESET_LIST_WINDOW_TOOLBAR_HEIGHT, windat->display_lines);
-
-	/* Handle double-clicks, which will open an edit preset window. */
-
-	if (pointer->buttons == wimp_DOUBLE_SELECT && line != -1)
-		preset_open_edit_window(file, windat->line_data[line].preset, pointer);
+	if (pointer->buttons == wimp_DOUBLE_SELECT)
+		preset_open_edit_window(file, index, pointer);
 }
 
 
@@ -529,30 +515,13 @@ static void preset_list_window_click_handler(wimp_pointer *pointer)
  * Process mouse clicks in the Preset List pane.
  *
  * \param *pointer		The mouse event block to handle.
+ * \param *file			The file owining the window.
+ * \param *data			The Preset List Window instance.
  */
 
-static void preset_list_window_pane_click_handler(wimp_pointer *pointer)
+static void preset_list_window_pane_click_handler(wimp_pointer *pointer, struct file_block *file, void *data)
 {
-	struct preset_list_window	*windat;
-	struct file_block		*file;
-	wimp_window_state		window;
-	wimp_icon_state			icon;
-	int				ox;
-	enum sort_type			sort_order;
-
-	windat = event_get_window_user_data(pointer->w);
-	if (windat == NULL || windat->instance == NULL)
-		return;
-
-	file = preset_get_file(windat->instance);
-	if (file == NULL)
-		return;
-
-	/* If the click was on the sort indicator arrow, change the icon to be the icon below it. */
-
-	column_update_heading_icon_click(windat->columns, pointer);
-
-	/* Process toolbar clicks and column heading drags. */
+	struct preset_list_window *windat = data;
 
 	if (pointer->buttons == wimp_CLICK_SELECT) {
 		switch (pointer->i) {
@@ -582,32 +551,6 @@ static void preset_list_window_pane_click_handler(wimp_pointer *pointer)
 			preset_sort(windat->instance);
 			break;
 		}
-	} else if ((pointer->buttons == wimp_CLICK_SELECT * 256 || pointer->buttons == wimp_CLICK_ADJUST * 256) &&
-			pointer->i != wimp_ICON_WINDOW) {
-		window.w = pointer->w;
-		wimp_get_window_state(&window);
-
-		ox = window.visible.x0 - window.xscroll;
-
-		icon.w = pointer->w;
-		icon.i = pointer->i;
-		wimp_get_icon_state(&icon);
-
-		if (pointer->pos.x < (ox + icon.icon.extent.x1 - COLUMN_DRAG_HOTSPOT)) {
-			sort_order = column_get_sort_type_from_heading(windat->columns, pointer->i);
-
-			if (sort_order != SORT_NONE) {
-				sort_order |= (pointer->buttons == wimp_CLICK_SELECT * 256) ? SORT_ASCENDING : SORT_DESCENDING;
-
-				sort_set_order(windat->sort, sort_order);
-				preset_list_window_adjust_sort_icon(windat);
-				windows_redraw(windat->preset_pane);
-				preset_list_window_sort(windat);
-			}
-		}
-	} else if (pointer->buttons == wimp_DRAG_SELECT && column_is_heading_draggable(windat->columns, pointer->i)) {
-		column_set_minimum_widths(windat->columns, config_str_read("LimPresetCols"));
-		column_start_drag(windat->columns, pointer, windat, windat->preset_window, preset_list_window_adjust_columns);
 	}
 }
 
@@ -808,56 +751,6 @@ static void preset_list_window_redraw_handler(int index, struct file_block *file
 	/* Description field */
 
 	window_plot_text_field(PRESET_LIST_WINDOW_DESCRIPTION, preset_get_description(file, preset, NULL, 0), wimp_COLOUR_BLACK);
-}
-
-/**
- * Callback handler for completing the drag of a column heading.
- *
- * \param *data			The window block for the origin of the drag.
- * \param group			The column group which has been dragged.
- * \param width			The new width for the group.
- */
-
-static void preset_list_window_adjust_columns(void *data, wimp_i group, int width)
-{
-	struct preset_list_window	*windat = (struct preset_list_window *) data;
-	struct file_block		*file;
-	int				new_extent;
-	wimp_window_info		window;
-
-	if (windat == NULL || windat->instance == NULL)
-		return;
-
-	file = preset_get_file(windat->instance);
-	if (file == NULL)
-		return;
-
-	columns_update_dragged(windat->columns, windat->preset_pane, NULL, group, width);
-
-	new_extent = column_get_window_width(windat->columns);
-
-	preset_list_window_adjust_sort_icon(windat);
-
-	/* Replace the edit line to force a redraw and redraw the rest of the window. */
-
-	windows_redraw(windat->preset_window);
-	windows_redraw(windat->preset_pane);
-
-	/* Set the horizontal extent of the window and pane. */
-
-	window.w = windat->preset_pane;
-	wimp_get_window_info_header_only(&window);
-	window.extent.x1 = window.extent.x0 + new_extent;
-	wimp_set_extent(window.w, &(window.extent));
-
-	window.w = windat->preset_window;
-	wimp_get_window_info_header_only(&window);
-	window.extent.x1 = window.extent.x0 + new_extent;
-	wimp_set_extent(window.w, &(window.extent));
-
-	windows_open(window.w);
-
-	file_set_data_integrity(file, TRUE);
 }
 
 

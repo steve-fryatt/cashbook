@@ -200,6 +200,7 @@ static void list_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_s
 static void list_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning);
 static void list_window_menu_close_handler(wimp_w w, wimp_menu *menu);
 
+static void list_window_adjust_columns(void *data, wimp_i group, int width);
 static void list_window_adjust_sort_icon(struct list_window *instance);
 static void list_window_adjust_sort_icon_data(struct list_window *instance, wimp_icon *icon);
 static void list_window_set_extent(struct list_window *instance);
@@ -622,14 +623,97 @@ static void list_window_close_handler(wimp_close *close)
 
 }
 
+
+/**
+ * Handle click events on List Windows.
+ * 
+ * \param *pointer		The Wimp Click data block.
+ */
+
 static void list_window_click_handler(wimp_pointer *pointer)
 {
+	struct list_window	*instance;
+	int			line, index;
+	wimp_window_state	window;
 
+	instance = event_get_window_user_data(pointer->w);
+	if (instance == NULL || instance->parent == NULL)
+		return;
+
+	/* Find the window type and get the line clicked on. */
+
+	window.w = pointer->w;
+	wimp_get_window_state(&window);
+
+	line = window_calculate_click_row(&(pointer->pos), &window, instance->parent->definition->toolbar_height, instance->display_lines);
+
+	if (line == -1)
+		return;
+
+	index = instance->line_data[line].index;
+
+	/* Call the client's callback. */
+
+	if (instance->parent->definition->callback_window_click_handler != NULL)
+		instance->parent->definition->callback_window_click_handler(pointer, index, instance->file, instance->client_data);
 }
+
+
+/**
+ * Handle click events on List Toolbar Panes.
+ * 
+ * \param *pointer		The Wimp Click data block.
+ */
 
 static void list_window_pane_click_handler(wimp_pointer *pointer)
 {
+	struct list_window	*instance;
+	wimp_window_state	window;
+	wimp_icon_state		icon;
+	int			ox;
+	enum sort_type		sort_order;
 
+	instance = event_get_window_user_data(pointer->w);
+	if (instance == NULL || instance->parent == NULL)
+		return;
+
+	/* If the click was on the sort indicator arrow, change the icon to be the icon below it. */
+
+	column_update_heading_icon_click(instance->columns, pointer);
+
+	/* Process toolbar clicks and column heading drags. */
+
+	if (pointer->buttons == wimp_CLICK_SELECT || pointer->buttons == wimp_CLICK_ADJUST) {
+		if ((instance->parent->definition->callback_pane_click_handler != NULL) &&
+				(pointer->i != wimp_ICON_WINDOW))
+			instance->parent->definition->callback_pane_click_handler(pointer, instance->file, instance->client_data);
+	} else if ((pointer->buttons == wimp_CLICK_SELECT * 256 || pointer->buttons == wimp_CLICK_ADJUST * 256) &&
+			pointer->i != wimp_ICON_WINDOW) {
+		window.w = pointer->w;
+		wimp_get_window_state(&window);
+
+		ox = window.visible.x0 - window.xscroll;
+
+		icon.w = pointer->w;
+		icon.i = pointer->i;
+		wimp_get_icon_state(&icon);
+
+		if (pointer->pos.x < (ox + icon.icon.extent.x1 - COLUMN_DRAG_HOTSPOT)) {
+			sort_order = column_get_sort_type_from_heading(instance->columns, pointer->i);
+
+			if (sort_order != SORT_NONE) {
+				sort_order |= (pointer->buttons == wimp_CLICK_SELECT * 256) ? SORT_ASCENDING : SORT_DESCENDING;
+
+				sort_set_order(instance->sort, sort_order);
+				list_window_adjust_sort_icon(instance);
+				windows_redraw(instance->toolbar);
+	//			list_window_sort(instance);
+			}
+		}
+	} else if (pointer->buttons == wimp_DRAG_SELECT && column_is_heading_draggable(instance->columns, pointer->i)) {
+		column_set_minimum_widths(instance->columns, instance->parent->definition->column_limits);
+		column_start_drag(instance->columns, pointer, instance, instance->toolbar, list_window_adjust_columns);
+	}
 }
 
 static void list_window_scroll_handler(wimp_scroll *scroll)
@@ -699,6 +783,10 @@ static void list_window_redraw_handler(wimp_draw *redraw)
 	}
 }
 
+
+
+
+
 static void list_window_decode_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons)
 {
 
@@ -725,6 +813,54 @@ static void list_window_menu_close_handler(wimp_w w, wimp_menu *menu)
 }
 
 
+/**
+ * Callback handler for completing the drag of a column heading.
+ *
+ * \param *data			The window block for the origin of the drag.
+ * \param group			The column group which has been dragged.
+ * \param width			The new width for the group.
+ */
+
+static void list_window_adjust_columns(void *data, wimp_i group, int width)
+{
+	struct list_window	*instance = data;
+	int			new_extent;
+	wimp_window_info	window;
+
+	if (instance == NULL || instance->parent == NULL)
+		return;
+
+	columns_update_dragged(instance->columns, instance->toolbar, NULL, group, width);
+
+	new_extent = column_get_window_width(instance->columns);
+
+	list_window_adjust_sort_icon(instance);
+
+	/* Replace the edit line to force a redraw and redraw the rest of the window. */
+
+	windows_redraw(instance->window);
+
+	if (instance->toolbar != NULL)
+		windows_redraw(instance->toolbar);
+
+	/* Set the horizontal extent of the window and pane. */
+
+	if (instance->toolbar != NULL) {
+		window.w = instance->toolbar;
+		wimp_get_window_info_header_only(&window);
+		window.extent.x1 = window.extent.x0 + new_extent;
+		wimp_set_extent(window.w, &(window.extent));
+	}
+
+	window.w = instance->window;
+	wimp_get_window_info_header_only(&window);
+	window.extent.x1 = window.extent.x0 + new_extent;
+	wimp_set_extent(window.w, &(window.extent));
+
+	windows_open(window.w);
+
+	file_set_data_integrity(instance->file, TRUE);
+}
 
 
 /**

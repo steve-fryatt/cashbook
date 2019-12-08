@@ -146,9 +146,9 @@ struct list_window_definition {
 
 	void		(*callback_window_close_handler)(void *data);
 
-	void		(*callback_window_click_handler)(wimp_pointer *pointer);
+	void		(*callback_window_click_handler)(wimp_pointer *pointer, int index, struct file_block *file, void *data);
 
-	void		(*callback_pane_click_handler)(wimp_pointer *pointer);
+	void		(*callback_pane_click_handler)(wimp_pointer *pointer, struct file_block *file, void *data);
 
 	void		(*callback_redraw_handler)(int index, struct file_block *file, void *data);
 

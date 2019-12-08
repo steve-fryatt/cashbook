@@ -150,7 +150,7 @@ struct list_window_definition {
 
 	void		(*callback_pane_click_handler)(wimp_pointer *pointer);
 
-	void		(*callback_redraw_handler)(wimp_draw *redraw, void *data);
+	void		(*callback_redraw_handler)(int index, struct file_block *file, void *data);
 
 	void		(*callback_scroll_handler)(wimp_scroll *scroll);
 
@@ -188,7 +188,6 @@ struct list_window_block *list_window_create(struct list_window_definition *defi
  */
 struct list_window *list_window_create_instance(struct list_window_block *parent, struct file_block *file, void *data);
 
-osbool list_window_open(struct list_window *instance);
 
 /**
  * Delete a List Window instance.
@@ -198,7 +197,71 @@ osbool list_window_open(struct list_window *instance);
 void list_window_delete_instance(struct list_window *instance);
 
 
+/**
+ * Force complete redraw operations for all of the list window
+ * instances belonging to a file.
+ * 
+ * \param *file			The file to be redrawn.
+ */
 
+void list_window_redraw_file(struct file_block *file);
+
+
+/**
+ * Rebuild the titles of all list window instances beloinging
+ * to a file.
+ * 
+ * \param *file			The file to be updated.
+ */
+
+void list_window_rebuild_file_titles(struct file_block *file);
+
+
+/**
+ * Create and open a List window for the given instance.
+ *
+ * \param *instance		The instance to open a window for.
+ * \return			TRUE if successful; FALSE on failure.
+ */
+
+osbool list_window_open(struct list_window *instance);
+
+
+/**
+ * Initialise the contents of the list window, creating an entry for
+ * each of the required entries.
+ *
+ * \param *instance		The list window instance to initialise.
+ * \param entries		The number of entries to insert.
+ * \return			TRUE on success; FALSE on failure.
+ */
+
+osbool list_window_initialise_entries(struct list_window *instance, int entries);
+
+
+/**
+ * Add a new entry to a list window instance.
+ *
+ * \param *instance		The list window instance to add to.
+ * \param entry			The index to add.
+ * \param sort			TRUE to sort the entries after addition; otherwsie FALSE.
+ * \return			TRUE on success; FALSE on failure.
+ */
+
+osbool list_window_add_entry(struct list_window *instance, int entry, osbool sort);
+
+
+/**
+ * Remove an entry from a list window instance, and update the other entries to
+ * allow for its deletion.
+ *
+ * \param *instance		The list window instance to remove from.
+ * \param entry			The entry index to remove.
+ * \param sort			TRUE to sort the entries after deletion; otherwsie FALSE.
+ * \return			TRUE on success; FALSE on failure.
+ */
+
+osbool list_window_delete_entry(struct list_window *instance, int entry, osbool sort);
 
 
 

@@ -83,6 +83,7 @@
 #include "file.h"
 #include "import_dialogue.h"
 #include "interest.h"
+#include "list_window.h"
 #include "preset.h"
 #include "report.h"
 #include "sorder.h"
@@ -357,8 +358,8 @@ void filing_save_cashbook_file(struct file_block *file, char *filename)
 	transact_build_window_title(file);
 	account_build_window_titles(file);
 	sorder_build_window_title(file);
-	preset_build_window_title(file);
 	interest_build_window_title(file);
+	list_window_rebuild_file_titles(file);
 
 	hourglass_off();
 }
@@ -434,9 +435,9 @@ void filing_import_csv_file(struct file_block *file, char *filename)
 
 			rec_from = (strchr(ident, '#') > 0) ? TRANS_REC_FROM : TRANS_FLAGS_NONE;
 
-			name = ident + strcspn(ident, "#:è");
+			name = ident + strcspn(ident, "#:ÔøΩ");
 			*name++ = '\0';
-			while (strchr("#:è", *name))
+			while (strchr("#:ÔøΩ", *name))
 				name++;
 
 			if (*ident == '\0') {
@@ -458,9 +459,9 @@ void filing_import_csv_file(struct file_block *file, char *filename)
 
 			rec_to = (strchr(ident, '#') > 0) ? TRANS_REC_TO : TRANS_FLAGS_NONE;
 
-			name = ident + strcspn(ident, "#:è");
+			name = ident + strcspn(ident, "#:ÔøΩ");
 			*name++ = '\0';
-			while (strchr("#:è", *name))
+			while (strchr("#:ÔøΩ", *name))
 				name++;
 
 			if (*ident == '\0') {

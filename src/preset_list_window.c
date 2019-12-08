@@ -342,11 +342,8 @@ static void preset_list_window_menu_selection_handler(wimp_w w, wimp_menu *menu,
 static void preset_list_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning);
 static void preset_list_window_menu_close_handler(wimp_w w, wimp_menu *menu);
 static void preset_list_window_scroll_handler(wimp_scroll *scroll);
-static void preset_list_window_redraw_handler(wimp_draw *redraw, void *data);
+static void preset_list_window_redraw_handler(int index, struct file_block *file, void *data);
 static void preset_list_window_adjust_columns(void *data, wimp_i group, int width);
-static void preset_list_window_adjust_sort_icon(struct preset_list_window *windat);
-static void preset_list_window_adjust_sort_icon_data(struct preset_list_window *windat, wimp_icon *icon);
-static void preset_list_window_set_extent(struct preset_list_window *windat);
 static void preset_list_window_force_redraw(struct preset_list_window *windat, int from, int to, wimp_i column);
 static void preset_list_window_decode_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
 static int preset_list_window_get_line_from_preset(struct preset_list_window *windat, preset_t preset);
@@ -378,6 +375,7 @@ void preset_list_window_initialise(osspriteop_area *sprites)
 	wimp_w sort_window;
 
 	preset_list_window_definition.callback_window_close_handler = preset_list_window_delete;
+	preset_list_window_definition.callback_redraw_handler = preset_list_window_redraw_handler;
 
 	sort_window = templates_create_window("SortPreset");
 	ihelp_add_window(sort_window, "SortPreset", NULL);
@@ -431,32 +429,6 @@ struct preset_list_window *preset_list_window_create_instance(struct preset_bloc
 		return NULL;
 	}
 
-	/* Initialise the window columns. */
-
-//	new-> columns = column_create_instance(PRESET_LIST_WINDOW_COLUMNS, preset_list_window_columns, NULL, PRESET_LIST_WINDOW_PANE_SORT_DIR_ICON);
-//	if (new->columns == NULL) {
-//		preset_list_window_delete_instance(new);
-//		return NULL;
-//	}
-
-//	column_set_minimum_widths(new->columns, config_str_read("LimPresetCols"));
-//	column_init_window(new->columns, 0, FALSE, config_str_read("PresetCols"));
-
-	/* Initialise the window sort. */
-
-	new->sort = sort_create_instance(SORT_CHAR | SORT_ASCENDING, SORT_NONE, &preset_list_window_sort_callbacks, new);
-	if (new->sort == NULL) {
-		preset_list_window_delete_instance(new);
-		return NULL;
-	}
-
-	/* Set the initial lines up */
-
-	if (!flexutils_initialise((void **) &(new->line_data))) {
-		preset_list_window_delete_instance(new);
-		return NULL;
-	}
-
 	return new;
 }
 
@@ -472,15 +444,7 @@ void preset_list_window_delete_instance(struct preset_list_window *windat)
 	if (windat == NULL)
 		return;
 
-	if (windat->line_data != NULL)
-		flexutils_free((void **) &(windat->line_data));
-
-//	column_delete_instance(windat->columns);
-	sort_delete_instance(windat->sort);
-
 	list_window_delete_instance(windat->window);
-
-	preset_list_window_delete(windat);
 
 	heap_free(windat);
 }
@@ -805,104 +769,45 @@ static void preset_list_window_scroll_handler(wimp_scroll *scroll)
  * \param *redraw		The draw event block to handle.
  */
 
-static void preset_list_window_redraw_handler(wimp_draw *redraw, void *data)
+static void preset_list_window_redraw_handler(int index, struct file_block *file, void *data)
 {
-	struct preset_list_window	*windat;
-	struct file_block		*file;
-	int				top, base, y, select;
-	acct_t				account;
-	enum transact_flags		flags;
-	preset_t			preset;
-	char				icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN]; /* Assumes descript is longest. */
-	osbool				more;
-	wimp_window			*window_def;
+	acct_t			account;
+	enum transact_flags	flags;
+	preset_t		preset = index;
 
-	windat = data;
-	if (windat == NULL || windat->instance == NULL || windat->columns == NULL)
-		return;
+	flags = preset_get_flags(file, preset);
 
-	file = preset_get_file(windat->instance);
-	if (file == NULL)
-		return;
+	/* Key field */
 
-	window_def = list_window_get_window_def(preset_list_window_block);
-	if (window_def == NULL)
-		return;
+	window_plot_char_field(PRESET_LIST_WINDOW_KEY, preset_get_action_key(file, preset), wimp_COLOUR_BLACK);
 
-	/* Identify if there is a selected line to highlight. */
+	/* Name field */
 
-	if (redraw->w == event_get_current_menu_window())
-		select = preset_list_window_menu_line;
-	else
-		select = -1;
+	window_plot_text_field(PRESET_LIST_WINDOW_NAME, preset_get_name(file, preset, NULL, 0), wimp_COLOUR_BLACK);
 
-	/* Set the horizontal positions of the icons. */
+	/* From field */
 
-	columns_place_table_icons_horizontally(windat->columns, window_def, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
+	account = preset_get_from(file, preset);
 
-	window_set_icon_templates(window_def);
+	window_plot_text_field(PRESET_LIST_WINDOW_FROM, account_get_ident(file, account), wimp_COLOUR_BLACK);
+	window_plot_reconciled_field(PRESET_LIST_WINDOW_FROM_REC, (flags & TRANS_REC_FROM), wimp_COLOUR_BLACK);
+	window_plot_text_field(PRESET_LIST_WINDOW_FROM_NAME, account_get_name(file, account), wimp_COLOUR_BLACK);
 
-	/* Perform the redraw. */
+	/* To field */
 
-	more = wimp_redraw_window(redraw);
+	account = preset_get_to(file, preset);
 
-	while (more) {
-		window_plot_background(redraw, PRESET_LIST_WINDOW_TOOLBAR_HEIGHT, wimp_COLOUR_WHITE, select, &top, &base);
+	window_plot_text_field(PRESET_LIST_WINDOW_TO, account_get_ident(file, account), wimp_COLOUR_BLACK);
+	window_plot_reconciled_field(PRESET_LIST_WINDOW_TO_REC, (flags & TRANS_REC_TO), wimp_COLOUR_BLACK);
+	window_plot_text_field(PRESET_LIST_WINDOW_TO_NAME, account_get_name(file, account), wimp_COLOUR_BLACK);
 
-		/* Redraw the data into the window. */
+	/* Amount field */
 
-		for (y = top; y <= base; y++) {
-			preset = (y < windat->display_lines) ? windat->line_data[y].preset : 0;
+	window_plot_currency_field(PRESET_LIST_WINDOW_AMOUNT, preset_get_amount(file, preset), wimp_COLOUR_BLACK);
 
-			/* Place the icons in the current row. */
+	/* Description field */
 
-			columns_place_table_icons_vertically(windat->columns, window_def,
-					WINDOW_ROW_Y0(PRESET_LIST_WINDOW_TOOLBAR_HEIGHT, y), WINDOW_ROW_Y1(PRESET_LIST_WINDOW_TOOLBAR_HEIGHT, y));
-
-			/* If we're off the end of the data, plot a blank line and continue. */
-
-			if (y >= windat->display_lines) {
-				columns_plot_empty_table_icons(windat->columns);
-				continue;
-			}
-
-			flags = preset_get_flags(file, preset);
-
-			/* Key field */
-
-			window_plot_char_field(PRESET_LIST_WINDOW_KEY, preset_get_action_key(file, preset), wimp_COLOUR_BLACK);
-
-			/* Name field */
-
-			window_plot_text_field(PRESET_LIST_WINDOW_NAME, preset_get_name(file, preset, NULL, 0), wimp_COLOUR_BLACK);
-
-			/* From field */
-
-			account = preset_get_from(file, preset);
-
-			window_plot_text_field(PRESET_LIST_WINDOW_FROM, account_get_ident(file, account), wimp_COLOUR_BLACK);
-			window_plot_reconciled_field(PRESET_LIST_WINDOW_FROM_REC, (flags & TRANS_REC_FROM), wimp_COLOUR_BLACK);
-			window_plot_text_field(PRESET_LIST_WINDOW_FROM_NAME, account_get_name(file, account), wimp_COLOUR_BLACK);
-
-			/* To field */
-
-			account = preset_get_to(file, preset);
-
-			window_plot_text_field(PRESET_LIST_WINDOW_TO, account_get_ident(file, account), wimp_COLOUR_BLACK);
-			window_plot_reconciled_field(PRESET_LIST_WINDOW_TO_REC, (flags & TRANS_REC_TO), wimp_COLOUR_BLACK);
-			window_plot_text_field(PRESET_LIST_WINDOW_TO_NAME, account_get_name(file, account), wimp_COLOUR_BLACK);
-
-			/* Amount field */
-
-			window_plot_currency_field(PRESET_LIST_WINDOW_AMOUNT, preset_get_amount(file, preset), wimp_COLOUR_BLACK);
-
-			/* Description field */
-
-			window_plot_text_field(PRESET_LIST_WINDOW_DESCRIPTION, preset_get_description(file, preset, NULL, 0), wimp_COLOUR_BLACK);
-		}
-
-		more = wimp_get_rectangle(redraw);
-	}
+	window_plot_text_field(PRESET_LIST_WINDOW_DESCRIPTION, preset_get_description(file, preset, NULL, 0), wimp_COLOUR_BLACK);
 }
 
 /**
@@ -953,75 +858,6 @@ static void preset_list_window_adjust_columns(void *data, wimp_i group, int widt
 	windows_open(window.w);
 
 	file_set_data_integrity(file, TRUE);
-}
-
-
-/**
- * Adjust the sort icon in a preset window, to reflect the current column
- * heading positions.
- *
- * \param *windat		The window to be updated.
- */
-
-static void preset_list_window_adjust_sort_icon(struct preset_list_window *windat)
-{
-	wimp_icon_state		icon;
-
-	if (windat == NULL)
-		return;
-
-	icon.w = windat->preset_pane;
-	icon.i = PRESET_LIST_WINDOW_PANE_SORT_DIR_ICON;
-	wimp_get_icon_state(&icon);
-
-	preset_list_window_adjust_sort_icon_data(windat, &(icon.icon));
-
-	wimp_resize_icon(icon.w, icon.i, icon.icon.extent.x0, icon.icon.extent.y0,
-			icon.icon.extent.x1, icon.icon.extent.y1);
-}
-
-
-/**
- * Adjust an icon definition to match the current preset sort settings.
- *
- * \param *file			The preset window to be updated.
- * \param *icon			The icon to be updated.
- */
-
-static void preset_list_window_adjust_sort_icon_data(struct preset_list_window *windat, wimp_icon *icon)
-{
-	enum sort_type	sort_order;
-	wimp_window	*window_pane_def;
-
-	if (windat == NULL)
-		return;
-
-	window_pane_def = list_window_get_toolbar_def(preset_list_window_block);
-	if (window_pane_def == NULL)
-		return;
-
-	sort_order = sort_get_order(windat->sort);
-
-	column_update_sort_indicator(windat->columns, icon, window_pane_def, sort_order);
-}
-
-/**
- * Set the extent of the preset window for the specified file.
- *
- * \param *windat		The preset window to update.
- */
-
-static void preset_list_window_set_extent(struct preset_list_window *windat)
-{
-	int	lines;
-
-
-	if (windat == NULL || windat->preset_window == NULL)
-		return;
-
-	lines = (windat->display_lines > PRESET_LIST_WINDOW_MIN_ENTRIES) ? windat->display_lines : PRESET_LIST_WINDOW_MIN_ENTRIES;
-
-	window_set_extent(windat->preset_window, lines, PRESET_LIST_WINDOW_TOOLBAR_HEIGHT, column_get_window_width(windat->columns));
 }
 
 
@@ -1208,7 +1044,7 @@ static osbool preset_list_window_process_sort_window(enum sort_type order, void 
 
 	sort_set_order(windat->sort, order);
 
-	preset_list_window_adjust_sort_icon(windat);
+//	preset_list_window_adjust_sort_icon(windat);
 	windows_redraw(windat->preset_pane);
 	preset_list_window_sort(windat);
 
@@ -1474,26 +1310,10 @@ static void preset_list_window_sort_swap(int index1, int index2, void *data)
 
 osbool preset_list_window_initialise_entries(struct preset_list_window *windat, int presets)
 {
-	int i;
-
-	if (windat == NULL || windat->line_data == NULL)
+	if (windat == NULL)
 		return FALSE;
 
-	/* Extend the index array. */
-
-	if (!flexutils_resize((void **) &(windat->line_data), sizeof(struct preset_list_window_redraw), presets))
-		return FALSE;
-
-	windat->display_lines = presets;
-
-	/* Initialise and sort the entries. */
-
-	for (i = 0; i < presets; i++)
-		windat->line_data[i].preset = i;
-
-	preset_list_window_sort(windat);
-
-	return TRUE;
+	return list_window_initialise_entries(windat->window, presets);
 }
 
 
@@ -1507,28 +1327,10 @@ osbool preset_list_window_initialise_entries(struct preset_list_window *windat, 
 
 osbool preset_list_window_add_preset(struct preset_list_window *windat, preset_t preset)
 {
-	if (windat == NULL || windat->line_data == NULL)
+	if (windat == NULL)
 		return FALSE;
 
-	/* Extend the index array. */
-
-	if (!flexutils_resize((void **) &(windat->line_data), sizeof(struct preset_list_window_redraw), windat->display_lines + 1))
-		return FALSE;
-
-	windat->display_lines++;
-
-	/* Add the new entry, expand the window and sort the entries. */
-
-	windat->line_data[windat->display_lines - 1].preset = preset;
-
-	preset_list_window_set_extent(windat);
-
-	if (config_opt_read("AutoSortPresets"))
-		preset_list_window_sort(windat);
-	else
-		preset_list_window_force_redraw(windat, windat->display_lines - 1, windat->display_lines - 1, wimp_ICON_WINDOW);
-
-	return TRUE;
+	return list_window_add_entry(windat->window, preset, config_opt_read("AutoSortPresets"));
 }
 
 
@@ -1543,39 +1345,10 @@ osbool preset_list_window_add_preset(struct preset_list_window *windat, preset_t
 
 osbool preset_list_window_delete_preset(struct preset_list_window *windat, preset_t preset)
 {
-	int i = 0, delete = -1;
-
-	if (windat == NULL || windat->line_data == NULL)
+	if (windat == NULL)
 		return FALSE;
 
-	/* Find the preset, and decrement any index entries above it. */
-
-	for (i = 0; i < windat->display_lines; i++) {
-		if (windat->line_data[i].preset == preset)
-			delete = i;
-		else if (windat->line_data[i].preset > preset)
-			windat->line_data[i].preset--;
-	}
-
-	/* Delete the index entry. */
-
-	if (delete >= 0 && !flexutils_delete_object((void **) &(windat->line_data), sizeof(struct preset_list_window_redraw), delete))
-		return FALSE;
-
-	windat->display_lines--;
-
-	/* Update the preset window. */
-
-	preset_list_window_set_extent(windat);
-
-	windows_open(windat->preset_window);
-
-	if (config_opt_read("AutoSortPresets"))
-		preset_list_window_sort(windat);
-	else
-		preset_list_window_force_redraw(windat, delete, windat->display_lines, wimp_ICON_WINDOW);
-
-	return TRUE;
+	return list_window_delete_entry(windat->window, preset, config_opt_read("AutoSortPresets"));
 }
 
 

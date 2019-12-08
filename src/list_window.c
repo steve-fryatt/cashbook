@@ -63,6 +63,7 @@
 #include "global.h"
 #include "list_window.h"
 
+#include "flexutils.h"
 #include "window.h"
 
 /**
@@ -89,6 +90,23 @@ struct list_window_block {
 	 * The definition for the footer pane.
 	 */
 	wimp_window			*footer_def;
+
+	/**
+	 * The Preset List Window Sort callbacks.
+	 */
+
+	struct sort_callback		sort_callbacks;
+};
+
+/**
+ * List Window line redraw data.
+ */
+
+struct list_window_redraw {
+	/**
+	 * The index into the client data for a given line.
+	 */
+	int				index;
 };
 
 /**
@@ -137,6 +155,11 @@ struct list_window {
 	struct column_block		*columns;
 
 	/**
+	 * Instance handle for the window's sort code.
+	 */
+	struct sort_block		*sort;
+
+	/**
 	 * Indirected text data for the sort sprite icon.
 	 */
 	char				sort_sprite[COLUMN_SORT_SPRITE_LEN];
@@ -145,7 +168,23 @@ struct list_window {
 	 * Count of the number of populated display lines in the window.
 	 */
 	int				display_lines;
+
+	/**
+	 * Flex array holding the line data for the window.
+	 */
+	struct list_window_redraw	*line_data;
+
+	/**
+	 * Pointer to the next list window instance in the list.
+	 */
+	struct list_window		*next;
 };
+
+/**
+ * Linked list of dialogue instances.
+ */
+
+static struct list_window *instance_list = NULL;
 
 /* Static Function Prototypes. */
 
@@ -160,8 +199,17 @@ static void list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_poi
 static void list_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection);
 static void list_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning);
 static void list_window_menu_close_handler(wimp_w w, wimp_menu *menu);
+
+static void list_window_adjust_sort_icon(struct list_window *instance);
+static void list_window_adjust_sort_icon_data(struct list_window *instance, wimp_icon *icon);
+static void list_window_set_extent(struct list_window *instance);
 static void list_window_build_title(struct list_window *instance);
 
+
+void list_window_initialise(void)
+{
+
+}
 
 /**
  * Create a new list window template block, and load the window template
@@ -189,7 +237,6 @@ struct list_window_block *list_window_create(struct list_window_definition *defi
 
 	if (definition->main_template_name != NULL) {
 		block->window_def = templates_load_window(definition->main_template_name);
-		block->window_def->flags |= wimp_WINDOW_AUTO_REDRAW; // TODO -- Stop the need for the redraw handler to work!
 		block->window_def->icon_count = 0;
 	} else {
 		block->window_def = NULL;
@@ -211,6 +258,11 @@ struct list_window_block *list_window_create(struct list_window_definition *defi
 	} else {
 		block->footer_def = NULL;
 	}
+
+	/* Set up the sort callbacks. */
+
+	block->sort_callbacks.compare = NULL;
+	block->sort_callbacks.swap = NULL;
 
 	return block;
 }
@@ -236,12 +288,16 @@ struct list_window *list_window_create_instance(struct list_window_block *parent
 	new->parent = parent;
 	new->file = file;
 	new->client_data = data;
+	new->next = NULL;
 
 	new->window = NULL;
 	new->toolbar = NULL;
 	new->footer = NULL;
 	new->columns = NULL;
+	new->sort = NULL;
+
 	new->display_lines = 0;
+	new->line_data = NULL;
 
 	/* Initialise the window columns. */
 
@@ -255,6 +311,26 @@ struct list_window *list_window_create_instance(struct list_window_block *parent
 	column_set_minimum_widths(new->columns, parent->definition->column_limits);
 	column_init_window(new->columns, 0, FALSE, parent->definition->column_widths);
 
+	/* Initialise the window sort. */
+
+	new->sort = sort_create_instance(SORT_CHAR | SORT_ASCENDING, SORT_NONE, &(parent->sort_callbacks), new);
+	if (new->sort == NULL) {
+		preset_list_window_delete_instance(new);
+		return NULL;
+	}
+
+	/* Set the initial line data block up */
+
+	if (!flexutils_initialise((void **) &(new->line_data))) {
+		list_window_delete_instance(new);
+		return NULL;
+	}
+
+	/* Link the instance in to the linked list. */
+
+	new->next = instance_list;
+	instance_list = new;
+
 	return new;
 }
 
@@ -267,12 +343,69 @@ struct list_window *list_window_create_instance(struct list_window_block *parent
 
 void list_window_delete_instance(struct list_window *instance)
 {
+	struct list_window **list;
+
 	if (instance == NULL)
 		return;
 
+	list_window_delete_instance(instance);
+
 	column_delete_instance(instance->columns);
+	sort_delete_instance(instance->sort);
+
+	/* De-link the instance from the list of instances. */
+
+	list = &instance_list;
+
+	while (*list != NULL && *list != instance)
+		list = &((*list)->next);
+	
+	if (*list != NULL)
+		*list = instance->next;
+
+	/* Delete the instance memory. */
 
 	heap_free(instance);
+}
+
+
+/**
+ * Force complete redraw operations for all of the list window
+ * instances belonging to a file.
+ * 
+ * \param *file			The file to be redrawn.
+ */
+
+void list_window_redraw_file(struct file_block *file)
+{
+	struct list_window *list = instance_list;
+
+	while (list != NULL) {
+	//	if (list->file == file)
+	//		list_window_re()
+
+		list = list->next;
+	}
+}
+
+
+/**
+ * Rebuild the titles of all list window instances beloinging
+ * to a file.
+ * 
+ * \param *file			The file to be updated.
+ */
+
+void list_window_rebuild_file_titles(struct file_block *file)
+{
+	struct list_window *list = instance_list;
+
+	while (list != NULL) {
+		if (list->file == file)
+			list_window_build_title(list);
+
+		list = list->next;
+	}
 }
 
 
@@ -343,7 +476,7 @@ osbool list_window_open(struct list_window *instance)
 				instance->parent->toolbar_def->sprite_area;
 		instance->parent->toolbar_def->icons[instance->parent->definition->sort_dir_icon].data.indirected_sprite.size = COLUMN_SORT_SPRITE_LEN;
 
-//		preset_list_window_adjust_sort_icon_data(windat, &(instance->parent->toolbar_def->icons[instance->parent->definition->sort_dir_icon]));
+		list_window_adjust_sort_icon_data(instance, &(instance->parent->toolbar_def->icons[instance->parent->definition->sort_dir_icon]));
 
 		#ifdef DEBUG
 		debug_printf ("Toolbar icons adjusted...");
@@ -503,16 +636,64 @@ static void list_window_scroll_handler(wimp_scroll *scroll)
 
 static void list_window_redraw_handler(wimp_draw *redraw)
 {
-	struct list_window *instance;
+	struct list_window	*instance;
+	int			top, base, y, select, index;
+	char			icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN]; /* Assumes descript is longest. */
+	osbool			more;
+	wimp_window		*window_def;
 
 	instance = event_get_window_user_data(redraw->w);
-
-	debug_printf("Starting redraw handler: 0x%x", instance);
-
-	if (instance == NULL || instance->parent->definition->callback_redraw_handler == NULL)
+	if (instance == NULL || instance->parent == NULL)
 		return;
 
-	instance->parent->definition->callback_redraw_handler(redraw, instance->client_data);
+	window_def = instance->parent->window_def;
+	if (window_def == NULL)
+		return;
+
+	/* Identify if there is a selected line to highlight. */
+
+//	if (redraw->w == event_get_current_menu_window())
+//		select = preset_list_window_menu_line;
+//	else
+		select = -1;
+
+	/* Set the horizontal positions of the icons. */
+
+	columns_place_table_icons_horizontally(instance->columns, window_def, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
+
+	window_set_icon_templates(window_def);
+
+	/* Perform the redraw. */
+
+	more = wimp_redraw_window(redraw);
+
+	while (more) {
+		window_plot_background(redraw, instance->parent->definition->toolbar_height, wimp_COLOUR_WHITE, select, &top, &base);
+
+		/* Redraw the data into the window. */
+
+		for (y = top; y <= base; y++) {
+			index = (y < instance->display_lines) ? instance->line_data[y].index : 0;
+
+			/* Place the icons in the current row. */
+
+			columns_place_table_icons_vertically(instance->columns, window_def,
+					WINDOW_ROW_Y0(instance->parent->definition->toolbar_height, y),
+					WINDOW_ROW_Y1(instance->parent->definition->toolbar_height, y));
+
+			/* If we're off the end of the data, plot a blank line and continue. */
+
+			if (y >= instance->display_lines) {
+				columns_plot_empty_table_icons(instance->columns);
+				continue;
+			}
+
+			if (instance->parent->definition->callback_redraw_handler != NULL)
+				instance->parent->definition->callback_redraw_handler(index, instance->file, instance->client_data);
+		}
+
+		more = wimp_get_rectangle(redraw);
+	}
 }
 
 static void list_window_decode_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons)
@@ -544,9 +725,76 @@ static void list_window_menu_close_handler(wimp_w w, wimp_menu *menu)
 
 
 /**
- * Recreate the title of the given List window.
+ * Adjust the sort icon in a list window, to reflect the current column
+ * heading positions.
  *
- * \param *instance		The window to rebuild the title for.
+ * \param *instance		The window instance to be updated.
+ */
+
+static void list_window_adjust_sort_icon(struct list_window *instance)
+{
+	wimp_icon_state		icon;
+
+	if (instance == NULL || instance->parent == NULL ||
+			instance->parent->definition == NULL || instance->toolbar == NULL)
+		return;
+
+	icon.w = instance->toolbar;
+	icon.i = instance->parent->definition->sort_dir_icon;
+	wimp_get_icon_state(&icon);
+
+	list_window_adjust_sort_icon_data(instance, &(icon.icon));
+
+	wimp_resize_icon(icon.w, icon.i, icon.icon.extent.x0, icon.icon.extent.y0,
+			icon.icon.extent.x1, icon.icon.extent.y1);
+}
+
+
+/**
+ * Adjust an icon definition to match the current preset sort settings.
+ *
+ * \param *file			The preset window to be updated.
+ * \param *icon			The icon to be updated.
+ */
+
+static void list_window_adjust_sort_icon_data(struct list_window *instance, wimp_icon *icon)
+{
+	enum sort_type	sort_order;
+
+	if (instance == NULL || instance->parent == NULL || instance->parent->toolbar_def == NULL)
+		return;
+
+	sort_order = sort_get_order(instance->sort);
+
+	column_update_sort_indicator(instance->columns, icon, instance->parent->toolbar_def, sort_order);
+}
+
+
+/**
+ * Set the extent of the list window for the specified instance.
+ *
+ * \param *instance		The list window to update.
+ */
+
+static void list_window_set_extent(struct list_window *instance)
+{
+	int	lines;
+
+	if (instance == NULL || instance->parent == NULL || instance->window == NULL)
+		return;
+
+	lines = (instance->display_lines > instance->parent->definition->minimum_entries) ?
+			instance->display_lines : instance->parent->definition->minimum_entries;
+
+	window_set_extent(instance->window, lines, instance->parent->definition->toolbar_height,
+			column_get_window_width(instance->columns));
+}
+
+
+/**
+ * Recreate the title of the given list window.
+ *
+ * \param *instance		The list window to rebuild the title for.
  */
 
 static void list_window_build_title(struct list_window *instance)
@@ -564,6 +812,138 @@ static void list_window_build_title(struct list_window *instance)
 	if (instance->window != NULL)
 		wimp_force_redraw_title(instance->window);
 }
+
+
+
+
+
+
+
+
+
+/**
+ * Initialise the contents of the list window, creating an entry for
+ * each of the required entries.
+ *
+ * \param *instance		The list window instance to initialise.
+ * \param entries		The number of entries to insert.
+ * \return			TRUE on success; FALSE on failure.
+ */
+
+osbool list_window_initialise_entries(struct list_window *instance, int entries)
+{
+	int i;
+
+	if (instance == NULL || instance->line_data == NULL)
+		return FALSE;
+
+	/* Extend the index array. */
+
+	if (!flexutils_resize((void **) &(instance->line_data), sizeof(struct list_window_redraw), entries))
+		return FALSE;
+
+	instance->display_lines = entries;
+
+	/* Initialise and sort the entries. */
+
+	for (i = 0; i < entries; i++)
+		instance->line_data[i].index = i;
+
+//	preset_list_window_sort(windat);
+
+	return TRUE;
+}
+
+
+/**
+ * Add a new entry to a list window instance.
+ *
+ * \param *instance		The list window instance to add to.
+ * \param entry			The index to add.
+ * \param sort			TRUE to sort the entries after addition; otherwsie FALSE.
+ * \return			TRUE on success; FALSE on failure.
+ */
+
+osbool list_window_add_entry(struct list_window *instance, int entry, osbool sort)
+{
+	if (instance == NULL || instance->line_data == NULL)
+		return FALSE;
+
+	/* Extend the index array. */
+
+	if (!flexutils_resize((void **) &(instance->line_data), sizeof(struct list_window_redraw), instance->display_lines + 1))
+		return FALSE;
+
+	instance->display_lines++;
+
+	/* Add the new entry, expand the window and sort the entries. */
+
+	instance->line_data[instance->display_lines - 1].index = entry;
+
+	list_window_set_extent(instance);
+
+//	if (sort)
+//		preset_list_window_sort(windat);
+//	else
+//		preset_list_window_force_redraw(windat, windat->display_lines - 1, windat->display_lines - 1, wimp_ICON_WINDOW);
+
+	return TRUE;
+}
+
+
+/**
+ * Remove an entry from a list window instance, and update the other entries to
+ * allow for its deletion.
+ *
+ * \param *instance		The list window instance to remove from.
+ * \param entry			The entry index to remove.
+ * \param sort			TRUE to sort the entries after deletion; otherwsie FALSE.
+ * \return			TRUE on success; FALSE on failure.
+ */
+
+osbool list_window_delete_entry(struct list_window *instance, int entry, osbool sort)
+{
+	int i = 0, delete = -1;
+
+	if (instance == NULL || instance->line_data == NULL)
+		return FALSE;
+
+	/* Find the preset, and decrement any index entries above it. */
+
+	for (i = 0; i < instance->display_lines; i++) {
+		if (instance->line_data[i].index == entry)
+			delete = i;
+		else if (instance->line_data[i].index > entry)
+			instance->line_data[i].index--;
+	}
+
+	/* Delete the index entry. */
+
+	if (delete >= 0 && !flexutils_delete_object((void **) &(instance->line_data), sizeof(struct list_window_redraw), delete))
+		return FALSE;
+
+	instance->display_lines--;
+
+	/* Update the preset window. */
+
+	list_window_set_extent(instance);
+
+	windows_open(instance->window);
+
+//	if (sort)
+//		preset_list_window_sort(windat);
+//	else
+//		preset_list_window_force_redraw(windat, delete, windat->display_lines, wimp_ICON_WINDOW);
+
+	return TRUE;
+}
+
+
+
+
+
+
+
 
 
 

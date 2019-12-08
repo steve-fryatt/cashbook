@@ -117,24 +117,6 @@ void preset_open_window(struct file_block *file);
 
 
 /**
- * Recreate the title of the Preset List window connected to the given file.
- *
- * \param *file			The file to rebuild the title for.
- */
-
-void preset_build_window_title(struct file_block *file);
-
-
-/**
- * Force the complete redraw of the Preset list window.
- *
- * \param *file			The file owning the window to redraw.
- */
-
-void preset_redraw_all(struct file_block *file);
-
-
-/**
  * Find the preset which corresponds to a display line in a preset
  * window.
  *

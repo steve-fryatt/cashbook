@@ -74,6 +74,7 @@
 #include "flexutils.h"
 #include "goto.h"
 #include "interest.h"
+#include "list_window.h"
 #include "preset.h"
 #include "print_dialogue.h"
 #include "purge.h"
@@ -654,11 +655,11 @@ int file_get_next_open_offset(struct file_block *file)
 
 void file_redraw_windows(struct file_block *file)
 {
+	list_window_redraw_file(file);
 	transact_redraw_all(file);
 	account_redraw_all(file);
 	accview_redraw_all(file);
 	sorder_redraw_all(file);
-	preset_redraw_all(file);
 	interest_redraw_all(file);
 	report_redraw_all(file);
 }

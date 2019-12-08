@@ -262,7 +262,7 @@ void column_set_minimum_widths(struct column_block *instance, char *widths)
  *
  * \param *instance		The columns instance to take the data.
  * \param start			The first column to read in from the string.
- * \param skip			TRUE to ignore missing entyries; FALSE to set to default.
+ * \param skip			TRUE to ignore missing entries; FALSE to set to default.
  * \param *widths		The width configuration string to process.
  */
 

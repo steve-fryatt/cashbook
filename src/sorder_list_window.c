@@ -210,13 +210,27 @@ static struct list_window_definition sorder_list_window_definition = {
 	sorder_list_window_columns,
 	NULL,
 	SORDER_LIST_WINDOW_COLUMNS,
-	SORDER_LIST_WINDOW_PANE_SORT_DIR_ICON,
 	"LimSOrderCols",
 	"SOrderCols",
-	"SOrder",
-	"SOrderTB",
+	SORDER_LIST_WINDOW_PANE_SORT_DIR_ICON,
+	sorder_list_window_sort_columns,
+	sorder_list_window_sort_directions,
+	"SOrderTitle",					/*<< Window Title token.		*/
+	"SOrder",					/**< Window Help token base.		*/
+	"SOrderTB",					/**< Window Toolbar help token base.	*/
+	NULL,						/**< Window Footer help token base.	*/
+	SORDER_LIST_WINDOW_MIN_ENTRIES,
+
 	NULL,
-	SORDER_LIST_WINDOW_MIN_ENTRIES
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL
 };
 
 /**

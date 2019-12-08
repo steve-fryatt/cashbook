@@ -288,13 +288,27 @@ static struct list_window_definition window_definition = {
 	transact_list_window_columns,
 	NULL,
 	TRANSACT_LIST_WINDOW_COLUMNS,
-	TRANSACT_LIST_WINDOW_PANE_SORT_DIR_ICON,
 	"LimTransactCols",
 	"TransacttCols",
-	"Transact",
-	"TransactTB",
+	TRANSACT_LIST_WINDOW_PANE_SORT_DIR_ICON,
+	transact_list_window_sort_columns,
+	transact_list_window_sort_directions,
+	NULL,						/*<< Window Title token.		*/
+	"Transact",					/**< Window Help token base.		*/
+	"TransactTB",					/**< Window Toolbar help token base.	*/
+	NULL,						/**< Window Footer help token base.	*/
+	TRANSACT_LIST_WINDOW_MIN_ENTRIES,
+
 	NULL,
-	TRANSACT_LIST_WINDOW_MIN_ENTRIES
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL
 };
 
 /**

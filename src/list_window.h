@@ -50,77 +50,92 @@ struct list_window_definition {
 	/**
 	 * The name of the template for the list window itself.
 	 */
-	char			*main_template_name;
+	char				*main_template_name;
 
 	/**
 	 * The name of the template for the toolbar pane.
 	 */
-	char			*toolbar_template_name;
+	char				*toolbar_template_name;
 
 	/**
 	 * The name of the template for the footer pane.
 	 */
-	char			*footer_template_name;
+	char				*footer_template_name;
 
 	/**
 	 * The height of the toolbar pane, in OS Units.
 	 */
-	int			toolbar_height;
+	int				toolbar_height;
 
 	/**
 	 * The height of the footer pane, in OS Units.
 	 */
-	int			footer_height;
+	int				footer_height;
 
 	/**
 	 * The window column map.
 	 */
-	struct column_map	*column_map;
+	struct column_map		*column_map;
 
 	/**
 	 * The window column extra data.
 	 */
-	struct column_extra	*column_extra;
+	struct column_extra		*column_extra;
 
 	/**
 	 * The number of columns in the window.
 	 */
-	int			column_count;
-
-	/**
-	 * The icon used to show the sort direction.
-	 */
-	wimp_i			sort_dir_icon;
+	int				column_count;
 
 	/**
 	 * The column limit settings token.
 	 */
-	char			*column_limits;
+	char				*column_limits;
 
 	/**
 	 * The column width settings token.
 	 */
-	char			*column_widths;
+	char				*column_widths;
+
+	/**
+	 * The icon used to show the sort direction.
+	 */
+	wimp_i				sort_dir_icon;
+
+	/**
+	 * The sort dialogue column icons.
+	 */
+	struct sort_dialogue_icon	*sort_columns;
+
+	/**
+	 * The sort dialogue direction icons.
+	 */
+	struct sort_dialogue_icon	*sort_directions;
+
+	/**
+	 * Token for the window title.
+	 */
+	char				*window_title;
 
 	/**
 	 * Base help token for the main window.
 	 */
-	char			*window_help;
+	char				*window_help;
 
 	/**
 	 * Base help token for the toolbar pane.
 	 */
-	char			*toolbar_help;
+	char				*toolbar_help;
 
 	/**
 	 * Base help token for the footer pane.
 	 */
-	char			*footer_help;
+	char				*footer_help;
 
 	/**
 	 * The minimum number of entries in the window.
 	 */
-	int			minimum_entries;
+	int				minimum_entries;
 
 
 	/**
@@ -129,11 +144,13 @@ struct list_window_definition {
 	 * windat pointer in.
 	 */
 
+	void		(*callback_window_close_handler)(void *data);
+
 	void		(*callback_window_click_handler)(wimp_pointer *pointer);
 
 	void		(*callback_pane_click_handler)(wimp_pointer *pointer);
 
-	void		(*callback_redraw_handler)(wimp_draw *redraw);
+	void		(*callback_redraw_handler)(wimp_draw *redraw, void *data);
 
 	void		(*callback_scroll_handler)(wimp_scroll *scroll);
 
@@ -165,10 +182,13 @@ struct list_window_block *list_window_create(struct list_window_definition *defi
  * Create a new List Window instance.
  *
  * \param *parent		The List Window to own the instance.
+ * \param *file			The file to which the instance belongs.
+ * \param *data			Data pointer to be passed to callback functions.
  * \return			Pointer to the new instance, or NULL.
  */
-struct list_window *list_window_create_instance(struct list_window_block *parent);
+struct list_window *list_window_create_instance(struct list_window_block *parent, struct file_block *file, void *data);
 
+osbool list_window_open(struct list_window *instance);
 
 /**
  * Delete a List Window instance.
@@ -176,6 +196,30 @@ struct list_window *list_window_create_instance(struct list_window_block *parent
  * \param *instance		The List Window instance to delete.
  */
 void list_window_delete_instance(struct list_window *instance);
+
+
+
+
+
+
+
+
+
+
+/**
+ * Process a WinColumns line from a file.
+ *
+ * \param *instance		The instance being read in to.
+ * \param start			The first column to read in from the string.
+ * \param skip			TRUE to ignore missing entries; FALSE to set to default.
+  * \param *columns		The column text line.
+ */
+
+void list_window_read_file_wincolumns(struct list_window *instance, int start, osbool skip, char *columns);
+
+
+
+
 
 wimp_window *list_window_get_window_def(struct list_window_block *block);
 wimp_window *list_window_get_toolbar_def(struct list_window_block *block);

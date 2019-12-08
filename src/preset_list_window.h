@@ -68,15 +68,6 @@ void preset_list_window_open(struct preset_list_window *windat);
 
 
 /**
- * Recreate the title of the given Preset List window.
- *
- * \param *windat		The preset window to rebuild the title for.
- */
-
-void preset_list_window_build_title(struct preset_list_window *windat);
-
-
-/**
  * Force the redraw of one or all of the presets in the given Preset list
  * bwindow.
  *

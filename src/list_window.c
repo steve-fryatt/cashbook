@@ -102,6 +102,16 @@ struct list_window {
 	struct list_window_block	*parent;
 
 	/**
+	 * The parent file for the instance.
+	 */
+	struct file_block		*file;
+
+	/**
+	 * Data provided by the client.
+	 */
+	void				*client_data;
+
+	/**
 	 * Wimp window handle for the main List Window.
 	 */
 	wimp_w				window;
@@ -127,15 +137,19 @@ struct list_window {
 	struct column_block		*columns;
 
 	/**
+	 * Indirected text data for the sort sprite icon.
+	 */
+	char				sort_sprite[COLUMN_SORT_SPRITE_LEN];
+
+	/**
 	 * Count of the number of populated display lines in the window.
 	 */
 	int				display_lines;
-
-
 };
 
 /* Static Function Prototypes. */
 
+static void list_window_delete(struct list_window *instance);
 static void list_window_close_handler(wimp_close *close);
 static void list_window_click_handler(wimp_pointer *pointer);
 static void list_window_pane_click_handler(wimp_pointer *pointer);
@@ -146,6 +160,7 @@ static void list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_poi
 static void list_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection);
 static void list_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning);
 static void list_window_menu_close_handler(wimp_w w, wimp_menu *menu);
+static void list_window_build_title(struct list_window *instance);
 
 
 /**
@@ -174,6 +189,7 @@ struct list_window_block *list_window_create(struct list_window_definition *defi
 
 	if (definition->main_template_name != NULL) {
 		block->window_def = templates_load_window(definition->main_template_name);
+		block->window_def->flags |= wimp_WINDOW_AUTO_REDRAW; // TODO -- Stop the need for the redraw handler to work!
 		block->window_def->icon_count = 0;
 	} else {
 		block->window_def = NULL;
@@ -204,9 +220,12 @@ struct list_window_block *list_window_create(struct list_window_definition *defi
  * Create a new List Window instance.
  *
  * \param *parent		The List Window to own the instance.
+ * \param *file			The file to which the instance belongs.
+ * \param *data			Data pointer to be passed to callback functions.
  * \return			Pointer to the new instance, or NULL.
  */
-struct list_window *list_window_create_instance(struct list_window_block *parent)
+
+struct list_window *list_window_create_instance(struct list_window_block *parent, struct file_block *file, void *data)
 {
 	struct list_window	*new;
 
@@ -215,6 +234,8 @@ struct list_window *list_window_create_instance(struct list_window_block *parent
 		return NULL;
 
 	new->parent = parent;
+	new->file = file;
+	new->client_data = data;
 
 	new->window = NULL;
 	new->toolbar = NULL;
@@ -243,6 +264,7 @@ struct list_window *list_window_create_instance(struct list_window_block *parent
  *
  * \param *instance		The List Window instance to delete.
  */
+
 void list_window_delete_instance(struct list_window *instance)
 {
 	if (instance == NULL)
@@ -254,12 +276,18 @@ void list_window_delete_instance(struct list_window *instance)
 }
 
 
+/**
+ * Create and open a List window for the given instance.
+ *
+ * \param *instance		The instance to open a window for.
+ * \return			TRUE if successful; FALSE on failure.
+ */
+
 osbool list_window_open(struct list_window *instance)
 {
 	int			height;
 	os_error		*error;
 	wimp_window_state	parent;
-	struct file_block	*file;
 
 	if (instance == NULL || instance->parent == NULL)
 		return FALSE;
@@ -283,16 +311,16 @@ osbool list_window_open(struct list_window *instance)
 	height = (instance->display_lines > instance->parent->definition->minimum_entries) ?
 			instance->display_lines : instance->parent->definition->minimum_entries;
 
-	transact_get_window_state(file, &parent);
+	transact_get_window_state(instance->file, &parent);
 
 	window_set_initial_area(instance->parent->window_def, column_get_window_width(instance->columns),
 			(height * WINDOW_ROW_HEIGHT) + instance->parent->definition->toolbar_height,
-			parent.visible.x0 + CHILD_WINDOW_OFFSET + file_get_next_open_offset(file),
+			parent.visible.x0 + CHILD_WINDOW_OFFSET + file_get_next_open_offset(instance->file),
 			parent.visible.y0 - CHILD_WINDOW_OFFSET, 0);
 
 	error = xwimp_create_window(instance->parent->window_def, &(instance->window));
 	if (error != NULL) {
-		preset_list_window_delete(windat); // TODO
+		list_window_delete(instance);
 		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
 		return FALSE;
 	}
@@ -310,20 +338,20 @@ osbool list_window_open(struct list_window *instance)
 		columns_place_heading_icons(instance->columns, instance->parent->toolbar_def);
 
 		instance->parent->toolbar_def->icons[instance->parent->definition->sort_dir_icon].data.indirected_sprite.id =
-				(osspriteop_id) windat->sort_sprite;
+				(osspriteop_id) instance->sort_sprite;
 		instance->parent->toolbar_def->icons[instance->parent->definition->sort_dir_icon].data.indirected_sprite.area =
 				instance->parent->toolbar_def->sprite_area;
 		instance->parent->toolbar_def->icons[instance->parent->definition->sort_dir_icon].data.indirected_sprite.size = COLUMN_SORT_SPRITE_LEN;
 
-		preset_list_window_adjust_sort_icon_data(windat, &(instance->parent->toolbar_def->icons[instance->parent->definition->sort_dir_icon]));
+//		preset_list_window_adjust_sort_icon_data(windat, &(instance->parent->toolbar_def->icons[instance->parent->definition->sort_dir_icon]));
 
 		#ifdef DEBUG
 		debug_printf ("Toolbar icons adjusted...");
 		#endif
 
-		error = xwimp_create_window(instance->parent->toolbar_def, &(windat->preset_pane));
+		error = xwimp_create_window(instance->parent->toolbar_def, &(instance->toolbar));
 		if (error != NULL) {
-			preset_list_window_delete(windat); // TODO
+			list_window_delete(instance);
 			error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
 			return FALSE;
 		}
@@ -331,7 +359,7 @@ osbool list_window_open(struct list_window *instance)
 
 	/* Set the title */
 
-	preset_list_window_build_title(windat);
+	list_window_build_title(instance);
 
 	/* Set up the interactive help. */
 
@@ -346,43 +374,115 @@ osbool list_window_open(struct list_window *instance)
 
 	/* Open the window. */
 
-	windows_open(windat->preset_window);
-	windows_open_nested_as_toolbar(windat->preset_pane,
-			windat->preset_window, instance->parent->definition->toolbar_height - 4, FALSE);
+	windows_open(instance->window);
 
-	/* Register event handlers for the two windows. */
+	if (instance->toolbar != NULL)
+		windows_open_nested_as_toolbar(instance->toolbar, instance->window,
+				instance->parent->definition->toolbar_height - 4, FALSE);
 
-	event_add_window_user_data(windat->preset_window, windat);
-	event_add_window_menu(windat->preset_window, preset_list_window_menu);
-	event_add_window_close_event(windat->preset_window, list_window_close_handler);
-	event_add_window_mouse_event(windat->preset_window, list_window_click_handler);
-	event_add_window_scroll_event(windat->preset_window, list_window_scroll_handler);
-	event_add_window_redraw_event(windat->preset_window, list_window_redraw_handler);
-	event_add_window_menu_prepare(windat->preset_window, list_window_menu_prepare_handler);
-	event_add_window_menu_selection(windat->preset_window, list_window_menu_selection_handler);
-	event_add_window_menu_warning(windat->preset_window, list_window_menu_warning_handler);
-	event_add_window_menu_close(windat->preset_window, list_window_menu_close_handler);
+	/* Register event handlers for the main windows. */
 
-	event_add_window_user_data(windat->preset_pane, windat);
-	event_add_window_menu(windat->preset_pane, preset_list_window_menu);
-	event_add_window_mouse_event(windat->preset_pane, list_window_pane_click_handler);
-	event_add_window_menu_prepare(windat->preset_pane, list_window_menu_prepare_handler);
-	event_add_window_menu_selection(windat->preset_pane, list_window_menu_selection_handler);
-	event_add_window_menu_warning(windat->preset_pane, list_window_menu_warning_handler);
-	event_add_window_menu_close(windat->preset_pane, list_window_menu_close_handler);
+	event_add_window_user_data(instance->window, instance);
+//	event_add_window_menu(instance->window, preset_list_window_menu);
+	event_add_window_close_event(instance->window, list_window_close_handler);
+	event_add_window_mouse_event(instance->window, list_window_click_handler);
+	event_add_window_scroll_event(instance->window, list_window_scroll_handler);
+	event_add_window_redraw_event(instance->window, list_window_redraw_handler);
+	event_add_window_menu_prepare(instance->window, list_window_menu_prepare_handler);
+	event_add_window_menu_selection(instance->window, list_window_menu_selection_handler);
+	event_add_window_menu_warning(instance->window, list_window_menu_warning_handler);
+	event_add_window_menu_close(instance->window, list_window_menu_close_handler);
+
+	/* Register event handlers for the toolbar pane. */
+
+	if (instance->toolbar != NULL) {
+		event_add_window_user_data(instance->toolbar, instance);
+//		event_add_window_menu(instance->toolbar, preset_list_window_menu);
+		event_add_window_mouse_event(instance->toolbar, list_window_pane_click_handler);
+		event_add_window_menu_prepare(instance->toolbar, list_window_menu_prepare_handler);
+		event_add_window_menu_selection(instance->toolbar, list_window_menu_selection_handler);
+		event_add_window_menu_warning(instance->toolbar, list_window_menu_warning_handler);
+		event_add_window_menu_close(instance->toolbar, list_window_menu_close_handler);
+	}
+
+	return TRUE;
 }
 
 
+/**
+ * Close and delete a List Window associated with the given instance.
+ * Note that this does NOT delete the instance itself; merely the Wimp
+ * windows associated with it.
+ *
+ * \param *instance		The window to delete.
+ */
+
+static void list_window_delete(struct list_window *instance)
+{
+	if (instance == NULL)
+		return;
+
+	#ifdef DEBUG
+	debug_printf ("\\RDeleting List window instance");
+	#endif
+
+	/* Delete the main window, if it exists. */
+
+	if (instance->window != NULL) {
+		ihelp_remove_window(instance->window);
+		event_delete_window(instance->window);
+		wimp_delete_window(instance->window);
+		instance->window = NULL;
+	}
+
+	/* Delete the toolbar pane, if it exists. */
+
+	if (instance->toolbar != NULL) {
+		ihelp_remove_window(instance->toolbar);
+		event_delete_window(instance->toolbar);
+		wimp_delete_window(instance->toolbar);
+		instance->toolbar = NULL;
+	}
+
+	/* Delete the footer pane, if it exists. */
+
+	if (instance->footer != NULL) {
+		ihelp_remove_window(instance->footer);
+		event_delete_window(instance->footer);
+		wimp_delete_window(instance->footer);
+		instance->footer = NULL;
+	}
+
+	/* Close any dialogues which belong to this window. */
+// \TODO
+//	dialogue_force_all_closed(NULL, instance);
+//	sort_dialogue_close(preset_list_window_sort_dialogue, windat);
+
+	/* Allow the client to tidy up if it needs to. */
+
+	if (instance->parent->definition->callback_window_close_handler != NULL)
+		instance->parent->definition->callback_window_close_handler(instance->client_data);
+}
 
 
-
-
-
-
-
+/**
+ * Handle Close events on List windows, deleting the window and
+ * tidying up any associated objects.
+ *
+ * \param *close		The Wimp Close data block.
+ */
 
 static void list_window_close_handler(wimp_close *close)
 {
+	struct list_window *instance;
+
+	#ifdef DEBUG
+	debug_printf ("\\RClosing Preset List window");
+	#endif
+
+	instance = event_get_window_user_data(close->w);
+	if (instance != NULL)
+		list_window_delete(instance);
 
 }
 
@@ -403,7 +503,16 @@ static void list_window_scroll_handler(wimp_scroll *scroll)
 
 static void list_window_redraw_handler(wimp_draw *redraw)
 {
+	struct list_window *instance;
 
+	instance = event_get_window_user_data(redraw->w);
+
+	debug_printf("Starting redraw handler: 0x%x", instance);
+
+	if (instance == NULL || instance->parent->definition->callback_redraw_handler == NULL)
+		return;
+
+	instance->parent->definition->callback_redraw_handler(redraw, instance->client_data);
 }
 
 static void list_window_decode_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons)
@@ -434,6 +543,48 @@ static void list_window_menu_close_handler(wimp_w w, wimp_menu *menu)
 
 
 
+/**
+ * Recreate the title of the given List window.
+ *
+ * \param *instance		The window to rebuild the title for.
+ */
+
+static void list_window_build_title(struct list_window *instance)
+{
+	char			name[WINDOW_TITLE_LENGTH];
+
+	if (instance == NULL || instance->file == NULL)
+		return;
+
+	file_get_leafname(instance->file, name, WINDOW_TITLE_LENGTH);
+
+	msgs_param_lookup(instance->parent->definition->window_title, instance->title,
+			WINDOW_TITLE_LENGTH, name, NULL, NULL, NULL);
+
+	if (instance->window != NULL)
+		wimp_force_redraw_title(instance->window);
+}
+
+
+
+
+
+/**
+ * Process a WinColumns line from a file.
+ *
+ * \param *instance		The instance being read in to.
+ * \param start			The first column to read in from the string.
+ * \param skip			TRUE to ignore missing entries; FALSE to set to default.
+  * \param *columns		The column text line.
+ */
+
+void list_window_read_file_wincolumns(struct list_window *instance, int start, osbool skip, char *columns)
+{
+	if (instance == NULL)
+		return;
+
+	column_init_window(instance->columns, start, skip, columns);
+}
 
 
 

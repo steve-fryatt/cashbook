@@ -205,13 +205,27 @@ static struct list_window_definition preset_list_window_definition = {
 	preset_list_window_columns,
 	NULL,
 	PRESET_LIST_WINDOW_COLUMNS,
-	PRESET_LIST_WINDOW_PANE_SORT_DIR_ICON,
 	"LimPresetCols",
 	"PresetCols",
-	"Preset",
-	"PresetTB",
+	PRESET_LIST_WINDOW_PANE_SORT_DIR_ICON,
+	preset_list_window_sort_columns,
+	preset_list_window_sort_directions,
+	"PresetTitle",					/*<< Window Title token.		*/
+	"Preset",					/**< Window Help token base.		*/
+	"PresetTB",					/**< Window Toolbar help token base.	*/
+	NULL,						/**< Window Footer help token base.	*/
+	PRESET_LIST_WINDOW_MIN_ENTRIES,
+
 	NULL,
-	PRESET_LIST_WINDOW_MIN_ENTRIES
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL
 };
 
 /**
@@ -264,11 +278,6 @@ struct preset_list_window {
 	 * Instance handle for the window's sort code.
 	 */
 	struct sort_block			*sort;
-
-	/**
-	 * Indirected text data for the sort sprite icon.
-	 */
-	char					sort_sprite[COLUMN_SORT_SPRITE_LEN];
 
 	/**
 	 * Count of the number of populated display lines in the window.
@@ -325,8 +334,7 @@ static struct saveas_block		*preset_list_window_saveas_tsv = NULL;
 
 /* Static Function Prototypes. */
 
-static void preset_list_window_delete(struct preset_list_window *windat);
-static void preset_list_window_close_handler(wimp_close *close);
+static void preset_list_window_delete(void *data);
 static void preset_list_window_click_handler(wimp_pointer *pointer);
 static void preset_list_window_pane_click_handler(wimp_pointer *pointer);
 static void preset_list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer);
@@ -334,7 +342,7 @@ static void preset_list_window_menu_selection_handler(wimp_w w, wimp_menu *menu,
 static void preset_list_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning);
 static void preset_list_window_menu_close_handler(wimp_w w, wimp_menu *menu);
 static void preset_list_window_scroll_handler(wimp_scroll *scroll);
-static void preset_list_window_redraw_handler(wimp_draw *redraw);
+static void preset_list_window_redraw_handler(wimp_draw *redraw, void *data);
 static void preset_list_window_adjust_columns(void *data, wimp_i group, int width);
 static void preset_list_window_adjust_sort_icon(struct preset_list_window *windat);
 static void preset_list_window_adjust_sort_icon_data(struct preset_list_window *windat, wimp_icon *icon);
@@ -368,6 +376,8 @@ static void preset_list_window_export_delimited(struct preset_list_window *winda
 void preset_list_window_initialise(osspriteop_area *sprites)
 {
 	wimp_w sort_window;
+
+	preset_list_window_definition.callback_window_close_handler = preset_list_window_delete;
 
 	sort_window = templates_create_window("SortPreset");
 	ihelp_add_window(sort_window, "SortPreset", NULL);
@@ -415,7 +425,7 @@ struct preset_list_window *preset_list_window_create_instance(struct preset_bloc
 
 	/* Initialise the List Window. */
 
-	new->window = list_window_create_instance(preset_list_window_block);
+	new->window = list_window_create_instance(preset_list_window_block, preset_get_file(parent), new);
 	if (new->window == NULL) {
 		preset_list_window_delete_instance(new);
 		return NULL;
@@ -484,116 +494,10 @@ void preset_list_window_delete_instance(struct preset_list_window *windat)
 
 void preset_list_window_open(struct preset_list_window *windat)
 {
-	int			height;
-	os_error		*error;
-	wimp_window_state	parent;
-	struct file_block	*file;
-	wimp_window		*window_def, *pane_def;
-
-	if (windat == NULL || windat->instance == NULL)
+	if (windat == NULL)
 		return;
 
-	file = preset_get_file(windat->instance);
-	if (file == NULL)
-		return;
-
-	/* Create or re-open the window. */
-
-	if (windat->preset_window != NULL) {
-		windows_open(windat->preset_window);
-		return;
-	}
-
-	#ifdef DEBUG
-	debug_printf("\\CCreating preset window");
-	#endif
-
-	/* Create the new window data and build the window. */
-
-	window_def = list_window_get_window_def(preset_list_window_block);
-	pane_def = list_window_get_toolbar_def(preset_list_window_block);
-
-	*(windat->window_title) = '\0';
-	window_def->title_data.indirected_text.text = windat->window_title;
-
-	height = (windat->display_lines > PRESET_LIST_WINDOW_MIN_ENTRIES) ? windat->display_lines : PRESET_LIST_WINDOW_MIN_ENTRIES;
-
-	transact_get_window_state(file, &parent);
-
-	window_set_initial_area(window_def, column_get_window_width(windat->columns),
-			(height * WINDOW_ROW_HEIGHT) + PRESET_LIST_WINDOW_TOOLBAR_HEIGHT,
-			parent.visible.x0 + CHILD_WINDOW_OFFSET + file_get_next_open_offset(file),
-			parent.visible.y0 - CHILD_WINDOW_OFFSET, 0);
-
-	error = xwimp_create_window(window_def, &(windat->preset_window));
-	if (error != NULL) {
-		preset_list_window_delete(windat);
-		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
-		return;
-	}
-
-	/* Create the toolbar. */
-
-	windows_place_as_toolbar(window_def, pane_def, PRESET_LIST_WINDOW_TOOLBAR_HEIGHT-4);
-
-	#ifdef DEBUG
-	debug_printf ("Window extents set...");
-	#endif
-
-	columns_place_heading_icons(windat->columns, pane_def);
-
-	pane_def->icons[PRESET_LIST_WINDOW_PANE_SORT_DIR_ICON].data.indirected_sprite.id =
-			(osspriteop_id) windat->sort_sprite;
-	pane_def->icons[PRESET_LIST_WINDOW_PANE_SORT_DIR_ICON].data.indirected_sprite.area =
-			pane_def->sprite_area;
-	pane_def->icons[PRESET_LIST_WINDOW_PANE_SORT_DIR_ICON].data.indirected_sprite.size = COLUMN_SORT_SPRITE_LEN;
-
-	preset_list_window_adjust_sort_icon_data(windat, &(pane_def->icons[PRESET_LIST_WINDOW_PANE_SORT_DIR_ICON]));
-
-	#ifdef DEBUG
-	debug_printf ("Toolbar icons adjusted...");
-	#endif
-
-	error = xwimp_create_window(pane_def, &(windat->preset_pane));
-	if (error != NULL) {
-		preset_list_window_delete(windat);
-		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
-		return;
-	}
-
-	/* Set the title */
-
-	preset_list_window_build_title(windat);
-
-	/* Open the window. */
-
-	ihelp_add_window(windat->preset_window , "Preset", preset_list_window_decode_help);
-	ihelp_add_window(windat->preset_pane , "PresetTB", NULL);
-
-	windows_open(windat->preset_window);
-	windows_open_nested_as_toolbar(windat->preset_pane,
-			windat->preset_window, PRESET_LIST_WINDOW_TOOLBAR_HEIGHT-4, FALSE);
-
-	/* Register event handlers for the two windows. */
-
-	event_add_window_user_data(windat->preset_window, windat);
-	event_add_window_menu(windat->preset_window, preset_list_window_menu);
-	event_add_window_close_event(windat->preset_window, preset_list_window_close_handler);
-	event_add_window_mouse_event(windat->preset_window, preset_list_window_click_handler);
-	event_add_window_scroll_event(windat->preset_window, preset_list_window_scroll_handler);
-	event_add_window_redraw_event(windat->preset_window, preset_list_window_redraw_handler);
-	event_add_window_menu_prepare(windat->preset_window, preset_list_window_menu_prepare_handler);
-	event_add_window_menu_selection(windat->preset_window, preset_list_window_menu_selection_handler);
-	event_add_window_menu_warning(windat->preset_window, preset_list_window_menu_warning_handler);
-	event_add_window_menu_close(windat->preset_window, preset_list_window_menu_close_handler);
-
-	event_add_window_user_data(windat->preset_pane, windat);
-	event_add_window_menu(windat->preset_pane, preset_list_window_menu);
-	event_add_window_mouse_event(windat->preset_pane, preset_list_window_pane_click_handler);
-	event_add_window_menu_prepare(windat->preset_pane, preset_list_window_menu_prepare_handler);
-	event_add_window_menu_selection(windat->preset_pane, preset_list_window_menu_selection_handler);
-	event_add_window_menu_warning(windat->preset_pane, preset_list_window_menu_warning_handler);
-	event_add_window_menu_close(windat->preset_pane, preset_list_window_menu_close_handler);
+	list_window_open(windat->window);
 }
 
 
@@ -601,58 +505,24 @@ void preset_list_window_open(struct preset_list_window *windat)
  * Close and delete a Preset List Window associated with the given
  * instance.
  *
- * \param *windat		The window to delete.
+ * \param *data		The instance being closed.
  */
 
-static void preset_list_window_delete(struct preset_list_window *windat)
+static void preset_list_window_delete(void *data)
 {
+	struct preset_list_window *windat = data;
+
 	if (windat == NULL)
 		return;
 
-	#ifdef DEBUG
+//	#ifdef DEBUG
 	debug_printf ("\\RDeleting Preset List window");
-	#endif
-
-	/* Delete the window, if it exists. */
-
-	if (windat->preset_window != NULL) {
-		ihelp_remove_window(windat->preset_window);
-		event_delete_window(windat->preset_window);
-		wimp_delete_window(windat->preset_window);
-		windat->preset_window = NULL;
-	}
-
-	if (windat->preset_pane != NULL) {
-		ihelp_remove_window(windat->preset_pane);
-		event_delete_window(windat->preset_pane);
-		wimp_delete_window(windat->preset_pane);
-		windat->preset_pane = NULL;
-	}
+//	#endif
 
 	/* Close any dialogues which belong to this window. */
 
 	dialogue_force_all_closed(NULL, windat);
 	sort_dialogue_close(preset_list_window_sort_dialogue, windat);
-}
-
-
-/**
- * Handle Close events on Preset List windows, deleting the window.
- *
- * \param *close		The Wimp Close data block.
- */
-
-static void preset_list_window_close_handler(wimp_close *close)
-{
-	struct preset_list_window *windat;
-
-	#ifdef DEBUG
-	debug_printf ("\\RClosing Preset List window");
-	#endif
-
-	windat = event_get_window_user_data(close->w);
-	if (windat != NULL)
-		preset_list_window_delete(windat);
 }
 
 
@@ -935,7 +805,7 @@ static void preset_list_window_scroll_handler(wimp_scroll *scroll)
  * \param *redraw		The draw event block to handle.
  */
 
-static void preset_list_window_redraw_handler(wimp_draw *redraw)
+static void preset_list_window_redraw_handler(wimp_draw *redraw, void *data)
 {
 	struct preset_list_window	*windat;
 	struct file_block		*file;
@@ -947,7 +817,7 @@ static void preset_list_window_redraw_handler(wimp_draw *redraw)
 	osbool				more;
 	wimp_window			*window_def;
 
-	windat = event_get_window_user_data(redraw->w);
+	windat = data;
 	if (windat == NULL || windat->instance == NULL || windat->columns == NULL)
 		return;
 
@@ -1152,34 +1022,6 @@ static void preset_list_window_set_extent(struct preset_list_window *windat)
 	lines = (windat->display_lines > PRESET_LIST_WINDOW_MIN_ENTRIES) ? windat->display_lines : PRESET_LIST_WINDOW_MIN_ENTRIES;
 
 	window_set_extent(windat->preset_window, lines, PRESET_LIST_WINDOW_TOOLBAR_HEIGHT, column_get_window_width(windat->columns));
-}
-
-
-/**
- * Recreate the title of the given Preset List window.
- *
- * \param *windat		The preset window to rebuild the title for.
- */
-
-void preset_list_window_build_title(struct preset_list_window *windat)
-{
-	struct file_block	*file;
-	char			name[WINDOW_TITLE_LENGTH];
-
-	if (windat == NULL || windat->instance == NULL)
-		return;
-
-	file = preset_get_file(windat->instance);
-	if (file == NULL)
-		return;
-
-	file_get_leafname(file, name, WINDOW_TITLE_LENGTH);
-
-	msgs_param_lookup("PresetTitle", windat->window_title, WINDOW_TITLE_LENGTH,
-			name, NULL, NULL, NULL);
-
-	if (windat->preset_window != NULL)
-		wimp_force_redraw_title(windat->preset_window);
 }
 
 
@@ -1775,7 +1617,7 @@ void preset_list_window_read_file_wincolumns(struct preset_list_window *windat, 
 	if (windat == NULL)
 		return;
 
-	column_init_window(windat->columns, 0, TRUE, columns);
+	list_window_read_file_wincolumns(windat->window, 0, TRUE, columns);
 }
 
 

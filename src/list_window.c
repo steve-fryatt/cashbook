@@ -309,8 +309,8 @@ struct list_window *list_window_create_instance(struct list_window_block *parent
 		return NULL;
 	}
 
-	column_set_minimum_widths(new->columns, parent->definition->column_limits);
-	column_init_window(new->columns, 0, FALSE, parent->definition->column_widths);
+	column_set_minimum_widths(new->columns, config_str_read(parent->definition->column_limits));
+	column_init_window(new->columns, 0, FALSE, config_str_read(parent->definition->column_widths));
 
 	/* Initialise the window sort. */
 
@@ -711,7 +711,7 @@ static void list_window_pane_click_handler(wimp_pointer *pointer)
 			}
 		}
 	} else if (pointer->buttons == wimp_DRAG_SELECT && column_is_heading_draggable(instance->columns, pointer->i)) {
-		column_set_minimum_widths(instance->columns, instance->parent->definition->column_limits);
+		column_set_minimum_widths(instance->columns, config_str_read(instance->parent->definition->column_limits));
 		column_start_drag(instance->columns, pointer, instance, instance->toolbar, list_window_adjust_columns);
 	}
 }

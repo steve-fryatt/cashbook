@@ -263,32 +263,32 @@ struct preset_list_window {
 	/**
 	 * Wimp window handle for the main Preset List Window.
 	 */
-	wimp_w					preset_window;
+//	wimp_w					preset_window;
 
 	/**
 	 * Indirected title data for the window.
 	 */
-	char					window_title[WINDOW_TITLE_LENGTH];
+//	char					window_title[WINDOW_TITLE_LENGTH];
 
 	/**
 	 * Wimp window handle for the Preset List Window Toolbar pane.
 	 */
-	wimp_w					preset_pane;
+//	wimp_w					preset_pane;
 
 	/**
 	 * Instance handle for the window's column definitions.
 	 */
-	struct column_block			*columns;
+//	struct column_block			*columns;
 
 	/**
 	 * Count of the number of populated display lines in the window.
 	 */
-	int					display_lines;
+//	int					display_lines;
 
 	/**
 	 * Flex array holding the line data for the window.
 	 */
-	struct preset_list_window_redraw	*line_data;
+//	struct preset_list_window_redraw	*line_data;
 };
 
 /**
@@ -324,12 +324,6 @@ static int preset_list_window_sort_compare(enum sort_type type, int index1, int 
 static osbool preset_list_window_save_csv(char *filename, osbool selection, void *data);
 static osbool preset_list_window_save_tsv(char *filename, osbool selection, void *data);
 static void preset_list_window_export_delimited(struct preset_list_window *windat, char *filename, enum filing_delimit_type format, int filetype);
-
-/**
- * Test whether a line number is safe to look up in the redraw data array.
- */
-
-#define preset_list_window_line_valid(windat, line) (((line) >= 0) && ((line) < ((windat)->display_lines)))
 
 
 /**
@@ -374,12 +368,6 @@ struct preset_list_window *preset_list_window_create_instance(struct preset_bloc
 	new->instance = parent;
 
 	new->window = NULL;
-	new->preset_window = NULL;
-	new->preset_pane = NULL;
-	new->columns = NULL;
-
-	new->display_lines = 0;
-	new->line_data = NULL;
 
 	/* Initialise the List Window. */
 
@@ -685,15 +673,15 @@ void preset_list_window_redraw(struct preset_list_window *windat, preset_t prese
  *
  * \param *windat		The preset list window to search in.
  * \param line			The display line to return the preset for.
- * \return			The appropriate transaction, or NULL_PRESET.
+ * \return			The appropriate preset, or NULL_PRESET.
  */
 
 preset_t preset_list_window_get_preset_from_line(struct preset_list_window *windat, int line)
 {
-	if (windat == NULL || windat->line_data == NULL || !preset_list_window_line_valid(windat, line))
+	if (windat == NULL)
 		return NULL_PRESET;
 
-	return windat->line_data[line].preset;
+	return list_window_get_index_from_line(windat->window, line);
 }
 
 

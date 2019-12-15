@@ -315,6 +315,18 @@ osbool list_window_delete_entry(struct list_window *instance, int entry, osbool 
 
 
 /**
+ * Find the index which corresponds to a display line in the specified
+ * list window instance.
+ *
+ * \param *windat		The list window instance to search in.
+ * \param line			The display line to return the index for.
+ * \return			The appropriate index, or LIST_WINDOW_NULL_INDEX.
+ */
+
+int list_window_get_index_from_line(struct list_window *instance, int line);
+
+
+/**
  * Open the sort dialogue for a given list window instance.
  *
  * \param *file			The preset window to own the dialogue.

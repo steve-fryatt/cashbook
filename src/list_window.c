@@ -226,10 +226,16 @@ static void list_window_adjust_sort_icon_data(struct list_window *instance, wimp
 static void list_window_set_extent(struct list_window *instance);
 static void list_window_build_title(struct list_window *instance);
 
-static int list_window_get_line_from_preset(struct list_window *instance, int index);
+static int list_window_get_line_from_index(struct list_window *instance, int index);
 static osbool list_window_process_sort_window(enum sort_type order, void *data);
 static int list_window_sort_compare(enum sort_type type, int index1, int index2, void *data);
 static void list_window_sort_swap(int index1, int index2, void *data);
+
+/**
+ * Test whether a line number is safe to look up in the redraw data array.
+ */
+
+#define list_window_line_valid(instance, line) (((line) >= 0) && ((line) < ((instance)->display_lines)))
 
 
 void list_window_initialise(void)
@@ -868,7 +874,7 @@ void list_window_redraw(struct list_window *instance, int index)
 		return;
 
 	if (index != LIST_WINDOW_NULL_INDEX) {
-		from = list_window_get_line_from_preset(instance, index);
+		from = list_window_get_line_from_index(instance, index);
 		to = from;
 	} else {
 		from = 0;
@@ -1259,7 +1265,7 @@ osbool list_window_initialise_entries(struct list_window *instance, int entries)
 	for (i = 0; i < entries; i++)
 		instance->line_data[i].index = i;
 
-//	preset_list_window_sort(windat);
+	list_window_sort(instance);
 
 	return TRUE;
 }
@@ -1358,7 +1364,7 @@ osbool list_window_delete_entry(struct list_window *instance, int entry, osbool 
  * \return			The appropriate line, or -1 if not found.
  */
 
-static int list_window_get_line_from_preset(struct list_window *instance, int index)
+static int list_window_get_line_from_index(struct list_window *instance, int index)
 {
 	int	i;
 	int	line = -1;
@@ -1374,6 +1380,24 @@ static int list_window_get_line_from_preset(struct list_window *instance, int in
 	}
 
 	return line;
+}
+
+
+/**
+ * Find the index which corresponds to a display line in the specified
+ * list window instance.
+ *
+ * \param *windat		The list window instance to search in.
+ * \param line			The display line to return the index for.
+ * \return			The appropriate index, or LIST_WINDOW_NULL_INDEX.
+ */
+
+int list_window_get_index_from_line(struct list_window *instance, int line)
+{
+	if (instance == NULL || instance->line_data == NULL || !list_window_line_valid(instance, line))
+		return LIST_WINDOW_NULL_INDEX;
+
+	return instance->line_data[line].index;
 }
 
 

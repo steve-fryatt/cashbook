@@ -30,6 +30,8 @@
 #ifndef CASHBOOK_LIST_WINDOW
 #define CASHBOOK_LIST_WINDOW
 
+#define LIST_WINDOW_NULL_INDEX ((int) -1)
+
 /**
  * A one-time window defintion object.
  */
@@ -156,13 +158,13 @@ struct list_window_definition {
 
 	void		(*callback_decode_help)(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
 
-	void		(*callback_menu_prepare_handler)(wimp_w w, wimp_menu *menu, wimp_pointer *pointer);
+	void		(*callback_menu_prepare_handler)(wimp_w w, wimp_menu *menu, wimp_pointer *pointer, int index, struct file_block *file, void *data);
 
 	void		(*callback_menu_selection_handler)(wimp_w w, wimp_menu *menu, wimp_selection *selection);
 
 	void		(*callback_menu_warning_handler)(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning);
 
-	void		(*callback_menu_close_handler)(wimp_w w, wimp_menu *menu);
+	int		(*callback_sort_compare)(enum sort_type type, int index1, int index2, struct file_block *file);
 };
 
 
@@ -227,6 +229,24 @@ void list_window_rebuild_file_titles(struct file_block *file);
 osbool list_window_open(struct list_window *instance);
 
 
+
+
+
+
+
+
+
+
+/**
+ * Force the redraw of one or all of the lines in the given list window.
+ *
+ * \param *instance		The list window instance to be redrawn.
+ * \param index		The index to redraw, or -1 for all.
+ */
+
+void list_window_redraw(struct list_window *instance, int index);
+
+
 /**
  * Initialise the contents of the list window, creating an entry for
  * each of the required entries.
@@ -262,6 +282,16 @@ osbool list_window_add_entry(struct list_window *instance, int entry, osbool sor
  */
 
 osbool list_window_delete_entry(struct list_window *instance, int entry, osbool sort);
+
+
+/**
+ * Sort the entries in a given list window based on that instance's sort
+ * setting.
+ *
+ * \param *instance		The list window instance to sort.
+ */
+
+void list_window_sort(struct list_window *instance);
 
 
 

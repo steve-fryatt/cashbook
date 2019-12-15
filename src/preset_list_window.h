@@ -71,7 +71,7 @@ void preset_list_window_open(struct preset_list_window *windat);
  * Force the redraw of one or all of the presets in the given Preset list
  * bwindow.
  *
- * \param *file			The file owning the window to redraw.
+ * \param *windat		The preset window instance to redraw.
  * \param preset		The preset to redraw, or NULL_PRESET for all.
  */
 

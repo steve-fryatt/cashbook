@@ -170,6 +170,11 @@ struct list_window {
 	int				display_lines;
 
 	/**
+	 * The line containing the menu, or -1 for none.
+	 */
+	int				menu_line;
+
+	/**
 	 * Flex array holding the line data for the window.
 	 */
 	struct list_window_redraw	*line_data;
@@ -194,7 +199,9 @@ static void list_window_click_handler(wimp_pointer *pointer);
 static void list_window_pane_click_handler(wimp_pointer *pointer);
 static void list_window_scroll_handler(wimp_scroll *scroll);
 static void list_window_redraw_handler(wimp_draw *redraw);
+static void list_window_force_redraw(struct list_window *instance, int from, int to, wimp_i column);
 static void list_window_decode_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
+
 static void list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer);
 static void list_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection);
 static void list_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning);
@@ -205,6 +212,10 @@ static void list_window_adjust_sort_icon(struct list_window *instance);
 static void list_window_adjust_sort_icon_data(struct list_window *instance, wimp_icon *icon);
 static void list_window_set_extent(struct list_window *instance);
 static void list_window_build_title(struct list_window *instance);
+
+static int list_window_get_line_from_preset(struct list_window *instance, int index);
+static int list_window_sort_compare(enum sort_type type, int index1, int index2, void *data);
+static void list_window_sort_swap(int index1, int index2, void *data);
 
 
 void list_window_initialise(void)
@@ -262,8 +273,8 @@ struct list_window_block *list_window_create(struct list_window_definition *defi
 
 	/* Set up the sort callbacks. */
 
-	block->sort_callbacks.compare = NULL;
-	block->sort_callbacks.swap = NULL;
+	block->sort_callbacks.compare = list_window_sort_compare;
+	block->sort_callbacks.swap = list_window_sort_swap;
 
 	return block;
 }
@@ -299,6 +310,7 @@ struct list_window *list_window_create_instance(struct list_window_block *parent
 
 	new->display_lines = 0;
 	new->line_data = NULL;
+	new->menu_line = -1;
 
 	/* Initialise the window columns. */
 
@@ -385,8 +397,8 @@ void list_window_redraw_file(struct file_block *file)
 	struct list_window *list = instance_list;
 
 	while (list != NULL) {
-	//	if (list->file == file)
-	//		list_window_re()
+		if (list->file == file)
+			list_window_redraw(list, LIST_WINDOW_NULL_INDEX);
 
 		list = list->next;
 	}
@@ -707,7 +719,7 @@ static void list_window_pane_click_handler(wimp_pointer *pointer)
 				sort_set_order(instance->sort, sort_order);
 				list_window_adjust_sort_icon(instance);
 				windows_redraw(instance->toolbar);
-	//			list_window_sort(instance);
+				list_window_sort(instance);
 			}
 		}
 	} else if (pointer->buttons == wimp_DRAG_SELECT && column_is_heading_draggable(instance->columns, pointer->i)) {
@@ -784,6 +796,66 @@ static void list_window_redraw_handler(wimp_draw *redraw)
 }
 
 
+/**
+ * Force the redraw of one or all of the lines in the given list window.
+ *
+ * \param *instance		The list window instance to be redrawn.
+ * \param index			The index to redraw, or
+ *				LIST_WINDOW_NULL_INDEX for all.
+ */
+
+void list_window_redraw(struct list_window *instance, int index)
+{
+	int from, to;
+
+	if (instance == NULL)
+		return;
+
+	if (index != LIST_WINDOW_NULL_INDEX) {
+		from = list_window_get_line_from_preset(instance, index);
+		to = from;
+	} else {
+		from = 0;
+		to = instance->display_lines - 1;
+	}
+
+	list_window_force_redraw(instance, from, to, wimp_ICON_WINDOW);
+}
+
+
+/**
+ * Force a redraw of a list window instance, for the given range of lines.
+ *
+ * \param *instance		The list window instance to be redrawn.
+ * \param from			The first line to redraw, inclusive.
+ * \param to			The last line to redraw, inclusive.
+ * \param column		The column to be redrawn, or wimp_ICON_WINDOW for all.
+ */
+
+static void list_window_force_redraw(struct list_window *instance, int from, int to, wimp_i column)
+{
+	wimp_window_info	window;
+
+	if (instance == NULL || instance->window == NULL)
+		return;
+
+	window.w = instance->window;
+	if (xwimp_get_window_info_header_only(&window) != NULL)
+		return;
+
+	if (column != wimp_ICON_WINDOW) {
+		window.extent.x0 = window.extent.x1;
+		window.extent.x1 = 0;
+		column_get_heading_xpos(instance->columns, column, &(window.extent.x0), &(window.extent.x1));
+	}
+
+	window.extent.y1 = WINDOW_ROW_TOP(instance->parent->definition->toolbar_height, from);
+	window.extent.y0 = WINDOW_ROW_BASE(instance->parent->definition->toolbar_height, to);
+
+	wimp_force_redraw(instance->window, window.extent.x0, window.extent.y0, window.extent.x1, window.extent.y1);
+}
+
+
 
 
 
@@ -792,9 +864,41 @@ static void list_window_decode_help(char *buffer, wimp_w w, wimp_i i, os_coord p
 
 }
 
+
 static void list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer)
 {
+	struct list_window	*instance;
+	int			line, index = LIST_WINDOW_NULL_INDEX;
+	wimp_window_state	window;
 
+	instance = event_get_window_user_data(w);
+	if (instance == NULL || instance->parent == NULL)
+		return;
+
+	if (pointer != NULL) {
+		instance->menu_line = -1;
+
+		if (w == instance->window) {
+			window.w = w;
+			wimp_get_window_state(&window);
+
+			line = window_calculate_click_row(&(pointer->pos), &window,
+					instance->parent->definition->toolbar_height, instance->display_lines);
+
+			if (line != -1) {
+				instance->menu_line = line;
+
+				if (line < instance->display_lines)
+					index = instance->line_data[line].index;
+			}
+		}
+	}
+
+	if (instance->parent->definition->callback_menu_prepare_handler != NULL)
+		instance->parent->definition->callback_menu_prepare_handler(w, menu, pointer, index,
+				instance->file, instance->client_data);
+
+	list_window_force_redraw(instance, instance->menu_line, instance->menu_line, wimp_ICON_WINDOW);
 }
 
 static void list_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection)
@@ -809,7 +913,15 @@ static void list_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_mes
 
 static void list_window_menu_close_handler(wimp_w w, wimp_menu *menu)
 {
+	struct list_window	*instance;
 
+	instance = event_get_window_user_data(w);
+	if (instance == NULL)
+		return;
+
+	list_window_force_redraw(instance, instance->menu_line, instance->menu_line, wimp_ICON_WINDOW);
+
+	instance->menu_line = -1;
 }
 
 
@@ -1078,6 +1190,108 @@ osbool list_window_delete_entry(struct list_window *instance, int entry, osbool 
 }
 
 
+/**
+ * Find the display line in a list window which points to the specified
+ * index under the applied sort.
+ *
+ * \param *instance		The list window instance to search.
+ * \param index			The index to return the line for.
+ * \return			The appropriate line, or -1 if not found.
+ */
+
+static int list_window_get_line_from_preset(struct list_window *instance, int index)
+{
+	int	i;
+	int	line = -1;
+
+	if (instance == NULL || instance->line_data == NULL)
+		return line;
+
+	for (i = 0; i < instance->display_lines; i++) {
+		if (instance->line_data[i].index == index) {
+			line = i;
+			break;
+		}
+	}
+
+	return line;
+}
+
+
+/**
+ * Sort the entries in a given list window based on that instance's sort
+ * setting.
+ *
+ * \param *instance		The list window instance to sort.
+ */
+
+void list_window_sort(struct list_window *instance)
+{
+	if (instance == NULL)
+		return;
+
+	#ifdef DEBUG
+	debug_printf("Sorting list window");
+	#endif
+
+	hourglass_on();
+
+	/* Run the sort. */
+
+	sort_process(instance->sort, instance->display_lines);
+
+	list_window_force_redraw(instance, 0, instance->display_lines - 1, wimp_ICON_WINDOW);
+
+	hourglass_off();
+}
+
+
+/**
+ * Compare two lines of a list window, returning the result of the
+ * in terms of a positive value, zero or a negative value.
+ *
+ * \param type			The required column type of the comparison.
+ * \param index1		The number of the first line to be compared.
+ * \param index2		The number of the second line to be compared.
+ * \param *data			Client specific data, which is our window instance.
+ * \return			The comparison result.
+ */
+
+static int list_window_sort_compare(enum sort_type type, int index1, int index2, void *data)
+{
+	struct list_window	*instance = data;
+
+	if (instance == NULL || instance->parent == NULL || instance->line_data == NULL)
+		return 0;
+
+	if (instance->parent->definition->callback_sort_compare == NULL)
+		return 0;
+
+	return instance->parent->definition->callback_sort_compare(type,
+			instance->line_data[index1].index, instance->line_data[index2].index, instance->file);
+}
+
+
+/**
+ * Swap the sort index of two lines of a list window instance.
+ *
+ * \param index1		The index of the first line to be swapped.
+ * \param index2		The index of the second line to be swapped.
+ * \param *data			Client specific data, which is our instance block.
+ */
+
+static void list_window_sort_swap(int index1, int index2, void *data)
+{
+	struct list_window	*instance = data;
+	int			temp;
+
+	if (instance == NULL)
+		return;
+
+	temp = instance->line_data[index1].index;
+	instance->line_data[index1].index = instance->line_data[index2].index;
+	instance->line_data[index2].index = temp;
+}
 
 
 

@@ -315,12 +315,6 @@ static int				preset_list_window_menu_line = -1;
 static struct sort_dialogue_block	*preset_list_window_sort_dialogue = NULL;
 
 /**
- * The Preset List Window Sort callbacks.
- */
-
-static struct sort_callback		preset_list_window_sort_callbacks;
-
-/**
  * The Save CSV saveas data handle.
  */
 
@@ -337,20 +331,17 @@ static struct saveas_block		*preset_list_window_saveas_tsv = NULL;
 static void preset_list_window_delete(void *data);
 static void preset_list_window_click_handler(wimp_pointer *pointer, int index, struct file_block *file, void *data);
 static void preset_list_window_pane_click_handler(wimp_pointer *pointer, struct file_block *file, void *data);
-static void preset_list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer);
+static void preset_list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer, int index, struct file_block *file, void *data);
 static void preset_list_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection);
 static void preset_list_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning);
-static void preset_list_window_menu_close_handler(wimp_w w, wimp_menu *menu);
 static void preset_list_window_scroll_handler(wimp_scroll *scroll);
 static void preset_list_window_redraw_handler(int index, struct file_block *file, void *data);
-static void preset_list_window_force_redraw(struct preset_list_window *windat, int from, int to, wimp_i column);
 static void preset_list_window_decode_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
-static int preset_list_window_get_line_from_preset(struct preset_list_window *windat, preset_t preset);
 static void preset_list_window_open_sort_window(struct preset_list_window *windat, wimp_pointer *ptr);
 static osbool preset_list_window_process_sort_window(enum sort_type order, void *data);
 static void preset_list_window_open_print_window(struct preset_list_window *windat, wimp_pointer *ptr, osbool restore);
 static struct report *preset_list_window_print(struct report *report, void *data, date_t from, date_t to);
-static int preset_list_window_sort_compare(enum sort_type type, int index1, int index2, void *data);
+static int preset_list_window_sort_compare(enum sort_type type, int index1, int index2, struct file_block *file);
 static void preset_list_window_sort_swap(int index1, int index2, void *data);
 static osbool preset_list_window_save_csv(char *filename, osbool selection, void *data);
 static osbool preset_list_window_save_tsv(char *filename, osbool selection, void *data);
@@ -377,14 +368,13 @@ void preset_list_window_initialise(osspriteop_area *sprites)
 	preset_list_window_definition.callback_window_click_handler = preset_list_window_click_handler;
 	preset_list_window_definition.callback_pane_click_handler = preset_list_window_pane_click_handler;
 	preset_list_window_definition.callback_redraw_handler = preset_list_window_redraw_handler;
+	preset_list_window_definition.callback_menu_prepare_handler = preset_list_window_menu_prepare_handler;
+	preset_list_window_definition.callback_sort_compare = preset_list_window_sort_compare;
 
 	sort_window = templates_create_window("SortPreset");
 	ihelp_add_window(sort_window, "SortPreset", NULL);
 	preset_list_window_sort_dialogue = sort_dialogue_create(sort_window, preset_list_window_sort_columns, preset_list_window_sort_directions,
 			PRESET_LIST_WINDOW_SORT_OK, PRESET_LIST_WINDOW_SORT_CANCEL, preset_list_window_process_sort_window);
-
-	preset_list_window_sort_callbacks.compare = preset_list_window_sort_compare;
-	preset_list_window_sort_callbacks.swap = preset_list_window_sort_swap;
 
 	preset_list_window_block = list_window_create(&preset_list_window_definition, sprites);
 
@@ -561,38 +551,24 @@ static void preset_list_window_pane_click_handler(wimp_pointer *pointer, struct 
  * \param w		The handle of the owning window.
  * \param *menu		The menu handle.
  * \param *pointer	The pointer position, or NULL for a re-open.
+ * \param index		The index of the entry under the menu, or LIST_WINDOW_NULL_INDEX.
+ * \param *file		The file owning the preset list window.
+ * \param *data		The preset list window instance.
  */
 
-static void preset_list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer)
+static void preset_list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer, int index, struct file_block *file, void *data)
 {
-	struct preset_list_window	*windat;
-	int				line;
-	wimp_window_state		window;
+	struct preset_list_window	*windat = data;
 
-	windat = event_get_window_user_data(w);
 	if (windat == NULL)
 		return;
 
 	if (pointer != NULL) {
-		preset_list_window_menu_line = -1;
-
-		if (w == windat->preset_window) {
-			window.w = w;
-			wimp_get_window_state(&window);
-
-			line = window_calculate_click_row(&(pointer->pos), &window, PRESET_LIST_WINDOW_TOOLBAR_HEIGHT, windat->display_lines);
-
-			if (line != -1)
-				preset_list_window_menu_line = line;
-		}
-
 		saveas_initialise_dialogue(preset_list_window_saveas_csv, NULL, "DefCSVFile", NULL, FALSE, FALSE, windat);
 		saveas_initialise_dialogue(preset_list_window_saveas_tsv, NULL, "DefTSVFile", NULL, FALSE, FALSE, windat);
 	}
 
-	menus_shade_entry(preset_list_window_menu, PRESET_LIST_WINDOW_MENU_EDIT, preset_list_window_menu_line == -1);
-
-	preset_list_window_force_redraw(windat, preset_list_window_menu_line, preset_list_window_menu_line, wimp_ICON_WINDOW);
+	menus_shade_entry(preset_list_window_menu, PRESET_LIST_WINDOW_MENU_EDIT, index == LIST_WINDOW_NULL_INDEX);
 }
 
 
@@ -672,25 +648,6 @@ static void preset_list_window_menu_warning_handler(wimp_w w, wimp_menu *menu, w
 
 
 /**
- * Process menu close events in the Preset List window.
- *
- * \param w		The handle of the owning window.
- * \param *menu		The menu handle.
- */
-
-static void preset_list_window_menu_close_handler(wimp_w w, wimp_menu *menu)
-{
-	struct preset_list_window	*windat;
-
-	windat = event_get_window_user_data(w);
-	if (windat != NULL)
-		preset_list_window_force_redraw(windat, preset_list_window_menu_line, preset_list_window_menu_line, wimp_ICON_WINDOW);
-
-	preset_list_window_menu_line = -1;
-}
-
-
-/**
  * Process scroll events in the Preset List window.
  *
  * \param *scroll		The scroll event block to handle.
@@ -758,59 +715,16 @@ static void preset_list_window_redraw_handler(int index, struct file_block *file
  * Force the redraw of one or all of the presets in the given Preset list
  * bwindow.
  *
- * \param *file			The file owning the window to redraw.
+ * \param *windat		The preset window instance to redraw.
  * \param preset		The preset to redraw, or NULL_PRESET for all.
  */
 
 void preset_list_window_redraw(struct preset_list_window *windat, preset_t preset)
 {
-	int from, to;
-
 	if (windat == NULL)
 		return;
 
-	if (preset != NULL_PRESET) {
-		from = preset_list_window_get_line_from_preset(windat, preset);
-		to = from;
-	} else {
-		from = 0;
-		to = windat->display_lines - 1;
-	}
-
-	preset_list_window_force_redraw(windat, from, to, wimp_ICON_WINDOW);
-}
-
-
-/**
- * Force a redraw of the Preset list window, for the given range of lines.
- *
- * \param *file			The preset window to be redrawn.
- * \param from			The first line to redraw, inclusive.
- * \param to			The last line to redraw, inclusive.
- * \param column		The column to be redrawn, or wimp_ICON_WINDOW for all.
- */
-
-static void preset_list_window_force_redraw(struct preset_list_window *windat, int from, int to, wimp_i column)
-{
-	wimp_window_info	window;
-
-	if (windat == NULL || windat->preset_window == NULL)
-		return;
-
-	window.w = windat->preset_window;
-	if (xwimp_get_window_info_header_only(&window) != NULL)
-		return;
-
-	if (column != wimp_ICON_WINDOW) {
-		window.extent.x0 = window.extent.x1;
-		window.extent.x1 = 0;
-		column_get_heading_xpos(windat->columns, column, &(window.extent.x0), &(window.extent.x1));
-	}
-
-	window.extent.y1 = WINDOW_ROW_TOP(PRESET_LIST_WINDOW_TOOLBAR_HEIGHT, from);
-	window.extent.y0 = WINDOW_ROW_BASE(PRESET_LIST_WINDOW_TOOLBAR_HEIGHT, to);
-
-	wimp_force_redraw(windat->preset_window, window.extent.x0, window.extent.y0, window.extent.x1, window.extent.y1);
+	list_window_redraw(windat->window, preset);
 }
 
 
@@ -854,34 +768,6 @@ static void preset_list_window_decode_help(char *buffer, wimp_w w, wimp_i i, os_
 
 	if (!icons_extract_validation_command(buffer, IHELP_INAME_LEN, window_def->icons[icon].data.indirected_text.validation, 'N'))
 		string_printf(buffer, IHELP_INAME_LEN, "Col%d", icon);
-}
-
-
-/**
- * Find the display line in a preset window which points to the specified
- * preset under the applied sort.
- *
- * \param *windat		The preset list window to search.
- * \param preset		The preset to return the line for.
- * \return			The appropriate line, or -1 if not found.
- */
-
-static int preset_list_window_get_line_from_preset(struct preset_list_window *windat, preset_t preset)
-{
-	int	i;
-	int	line = -1;
-
-	if (windat == NULL || windat->line_data == NULL)
-		return line;
-
-	for (i = 0; i < windat->display_lines; i++) {
-		if (windat->line_data[i].preset == preset) {
-			line = i;
-			break;
-		}
-	}
-
-	return line;
 }
 
 
@@ -1100,19 +986,7 @@ void preset_list_window_sort(struct preset_list_window *windat)
 	if (windat == NULL)
 		return;
 
-	#ifdef DEBUG
-	debug_printf("Sorting preset window");
-	#endif
-
-	hourglass_on();
-
-	/* Run the sort. */
-
-	sort_process(windat->sort, windat->display_lines);
-
-	preset_list_window_force_redraw(windat, 0, windat->display_lines - 1, wimp_ICON_WINDOW);
-
-	hourglass_off();
+	list_window_sort(windat->window);
 }
 
 
@@ -1123,72 +997,40 @@ void preset_list_window_sort(struct preset_list_window *windat)
  * \param type			The required column type of the comparison.
  * \param index1		The index of the first line to be compared.
  * \param index2		The index of the second line to be compared.
- * \param *data			Client specific data, which is our window block.
+ * \param *file			The file relating to the data being sorted.
  * \return			The comparison result.
  */
 
-static int preset_list_window_sort_compare(enum sort_type type, int index1, int index2, void *data)
+static int preset_list_window_sort_compare(enum sort_type type, int index1, int index2, struct file_block *file)
 {
-	struct preset_list_window	*windat = data;
-	struct file_block		*file = NULL;
-
-	if (windat == NULL || windat->instance == NULL)
-		return 0;
-
-	file = preset_get_file(windat->instance);
-	if (file == NULL)
-		return 0;
-
 	switch (type) {
 	case SORT_CHAR:
-		return (preset_get_action_key(file, windat->line_data[index1].preset) -
-				preset_get_action_key(file, windat->line_data[index2].preset));
+		return (preset_get_action_key(file, index1) -
+				preset_get_action_key(file, index2));
 
 	case SORT_NAME:
-		return strcmp(preset_get_name(file, windat->line_data[index1].preset, NULL, 0),
-				preset_get_name(file, windat->line_data[index2].preset, NULL, 0));
+		return strcmp(preset_get_name(file, index1, NULL, 0),
+				preset_get_name(file, index2, NULL, 0));
 
 	case SORT_FROM:
-		return strcmp(account_get_name(file, preset_get_from(file, windat->line_data[index1].preset)),
-				account_get_name(file, preset_get_from(file, windat->line_data[index2].preset)));
+		return strcmp(account_get_name(file, preset_get_from(file, index1)),
+				account_get_name(file, preset_get_from(file, index2)));
 
 	case SORT_TO:
-		return strcmp(account_get_name(file, preset_get_to(file, windat->line_data[index1].preset)),
-				account_get_name(file, preset_get_to(file, windat->line_data[index2].preset)));
+		return strcmp(account_get_name(file, preset_get_to(file, index1)),
+				account_get_name(file, preset_get_to(file, index2)));
 
 	case SORT_AMOUNT:
-		return (preset_get_amount(file, windat->line_data[index1].preset) -
-				preset_get_amount(file, windat->line_data[index2].preset));
+		return (preset_get_amount(file, index1) -
+				preset_get_amount(file, index2));
 
 	case SORT_DESCRIPTION:
-		return strcmp(preset_get_description(file, windat->line_data[index1].preset, NULL, 0),
-				preset_get_description(file, windat->line_data[index2].preset, NULL, 0));
+		return strcmp(preset_get_description(file, index1, NULL, 0),
+				preset_get_description(file, index2, NULL, 0));
 
 	default:
 		return 0;
 	}
-}
-
-
-/**
- * Swap the sort index of two lines of a preset list.
- *
- * \param index1		The index of the first line to be swapped.
- * \param index2		The index of the second line to be swapped.
- * \param *data			Client specific data, which is our window block.
- */
-
-static void preset_list_window_sort_swap(int index1, int index2, void *data)
-{
-	struct preset_list_window	*windat = data;
-	int				temp;
-
-	if (windat == NULL)
-		return;
-
-	temp = windat->line_data[index1].preset;
-	windat->line_data[index1].preset = windat->line_data[index2].preset;
-	windat->line_data[index2].preset = temp;
 }
 
 

@@ -283,6 +283,7 @@ static struct list_window_definition window_definition = {
 	"Transact",					/**< The list window template name.		*/
 	"TransactTB",					/**< The list toolbar template name.		*/
 	NULL,						/**< The list footer template name.		*/
+	"MainMenu",					/**< The list menu template name.		*/
 	TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT,		/**< The list toolbar height, in OS Units.	*/
 	0,						/**< The list footer height, in OS Units.	*/
 	transact_list_window_columns,			/**< The window column definitions.		*/
@@ -300,6 +301,7 @@ static struct list_window_definition window_definition = {
 	"Transact",					/**< Window Help token base.			*/
 	"TransactTB",					/**< Window Toolbar help token base.		*/
 	NULL,						/**< Window Footer help token base.		*/
+	"MainMenu",					/**< Window Menu help token base.		*/
 	"SortTrans",					/**< Sort dialogue help token base.		*/
 	TRANSACT_LIST_WINDOW_MIN_ENTRIES,		/**< The minimum number of rows displayed.	*/
 

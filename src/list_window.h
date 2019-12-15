@@ -65,6 +65,11 @@ struct list_window_definition {
 	char				*footer_template_name;
 
 	/**
+	 * The name of the template for the window menu.
+	 */
+	char				*menu_template_name;
+
+	/**
 	 * The height of the toolbar pane, in OS Units.
 	 */
 	int				toolbar_height;
@@ -150,6 +155,11 @@ struct list_window_definition {
 	char				*footer_help;
 
 	/**
+	 * Base help token for the window menu.
+	 */
+	char				*menu_help;
+
+	/**
 	 * Base help token for the sort dialogue box.
 	 */
 	char				*sort_help;
@@ -180,9 +190,9 @@ struct list_window_definition {
 
 	void		(*callback_menu_prepare_handler)(wimp_w w, wimp_menu *menu, wimp_pointer *pointer, int index, struct file_block *file, void *data);
 
-	void		(*callback_menu_selection_handler)(wimp_w w, wimp_menu *menu, wimp_selection *selection);
+	void		(*callback_menu_selection_handler)(wimp_w w, wimp_menu *menu, wimp_selection *selection, wimp_pointer *pointer, int index, struct file_block *file, void *data);
 
-	void		(*callback_menu_warning_handler)(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning);
+	void		(*callback_menu_warning_handler)(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning, int index, struct file_block *file, void *data);
 
 	int		(*callback_sort_compare)(enum sort_type type, int index1, int index2, struct file_block *file);
 };

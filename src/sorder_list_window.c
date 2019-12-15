@@ -205,6 +205,7 @@ static struct list_window_definition sorder_list_window_definition = {
 	"SOrder",					/**< The list window template name.		*/
 	"SOrderTB",					/**< The list toolbar template name.		*/
 	NULL,						/**< The list footer template name.		*/
+	"SOrderMenu",					/**< The list menu template name.		*/
 	SORDER_LIST_WINDOW_TOOLBAR_HEIGHT,		/**< The list toolbar height, in OS Units.	*/
 	0,						/**< The list footer height, in OS Units.	*/
 	sorder_list_window_columns,			/**< The window column definitions.		*/
@@ -222,6 +223,7 @@ static struct list_window_definition sorder_list_window_definition = {
 	"SOrder",					/**< Window Help token base.			*/
 	"SOrderTB",					/**< Window Toolbar help token base.		*/
 	NULL,						/**< Window Footer help token base.		*/
+	"SOrderMenu",					/**< Window Menu help token base.		*/
 	"SortSOrder",					/**< Sort dialogue help token base.		*/
 	SORDER_LIST_WINDOW_MIN_ENTRIES,			/**< The minimum number of rows displayed.	*/
 

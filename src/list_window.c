@@ -95,6 +95,11 @@ struct list_window_block {
 	wimp_window			*footer_def;
 
 	/**
+	 * The handle of the window menu.
+	 */
+	wimp_menu			*menu;
+
+	/**
 	 * The sort callback function details.
 	 */
 
@@ -279,6 +284,15 @@ struct list_window_block *list_window_create(struct list_window_definition *defi
 		block->footer_def = templates_load_window(definition->footer_template_name);
 	} else {
 		block->footer_def = NULL;
+	}
+
+	/* Load the window menu template. */
+
+	if (definition->menu_template_name != NULL) {
+		block->menu = templates_get_menu(definition->menu_template_name);
+		ihelp_add_menu(block->menu, definition->menu_help);
+	} else {
+		block->menu = NULL;
 	}
 
 	/* Set up the sort callbacks. */
@@ -549,7 +563,7 @@ osbool list_window_open(struct list_window *instance)
 	/* Register event handlers for the main windows. */
 
 	event_add_window_user_data(instance->window, instance);
-//	event_add_window_menu(instance->window, preset_list_window_menu);
+	event_add_window_menu(instance->window, instance->parent->menu);
 	event_add_window_close_event(instance->window, list_window_close_handler);
 	event_add_window_mouse_event(instance->window, list_window_click_handler);
 	event_add_window_scroll_event(instance->window, list_window_scroll_handler);
@@ -563,7 +577,7 @@ osbool list_window_open(struct list_window *instance)
 
 	if (instance->toolbar != NULL) {
 		event_add_window_user_data(instance->toolbar, instance);
-//		event_add_window_menu(instance->toolbar, preset_list_window_menu);
+		event_add_window_menu(instance->toolbar, instance->parent->menu);
 		event_add_window_mouse_event(instance->toolbar, list_window_pane_click_handler);
 		event_add_window_menu_prepare(instance->toolbar, list_window_menu_prepare_handler);
 		event_add_window_menu_selection(instance->toolbar, list_window_menu_selection_handler);
@@ -941,6 +955,14 @@ static void list_window_decode_help(char *buffer, wimp_w w, wimp_i i, os_coord p
 }
 
 
+/**
+ * Process menu prepare events in a list window instance.
+ *
+ * \param w		The handle of the owning window.
+ * \param *menu		The menu handle.
+ * \param *pointer	The pointer position, or NULL for a re-open.
+ */
+
 static void list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer)
 {
 	struct list_window	*instance;
@@ -977,15 +999,76 @@ static void list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_poi
 	list_window_force_redraw(instance, instance->menu_line, instance->menu_line, wimp_ICON_WINDOW);
 }
 
+
+/**
+ * Process menu prepare events in a list window instance.
+ *
+ * \param w		The handle of the owning window.
+ * \param *menu		The menu handle.
+ * \param *pointer	The pointer position, or NULL for a re-open.
+ * \param index		The index of the entry under the menu, or LIST_WINDOW_NULL_INDEX.
+ * \param *file		The file owning the preset list window.
+ * \param *data		The preset list window instance.
+ */
+
 static void list_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection)
 {
+	struct list_window	*instance;
+	wimp_pointer		pointer;
+	int			index = LIST_WINDOW_NULL_INDEX;
 
+	instance = event_get_window_user_data(w);
+	if (instance == NULL || instance->parent == NULL)
+		return;
+
+	if (instance->parent->definition->callback_menu_selection_handler == NULL)
+		return;
+
+	wimp_get_pointer_info(&pointer);
+
+	if (instance->menu_line >= 0 && instance->menu_line < instance->display_lines)
+		index = instance->line_data[instance->menu_line].index;
+
+	instance->parent->definition->callback_menu_selection_handler(w, menu, selection,
+			&pointer, index, instance->file, instance->client_data);
 }
+
+
+/**
+ * Process submenu warning events in a list window instance.
+ *
+ * \param w		The handle of the owning window.
+ * \param *menu		The menu handle.
+ * \param *warning	The submenu warning message data.
+ */
 
 static void list_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning)
 {
+	struct list_window	*instance;
+	int			index = LIST_WINDOW_NULL_INDEX;
 
+	instance = event_get_window_user_data(w);
+	if (instance == NULL || instance->parent == NULL)
+		return;
+
+	if (instance->parent->definition->callback_menu_warning_handler == NULL)
+		return;
+
+
+	if (instance->menu_line >= 0 && instance->menu_line < instance->display_lines)
+		index = instance->line_data[instance->menu_line].index;
+
+	instance->parent->definition->callback_menu_warning_handler(w, menu, warning,
+			index, instance->file, instance->client_data);
 }
+
+
+/**
+ * Process menu close events in a list window instance.
+ *
+ * \param w		The handle of the owning window.
+ * \param *menu		The menu handle.
+ */
 
 static void list_window_menu_close_handler(wimp_w w, wimp_menu *menu)
 {

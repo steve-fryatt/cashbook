@@ -200,6 +200,7 @@ static struct list_window_definition preset_list_window_definition = {
 	"Preset",					/**< The list window template name.		*/
 	"PresetTB",					/**< The list toolbar template name.		*/
 	NULL,						/**< The list footer template name.		*/
+	"PresetMenu",					/**< The list menu template name.		*/
 	PRESET_LIST_WINDOW_TOOLBAR_HEIGHT,		/**< The list toolbar height, in OS Units.	*/
 	0,						/**< The list footer height, in OS Units.	*/
 	preset_list_window_columns,			/**< The window column definitions.		*/
@@ -217,6 +218,7 @@ static struct list_window_definition preset_list_window_definition = {
 	"Preset",					/**< Window Help token base.			*/
 	"PresetTB",					/**< Window Toolbar help token base.		*/
 	NULL,						/**< Window Footer help token base.		*/
+	"PresetMenu",					/**< Window Menu help token base.		*/
 	"SortPreset",					/**< Sort dialogue help token base.		*/
 	PRESET_LIST_WINDOW_MIN_ENTRIES,			/**< The minimum number of rows displayed.	*/
 
@@ -296,18 +298,6 @@ struct preset_list_window {
 static struct list_window_block		*preset_list_window_block = NULL;
 
 /**
- * The handle of the Preset List Window menu.
- */
-
-static wimp_menu			*preset_list_window_menu = NULL;
-
-/**
- * The window line associated with the most recent menu opening.
- */
-
-static int				preset_list_window_menu_line = -1;
-
-/**
  * The Save CSV saveas data handle.
  */
 
@@ -325,8 +315,8 @@ static void preset_list_window_delete(void *data);
 static void preset_list_window_click_handler(wimp_pointer *pointer, int index, struct file_block *file, void *data);
 static void preset_list_window_pane_click_handler(wimp_pointer *pointer, struct file_block *file, void *data);
 static void preset_list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer, int index, struct file_block *file, void *data);
-static void preset_list_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection);
-static void preset_list_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning);
+static void preset_list_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection, wimp_pointer *pointer, int index, struct file_block *file, void *data);
+static void preset_list_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning, int index, struct file_block *file, void *data);
 static void preset_list_window_redraw_handler(int index, struct file_block *file, void *data);
 static void preset_list_window_open_print_window(struct preset_list_window *windat, wimp_pointer *ptr, osbool restore);
 static struct report *preset_list_window_print(struct report *report, void *data, date_t from, date_t to);
@@ -355,12 +345,11 @@ void preset_list_window_initialise(osspriteop_area *sprites)
 	preset_list_window_definition.callback_pane_click_handler = preset_list_window_pane_click_handler;
 	preset_list_window_definition.callback_redraw_handler = preset_list_window_redraw_handler;
 	preset_list_window_definition.callback_menu_prepare_handler = preset_list_window_menu_prepare_handler;
+	preset_list_window_definition.callback_menu_selection_handler = preset_list_window_menu_selection_handler;
+	preset_list_window_definition.callback_menu_warning_handler = preset_list_window_menu_warning_handler;
 	preset_list_window_definition.callback_sort_compare = preset_list_window_sort_compare;
 
 	preset_list_window_block = list_window_create(&preset_list_window_definition, sprites);
-
-	preset_list_window_menu = templates_get_menu("PresetMenu");
-	ihelp_add_menu(preset_list_window_menu, "PresetMenu");
 
 	preset_list_window_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", preset_list_window_save_csv);
 	preset_list_window_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", preset_list_window_save_tsv);
@@ -547,7 +536,7 @@ static void preset_list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, w
 		saveas_initialise_dialogue(preset_list_window_saveas_tsv, NULL, "DefTSVFile", NULL, FALSE, FALSE, windat);
 	}
 
-	menus_shade_entry(preset_list_window_menu, PRESET_LIST_WINDOW_MENU_EDIT, index == LIST_WINDOW_NULL_INDEX);
+	menus_shade_entry(menu, PRESET_LIST_WINDOW_MENU_EDIT, index == LIST_WINDOW_NULL_INDEX);
 }
 
 
@@ -557,40 +546,35 @@ static void preset_list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, w
  * \param w		The handle of the owning window.
  * \param *menu		The menu handle.
  * \param *selection	The menu selection details.
+ * \param *pointer	The pointer position.
+ * \param index		The index of the entry under the menu, or LIST_WINDOW_NULL_INDEX.
+ * \param *file		The file owning the preset list window.
+ * \param *data		The preset list window instance.
  */
 
-static void preset_list_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection)
+static void preset_list_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection, wimp_pointer *pointer, int index, struct file_block *file, void *data)
 {
-	struct preset_list_window	*windat;
-	struct file_block		*file;
-	wimp_pointer			pointer;
+	struct preset_list_window	*windat = data;
 
-	windat = event_get_window_user_data(w);
 	if (windat == NULL || windat->instance == NULL)
 		return;
 
-	file = preset_get_file(windat->instance);
-	if (file == NULL)
-		return;
-
-	wimp_get_pointer_info(&pointer);
-
 	switch (selection->items[0]){
 	case PRESET_LIST_WINDOW_MENU_SORT:
-		list_window_open_sort_window(windat->window, &pointer);
+		list_window_open_sort_window(windat->window, pointer);
 		break;
 
 	case PRESET_LIST_WINDOW_MENU_EDIT:
-		if (preset_list_window_menu_line != -1)
-			preset_open_edit_window(file, windat->line_data[preset_list_window_menu_line].preset, &pointer);
+		if (index != LIST_WINDOW_NULL_INDEX)
+			preset_open_edit_window(file, index, pointer);
 		break;
 
 	case PRESET_LIST_WINDOW_MENU_NEWPRESET:
-		preset_open_edit_window(file, NULL_PRESET, &pointer);
+		preset_open_edit_window(file, NULL_PRESET, pointer);
 		break;
 
 	case PRESET_LIST_WINDOW_MENU_PRINT:
-		preset_list_window_open_print_window(windat, &pointer, config_opt_read("RememberValues"));
+		preset_list_window_open_print_window(windat, pointer, config_opt_read("RememberValues"));
 		break;
 	}
 }
@@ -602,13 +586,15 @@ static void preset_list_window_menu_selection_handler(wimp_w w, wimp_menu *menu,
  * \param w		The handle of the owning window.
  * \param *menu		The menu handle.
  * \param *warning	The submenu warning message data.
+ * \param index		The index of the entry under the menu, or LIST_WINDOW_NULL_INDEX.
+ * \param *file		The file owning the preset list window.
+ * \param *data		The preset list window instance.
  */
 
-static void preset_list_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning)
+static void preset_list_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning, int index, struct file_block *file, void *data)
 {
-	struct preset_list_window	*windat;
+	struct preset_list_window *windat = data;
 
-	windat = event_get_window_user_data(w);
 	if (windat == NULL)
 		return;
 

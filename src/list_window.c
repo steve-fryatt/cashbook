@@ -769,6 +769,12 @@ static void list_window_scroll_handler(wimp_scroll *scroll)
 }
 
 
+/**
+ * Process redraw events in a list window instance.
+ *
+ * \param *redraw		The draw event block to handle.
+ */
+
 static void list_window_redraw_handler(wimp_draw *redraw)
 {
 	struct list_window	*instance;
@@ -787,9 +793,9 @@ static void list_window_redraw_handler(wimp_draw *redraw)
 
 	/* Identify if there is a selected line to highlight. */
 
-//	if (redraw->w == event_get_current_menu_window())
-//		select = preset_list_window_menu_line;
-//	else
+	if (redraw->w == event_get_current_menu_window())
+		select = instance->menu_line;
+	else
 		select = -1;
 
 	/* Set the horizontal positions of the icons. */
@@ -892,12 +898,46 @@ static void list_window_force_redraw(struct list_window *instance, int from, int
 }
 
 
-
-
+/**
+ * Turn a mouse position over the a list window into an interactive help
+ * token.
+ *
+ * \param *buffer		A buffer to take the generated token.
+ * \param w			The window under the pointer.
+ * \param i			The icon under the pointer.
+ * \param pos			The current mouse position.
+ * \param buttons		The current mouse button state.
+ */
 
 static void list_window_decode_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons)
 {
+	int			xpos;
+	wimp_i			icon;
+	wimp_window_state	window;
+	struct list_window	*instance;
+	wimp_window		*window_def;
 
+	*buffer = '\0';
+
+	instance = event_get_window_user_data(w);
+	if (instance == NULL || instance->parent == NULL)
+		return;
+
+	window_def = instance->parent->window_def;
+	if (window_def == NULL)
+		return;
+
+	window.w = w;
+	wimp_get_window_state(&window);
+
+	xpos = (pos.x - window.visible.x0) + window.xscroll;
+
+	icon = column_find_icon_from_xpos(instance->columns, xpos);
+	if (icon == wimp_ICON_WINDOW)
+		return;
+
+	if (!icons_extract_validation_command(buffer, IHELP_INAME_LEN, window_def->icons[icon].data.indirected_text.validation, 'N'))
+		string_printf(buffer, IHELP_INAME_LEN, "Col%d", icon);
 }
 
 

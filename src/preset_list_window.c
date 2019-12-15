@@ -279,11 +279,6 @@ struct preset_list_window {
 	struct column_block			*columns;
 
 	/**
-	 * Instance handle for the window's sort code.
-	 */
-//	struct sort_block			*sort;
-
-	/**
 	 * Count of the number of populated display lines in the window.
 	 */
 	int					display_lines;
@@ -333,7 +328,6 @@ static void preset_list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, w
 static void preset_list_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection);
 static void preset_list_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning);
 static void preset_list_window_redraw_handler(int index, struct file_block *file, void *data);
-static void preset_list_window_decode_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
 static void preset_list_window_open_print_window(struct preset_list_window *windat, wimp_pointer *ptr, osbool restore);
 static struct report *preset_list_window_print(struct report *report, void *data, date_t from, date_t to);
 static int preset_list_window_sort_compare(enum sort_type type, int index1, int index2, struct file_block *file);
@@ -635,7 +629,9 @@ static void preset_list_window_menu_warning_handler(wimp_w w, wimp_menu *menu, w
 /**
  * Process redraw events in the Preset List window.
  *
- * \param *redraw		The draw event block to handle.
+ * \param *index		The index of the item in the line to be redrawn.
+ * \param *file			Pointer to the owning file instance.
+ * \param *data			Pointer to the Preset List Window instance.
  */
 
 static void preset_list_window_redraw_handler(int index, struct file_block *file, void *data)
@@ -694,49 +690,6 @@ void preset_list_window_redraw(struct preset_list_window *windat, preset_t prese
 		return;
 
 	list_window_redraw(windat->window, preset);
-}
-
-
-/**
- * Turn a mouse position over the Preset List window into an interactive help
- * token.
- *
- * \param *buffer		A buffer to take the generated token.
- * \param w			The window under the pointer.
- * \param i			The icon under the pointer.
- * \param pos			The current mouse position.
- * \param buttons		The current mouse button state.
- */
-
-static void preset_list_window_decode_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons)
-{
-	int				xpos;
-	wimp_i				icon;
-	wimp_window_state		window;
-	struct preset_list_window	*windat;
-	wimp_window			*window_def;
-
-	*buffer = '\0';
-
-	windat = event_get_window_user_data(w);
-	if (windat == NULL)
-		return;
-
-	window_def = list_window_get_toolbar_def(preset_list_window_block);
-	if (window_def == NULL)
-		return;
-
-	window.w = w;
-	wimp_get_window_state(&window);
-
-	xpos = (pos.x - window.visible.x0) + window.xscroll;
-
-	icon = column_find_icon_from_xpos(windat->columns, xpos);
-	if (icon == wimp_ICON_WINDOW)
-		return;
-
-	if (!icons_extract_validation_command(buffer, IHELP_INAME_LEN, window_def->icons[icon].data.indirected_text.validation, 'N'))
-		string_printf(buffer, IHELP_INAME_LEN, "Col%d", icon);
 }
 
 

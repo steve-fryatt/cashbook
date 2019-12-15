@@ -332,7 +332,6 @@ static void preset_list_window_pane_click_handler(wimp_pointer *pointer, struct 
 static void preset_list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer, int index, struct file_block *file, void *data);
 static void preset_list_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection);
 static void preset_list_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning);
-static void preset_list_window_scroll_handler(wimp_scroll *scroll);
 static void preset_list_window_redraw_handler(int index, struct file_block *file, void *data);
 static void preset_list_window_decode_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
 static void preset_list_window_open_print_window(struct preset_list_window *windat, wimp_pointer *ptr, osbool restore);
@@ -631,22 +630,6 @@ static void preset_list_window_menu_warning_handler(wimp_w w, wimp_menu *menu, w
 		wimp_create_sub_menu(warning->sub_menu, warning->pos.x, warning->pos.y);
 		break;
 	}
-}
-
-
-/**
- * Process scroll events in the Preset List window.
- *
- * \param *scroll		The scroll event block to handle.
- */
-
-static void preset_list_window_scroll_handler(wimp_scroll *scroll)
-{
-	window_process_scroll_event(scroll, PRESET_LIST_WINDOW_TOOLBAR_HEIGHT);
-
-	/* Re-open the window. It is assumed that the wimp will deal with out-of-bounds offsets for us. */
-
-	wimp_open_window((wimp_open *) scroll);
 }
 
 

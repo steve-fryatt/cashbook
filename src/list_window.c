@@ -745,10 +745,29 @@ static void list_window_pane_click_handler(wimp_pointer *pointer)
 	}
 }
 
+
+/**
+ * Process scroll events in the Preset List window.
+ *
+ * \param *scroll		The scroll event block to handle.
+ */
+
 static void list_window_scroll_handler(wimp_scroll *scroll)
 {
+	struct list_window	*instance;
 
+	instance = event_get_window_user_data(scroll->w);
+	if (instance == NULL || instance->parent == NULL)
+		return;
+
+
+	window_process_scroll_event(scroll, instance->parent->definition->toolbar_height);
+
+	/* Re-open the window. It is assumed that the wimp will deal with out-of-bounds offsets for us. */
+
+	wimp_open_window((wimp_open *) scroll);
 }
+
 
 static void list_window_redraw_handler(wimp_draw *redraw)
 {

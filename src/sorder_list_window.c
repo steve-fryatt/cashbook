@@ -202,28 +202,28 @@ static struct sort_dialogue_icon sorder_list_window_sort_directions[] = {
  */
 
 static struct list_window_definition sorder_list_window_definition = {
-	"SOrder",
-	"SOrderTB",
-	NULL,
-	SORDER_LIST_WINDOW_TOOLBAR_HEIGHT,
-	0,
-	sorder_list_window_columns,
-	NULL,
-	SORDER_LIST_WINDOW_COLUMNS,
-	"LimSOrderCols",
-	"SOrderCols",
-	SORDER_LIST_WINDOW_PANE_SORT_DIR_ICON,
-	"SortSOrder",					/**< The sort dialogue template name.	*/
-	sorder_list_window_sort_columns,		/**< The sort dialogue column icons.	*/
-	sorder_list_window_sort_directions,		/**< The sort dialogue direction icons.	*/
-	SORDER_LIST_WINDOW_SORT_OK,			/**< The sort dialogue OK icon.		*/
-	SORDER_LIST_WINDOW_SORT_CANCEL,			/**< The sort dialogue Cancel icon.	*/
-	"SOrderTitle",					/*<< Window Title token.		*/
-	"SOrder",					/**< Window Help token base.		*/
-	"SOrderTB",					/**< Window Toolbar help token base.	*/
-	NULL,						/**< Window Footer help token base.	*/
-	"SortSOrder",					/**< Sort dialogue help token base.	*/
-	SORDER_LIST_WINDOW_MIN_ENTRIES,
+	"SOrder",					/**< The list window template name.		*/
+	"SOrderTB",					/**< The list toolbar template name.		*/
+	NULL,						/**< The list footer template name.		*/
+	SORDER_LIST_WINDOW_TOOLBAR_HEIGHT,		/**< The list toolbar height, in OS Units.	*/
+	0,						/**< The list footer height, in OS Units.	*/
+	sorder_list_window_columns,			/**< The window column definitions.		*/
+	NULL,						/**< The window column extended definitions.	*/
+	SORDER_LIST_WINDOW_COLUMNS,			/**< The number of column definitions.		*/
+	"LimSOrderCols",				/**< The column width limit config token.	*/
+	"SOrderCols",					/**< The column width config token.		*/
+	SORDER_LIST_WINDOW_PANE_SORT_DIR_ICON,		/**< The toolbar icon used to show sort order.	*/
+	"SortSOrder",					/**< The sort dialogue template name.		*/
+	sorder_list_window_sort_columns,		/**< The sort dialogue column icons.		*/
+	sorder_list_window_sort_directions,		/**< The sort dialogue direction icons.		*/
+	SORDER_LIST_WINDOW_SORT_OK,			/**< The sort dialogue OK icon.			*/
+	SORDER_LIST_WINDOW_SORT_CANCEL,			/**< The sort dialogue Cancel icon.		*/
+	"SOrderTitle",					/*<< Window Title token.			*/
+	"SOrder",					/**< Window Help token base.			*/
+	"SOrderTB",					/**< Window Toolbar help token base.		*/
+	NULL,						/**< Window Footer help token base.		*/
+	"SortSOrder",					/**< Sort dialogue help token base.		*/
+	SORDER_LIST_WINDOW_MIN_ENTRIES,			/**< The minimum number of rows displayed.	*/
 
 	NULL,
 	NULL,

@@ -280,28 +280,28 @@ static struct sort_dialogue_icon transact_list_window_sort_directions[] = {
  */
 
 static struct list_window_definition window_definition = {
-	"Transact",
-	"TransactTB",
-	NULL,
-	TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT,
-	0,
-	transact_list_window_columns,
-	NULL,
-	TRANSACT_LIST_WINDOW_COLUMNS,
-	"LimTransactCols",
-	"TransacttCols",
-	TRANSACT_LIST_WINDOW_PANE_SORT_DIR_ICON,
-	"SortTrans",					/**< The sort dialogue template name.	*/
-	transact_list_window_sort_columns,		/**< The sort dialogue column icons.	*/
-	transact_list_window_sort_directions,		/**< The sort dialogue direction icons.	*/
-	TRANSACT_LIST_WINDOW_SORT_OK,			/**< The sort dialogue OK icon.		*/
-	TRANSACT_LIST_WINDOW_SORT_CANCEL,		/**< The sort dialogue Cancel icon.	*/
-	NULL,						/*<< Window Title token.		*/
-	"Transact",					/**< Window Help token base.		*/
-	"TransactTB",					/**< Window Toolbar help token base.	*/
-	NULL,						/**< Window Footer help token base.	*/
-	"SortTrans",					/**< Sort dialogue help token base.	*/
-	TRANSACT_LIST_WINDOW_MIN_ENTRIES,
+	"Transact",					/**< The list window template name.		*/
+	"TransactTB",					/**< The list toolbar template name.		*/
+	NULL,						/**< The list footer template name.		*/
+	TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT,		/**< The list toolbar height, in OS Units.	*/
+	0,						/**< The list footer height, in OS Units.	*/
+	transact_list_window_columns,			/**< The window column definitions.		*/
+	NULL,						/**< The window column extended definitions.	*/
+	TRANSACT_LIST_WINDOW_COLUMNS,			/**< The number of column definitions.		*/
+	"LimTransactCols",				/**< The column width limit config token.	*/
+	"TransacttCols",				/**< The column width config token.		*/
+	TRANSACT_LIST_WINDOW_PANE_SORT_DIR_ICON,	/**< The toolbar icon used to show sort order.	*/
+	"SortTrans",					/**< The sort dialogue template name.		*/
+	transact_list_window_sort_columns,		/**< The sort dialogue column icons.		*/
+	transact_list_window_sort_directions,		/**< The sort dialogue direction icons.		*/
+	TRANSACT_LIST_WINDOW_SORT_OK,			/**< The sort dialogue OK icon.			*/
+	TRANSACT_LIST_WINDOW_SORT_CANCEL,		/**< The sort dialogue Cancel icon.		*/
+	NULL,						/*<< Window Title token.			*/
+	"Transact",					/**< Window Help token base.			*/
+	"TransactTB",					/**< Window Toolbar help token base.		*/
+	NULL,						/**< Window Footer help token base.		*/
+	"SortTrans",					/**< Sort dialogue help token base.		*/
+	TRANSACT_LIST_WINDOW_MIN_ENTRIES,		/**< The minimum number of rows displayed.	*/
 
 	NULL,
 	NULL,

@@ -197,28 +197,28 @@ static struct sort_dialogue_icon preset_list_window_sort_directions[] = {
  */
 
 static struct list_window_definition preset_list_window_definition = {
-	"Preset",
-	"PresetTB",
-	NULL,
-	PRESET_LIST_WINDOW_TOOLBAR_HEIGHT,
-	0,
-	preset_list_window_columns,
-	NULL,
-	PRESET_LIST_WINDOW_COLUMNS,
-	"LimPresetCols",
-	"PresetCols",
-	PRESET_LIST_WINDOW_PANE_SORT_DIR_ICON,
-	"SortPreset",					/**< The sort dialogue template name.	*/
-	preset_list_window_sort_columns,		/**< The sort dialogue column icons.	*/
-	preset_list_window_sort_directions,		/**< The sort dialogue direction icons.	*/
-	PRESET_LIST_WINDOW_SORT_OK,			/**< The sort dialogue OK icon.		*/
-	PRESET_LIST_WINDOW_SORT_CANCEL,			/**< The sort dialogue Cancel icon.	*/
-	"PresetTitle",					/**< Window Title token.		*/
-	"Preset",					/**< Window Help token base.		*/
-	"PresetTB",					/**< Window Toolbar help token base.	*/
-	NULL,						/**< Window Footer help token base.	*/
-	"SortPreset",					/**< Sort dialogue help token base.	*/
-	PRESET_LIST_WINDOW_MIN_ENTRIES,
+	"Preset",					/**< The list window template name.		*/
+	"PresetTB",					/**< The list toolbar template name.		*/
+	NULL,						/**< The list footer template name.		*/
+	PRESET_LIST_WINDOW_TOOLBAR_HEIGHT,		/**< The list toolbar height, in OS Units.	*/
+	0,						/**< The list footer height, in OS Units.	*/
+	preset_list_window_columns,			/**< The window column definitions.		*/
+	NULL,						/**< The window column extended definitions.	*/
+	PRESET_LIST_WINDOW_COLUMNS,			/**< The number of column definitions.		*/
+	"LimPresetCols",				/**< The column width limit config token.	*/
+	"PresetCols",					/**< The column width config token.		*/
+	PRESET_LIST_WINDOW_PANE_SORT_DIR_ICON,		/**< The toolbar icon used to show sort order.	*/
+	"SortPreset",					/**< The sort dialogue template name.		*/
+	preset_list_window_sort_columns,		/**< The sort dialogue column icons.		*/
+	preset_list_window_sort_directions,		/**< The sort dialogue direction icons.		*/
+	PRESET_LIST_WINDOW_SORT_OK,			/**< The sort dialogue OK icon.			*/
+	PRESET_LIST_WINDOW_SORT_CANCEL,			/**< The sort dialogue Cancel icon.		*/
+	"PresetTitle",					/**< Window Title token.			*/
+	"Preset",					/**< Window Help token base.			*/
+	"PresetTB",					/**< Window Toolbar help token base.		*/
+	NULL,						/**< Window Footer help token base.		*/
+	"SortPreset",					/**< Sort dialogue help token base.		*/
+	PRESET_LIST_WINDOW_MIN_ENTRIES,			/**< The minimum number of rows displayed.	*/
 
 	NULL,
 	NULL,

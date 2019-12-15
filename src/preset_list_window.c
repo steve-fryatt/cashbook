@@ -337,7 +337,6 @@ static void preset_list_window_decode_help(char *buffer, wimp_w w, wimp_i i, os_
 static void preset_list_window_open_print_window(struct preset_list_window *windat, wimp_pointer *ptr, osbool restore);
 static struct report *preset_list_window_print(struct report *report, void *data, date_t from, date_t to);
 static int preset_list_window_sort_compare(enum sort_type type, int index1, int index2, struct file_block *file);
-static void preset_list_window_sort_swap(int index1, int index2, void *data);
 static osbool preset_list_window_save_csv(char *filename, osbool selection, void *data);
 static osbool preset_list_window_save_tsv(char *filename, osbool selection, void *data);
 static void preset_list_window_export_delimited(struct preset_list_window *windat, char *filename, enum filing_delimit_type format, int filetype);

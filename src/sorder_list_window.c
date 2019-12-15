@@ -213,12 +213,16 @@ static struct list_window_definition sorder_list_window_definition = {
 	"LimSOrderCols",
 	"SOrderCols",
 	SORDER_LIST_WINDOW_PANE_SORT_DIR_ICON,
-	sorder_list_window_sort_columns,
-	sorder_list_window_sort_directions,
+	"SortSOrder",					/**< The sort dialogue template name.	*/
+	sorder_list_window_sort_columns,		/**< The sort dialogue column icons.	*/
+	sorder_list_window_sort_directions,		/**< The sort dialogue direction icons.	*/
+	SORDER_LIST_WINDOW_SORT_OK,			/**< The sort dialogue OK icon.		*/
+	SORDER_LIST_WINDOW_SORT_CANCEL,			/**< The sort dialogue Cancel icon.	*/
 	"SOrderTitle",					/*<< Window Title token.		*/
 	"SOrder",					/**< Window Help token base.		*/
 	"SOrderTB",					/**< Window Toolbar help token base.	*/
 	NULL,						/**< Window Footer help token base.	*/
+	"SortSOrder",					/**< Sort dialogue help token base.	*/
 	SORDER_LIST_WINDOW_MIN_ENTRIES,
 
 	NULL,

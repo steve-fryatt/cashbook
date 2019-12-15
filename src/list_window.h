@@ -105,6 +105,11 @@ struct list_window_definition {
 	wimp_i				sort_dir_icon;
 
 	/**
+	 * The name of the template for the sort dialogue.
+	 */
+	char				*sort_template_name;
+
+	/**
 	 * The sort dialogue column icons.
 	 */
 	struct sort_dialogue_icon	*sort_columns;
@@ -113,6 +118,16 @@ struct list_window_definition {
 	 * The sort dialogue direction icons.
 	 */
 	struct sort_dialogue_icon	*sort_directions;
+
+	/**
+	 * The sort dialogue OK icon.
+	 */
+	wimp_i				sort_icon_ok;
+
+	/**
+	 * The sort dialogue Cancel icon.
+	 */
+	wimp_i				sort_icon_cancel;
 
 	/**
 	 * Token for the window title.
@@ -133,6 +148,11 @@ struct list_window_definition {
 	 * Base help token for the footer pane.
 	 */
 	char				*footer_help;
+
+	/**
+	 * Base help token for the sort dialogue box.
+	 */
+	char				*sort_help;
 
 	/**
 	 * The minimum number of entries in the window.
@@ -285,6 +305,16 @@ osbool list_window_delete_entry(struct list_window *instance, int entry, osbool 
 
 
 /**
+ * Open the sort dialogue for a given list window instance.
+ *
+ * \param *file			The preset window to own the dialogue.
+ * \param *ptr			The current Wimp pointer position.
+ */
+
+void list_window_open_sort_window(struct list_window *instance, wimp_pointer *ptr);
+
+
+/**
  * Sort the entries in a given list window based on that instance's sort
  * setting.
  *
@@ -300,6 +330,18 @@ void list_window_sort(struct list_window *instance);
 
 
 /**
+ * Save the list window details from a given instance to a CashBook file.
+ * This assumes that the caller has already created a suitable section
+ * in the file to be written.
+ *
+ * \param *instance		The window instance whose details to write.
+ * \param *out			The file handle to write to.
+ */
+
+void list_window_write_file(struct list_window *instance, FILE *out);
+
+
+/**
  * Process a WinColumns line from a file.
  *
  * \param *instance		The instance being read in to.
@@ -309,6 +351,16 @@ void list_window_sort(struct list_window *instance);
  */
 
 void list_window_read_file_wincolumns(struct list_window *instance, int start, osbool skip, char *columns);
+
+
+/**
+ * Process a SortOrder line from a file.
+ *
+ * \param *instance		The instance being read in to.
+ * \param *order		The order text line.
+ */
+
+void list_window_read_file_sortorder(struct list_window *instance, char *order);
 
 
 

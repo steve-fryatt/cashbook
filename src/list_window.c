@@ -63,7 +63,10 @@
 #include "global.h"
 #include "list_window.h"
 
+#include "column.h"
 #include "flexutils.h"
+#include "sort.h"
+#include "sort_dialogue.h"
 #include "window.h"
 
 /**
@@ -92,10 +95,15 @@ struct list_window_block {
 	wimp_window			*footer_def;
 
 	/**
-	 * The Preset List Window Sort callbacks.
+	 * The sort callback function details.
 	 */
 
 	struct sort_callback		sort_callbacks;
+
+	/**
+	 * The sort dialogue box instance.
+	 */
+	struct sort_dialogue_block	*sort_dialogue;
 };
 
 /**
@@ -214,6 +222,7 @@ static void list_window_set_extent(struct list_window *instance);
 static void list_window_build_title(struct list_window *instance);
 
 static int list_window_get_line_from_preset(struct list_window *instance, int index);
+static osbool list_window_process_sort_window(enum sort_type order, void *data);
 static int list_window_sort_compare(enum sort_type type, int index1, int index2, void *data);
 static void list_window_sort_swap(int index1, int index2, void *data);
 
@@ -234,7 +243,8 @@ void list_window_initialise(void)
 
 struct list_window_block *list_window_create(struct list_window_definition *definition, osspriteop_area *sprites)
 {
-	struct list_window_block *block;
+	struct list_window_block	*block;
+	wimp_w				sort_window;
 
 	if (definition == NULL)
 		return NULL;
@@ -275,6 +285,13 @@ struct list_window_block *list_window_create(struct list_window_definition *defi
 
 	block->sort_callbacks.compare = list_window_sort_compare;
 	block->sort_callbacks.swap = list_window_sort_swap;
+
+	/* Set up the sort dialogue. */
+
+	sort_window = templates_create_window(definition->sort_template_name);
+	ihelp_add_window(sort_window, definition->sort_help, NULL);
+	block->sort_dialogue = sort_dialogue_create(sort_window, definition->sort_columns, definition->sort_directions,
+			definition->sort_icon_ok, definition->sort_icon_cancel, list_window_process_sort_window);
 
 	return block;
 }
@@ -605,7 +622,7 @@ static void list_window_delete(struct list_window *instance)
 	/* Close any dialogues which belong to this window. */
 // \TODO
 //	dialogue_force_all_closed(NULL, instance);
-//	sort_dialogue_close(preset_list_window_sort_dialogue, windat);
+	sort_dialogue_close(instance->parent->sort_dialogue, instance);
 
 	/* Allow the client to tidy up if it needs to. */
 
@@ -1219,6 +1236,47 @@ static int list_window_get_line_from_preset(struct list_window *instance, int in
 
 
 /**
+ * Open the sort dialogue for a given list window instance.
+ *
+ * \param *file			The preset window to own the dialogue.
+ * \param *ptr			The current Wimp pointer position.
+ */
+
+void list_window_open_sort_window(struct list_window *instance, wimp_pointer *ptr)
+{
+	if (instance == NULL || ptr == NULL)
+		return;
+
+	sort_dialogue_open(instance->parent->sort_dialogue, ptr, sort_get_order(instance->sort), instance);
+}
+
+
+/**
+ * Take the contents of an updated sort dialogue and process the data.
+ *
+ * \param order			The new sort order selected by the user.
+ * \param *data			The preset window associated with the sort dialogue.
+ * \return			TRUE if successful; else FALSE.
+ */
+
+static osbool list_window_process_sort_window(enum sort_type order, void *data)
+{
+	struct list_window *instance = data;
+
+	if (instance == NULL)
+		return FALSE;
+
+	sort_set_order(instance->sort, order);
+
+	list_window_adjust_sort_icon(instance);
+	windows_redraw(instance->toolbar);
+	list_window_sort(instance);
+
+	return TRUE;
+}
+
+
+/**
  * Sort the entries in a given list window based on that instance's sort
  * setting.
  *
@@ -1303,20 +1361,64 @@ static void list_window_sort_swap(int index1, int index2, void *data)
 
 
 /**
+ * Save the list window details from a given instance to a CashBook file.
+ * This assumes that the caller has already created a suitable section
+ * in the file to be written.
+ *
+ * \param *instance		The window instance whose details to write.
+ * \param *out			The file handle to write to.
+ */
+
+void list_window_write_file(struct list_window *instance, FILE *out)
+{
+	char	buffer[FILING_MAX_FILE_LINE_LEN];
+
+	if (instance == NULL)
+		return;
+
+	if (instance->columns != NULL) {
+		column_write_as_text(instance->columns, buffer, FILING_MAX_FILE_LINE_LEN);
+		fprintf(out, "WinColumns: %s\n", buffer);
+	}
+
+	if (instance->sort != NULL) {
+		sort_write_as_text(instance->sort, buffer, FILING_MAX_FILE_LINE_LEN);
+		fprintf(out, "SortOrder: %s\n", buffer);
+	}
+}
+
+
+/**
  * Process a WinColumns line from a file.
  *
  * \param *instance		The instance being read in to.
  * \param start			The first column to read in from the string.
  * \param skip			TRUE to ignore missing entries; FALSE to set to default.
-  * \param *columns		The column text line.
+ * \param *columns		The column text line.
  */
 
 void list_window_read_file_wincolumns(struct list_window *instance, int start, osbool skip, char *columns)
 {
-	if (instance == NULL)
+	if (instance == NULL || instance->columns == NULL)
 		return;
 
 	column_init_window(instance->columns, start, skip, columns);
+}
+
+
+/**
+ * Process a SortOrder line from a file.
+ *
+ * \param *instance		The instance being read in to.
+ * \param *order		The order text line.
+ */
+
+void list_window_read_file_sortorder(struct list_window *instance, char *order)
+{
+	if (instance == NULL || instance->sort == NULL)
+		return;
+
+	sort_read_from_text(instance->sort, order);
 }
 
 

@@ -291,12 +291,16 @@ static struct list_window_definition window_definition = {
 	"LimTransactCols",
 	"TransacttCols",
 	TRANSACT_LIST_WINDOW_PANE_SORT_DIR_ICON,
-	transact_list_window_sort_columns,
-	transact_list_window_sort_directions,
+	"SortTrans",					/**< The sort dialogue template name.	*/
+	transact_list_window_sort_columns,		/**< The sort dialogue column icons.	*/
+	transact_list_window_sort_directions,		/**< The sort dialogue direction icons.	*/
+	TRANSACT_LIST_WINDOW_SORT_OK,			/**< The sort dialogue OK icon.		*/
+	TRANSACT_LIST_WINDOW_SORT_CANCEL,		/**< The sort dialogue Cancel icon.	*/
 	NULL,						/*<< Window Title token.		*/
 	"Transact",					/**< Window Help token base.		*/
 	"TransactTB",					/**< Window Toolbar help token base.	*/
 	NULL,						/**< Window Footer help token base.	*/
+	"SortTrans",					/**< Sort dialogue help token base.	*/
 	TRANSACT_LIST_WINDOW_MIN_ENTRIES,
 
 	NULL,

@@ -208,12 +208,16 @@ static struct list_window_definition preset_list_window_definition = {
 	"LimPresetCols",
 	"PresetCols",
 	PRESET_LIST_WINDOW_PANE_SORT_DIR_ICON,
-	preset_list_window_sort_columns,
-	preset_list_window_sort_directions,
-	"PresetTitle",					/*<< Window Title token.		*/
+	"SortPreset",					/**< The sort dialogue template name.	*/
+	preset_list_window_sort_columns,		/**< The sort dialogue column icons.	*/
+	preset_list_window_sort_directions,		/**< The sort dialogue direction icons.	*/
+	PRESET_LIST_WINDOW_SORT_OK,			/**< The sort dialogue OK icon.		*/
+	PRESET_LIST_WINDOW_SORT_CANCEL,			/**< The sort dialogue Cancel icon.	*/
+	"PresetTitle",					/**< Window Title token.		*/
 	"Preset",					/**< Window Help token base.		*/
 	"PresetTB",					/**< Window Toolbar help token base.	*/
 	NULL,						/**< Window Footer help token base.	*/
+	"SortPreset",					/**< Sort dialogue help token base.	*/
 	PRESET_LIST_WINDOW_MIN_ENTRIES,
 
 	NULL,
@@ -277,7 +281,7 @@ struct preset_list_window {
 	/**
 	 * Instance handle for the window's sort code.
 	 */
-	struct sort_block			*sort;
+//	struct sort_block			*sort;
 
 	/**
 	 * Count of the number of populated display lines in the window.
@@ -309,12 +313,6 @@ static wimp_menu			*preset_list_window_menu = NULL;
 static int				preset_list_window_menu_line = -1;
 
 /**
- * The Preset List Window Sort dialogue.
- */
-
-static struct sort_dialogue_block	*preset_list_window_sort_dialogue = NULL;
-
-/**
  * The Save CSV saveas data handle.
  */
 
@@ -337,8 +335,6 @@ static void preset_list_window_menu_warning_handler(wimp_w w, wimp_menu *menu, w
 static void preset_list_window_scroll_handler(wimp_scroll *scroll);
 static void preset_list_window_redraw_handler(int index, struct file_block *file, void *data);
 static void preset_list_window_decode_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
-static void preset_list_window_open_sort_window(struct preset_list_window *windat, wimp_pointer *ptr);
-static osbool preset_list_window_process_sort_window(enum sort_type order, void *data);
 static void preset_list_window_open_print_window(struct preset_list_window *windat, wimp_pointer *ptr, osbool restore);
 static struct report *preset_list_window_print(struct report *report, void *data, date_t from, date_t to);
 static int preset_list_window_sort_compare(enum sort_type type, int index1, int index2, struct file_block *file);
@@ -362,19 +358,12 @@ static void preset_list_window_export_delimited(struct preset_list_window *winda
 
 void preset_list_window_initialise(osspriteop_area *sprites)
 {
-	wimp_w sort_window;
-
 	preset_list_window_definition.callback_window_close_handler = preset_list_window_delete;
 	preset_list_window_definition.callback_window_click_handler = preset_list_window_click_handler;
 	preset_list_window_definition.callback_pane_click_handler = preset_list_window_pane_click_handler;
 	preset_list_window_definition.callback_redraw_handler = preset_list_window_redraw_handler;
 	preset_list_window_definition.callback_menu_prepare_handler = preset_list_window_menu_prepare_handler;
 	preset_list_window_definition.callback_sort_compare = preset_list_window_sort_compare;
-
-	sort_window = templates_create_window("SortPreset");
-	ihelp_add_window(sort_window, "SortPreset", NULL);
-	preset_list_window_sort_dialogue = sort_dialogue_create(sort_window, preset_list_window_sort_columns, preset_list_window_sort_directions,
-			PRESET_LIST_WINDOW_SORT_OK, PRESET_LIST_WINDOW_SORT_CANCEL, preset_list_window_process_sort_window);
 
 	preset_list_window_block = list_window_create(&preset_list_window_definition, sprites);
 
@@ -407,7 +396,6 @@ struct preset_list_window *preset_list_window_create_instance(struct preset_bloc
 	new->preset_window = NULL;
 	new->preset_pane = NULL;
 	new->columns = NULL;
-	new->sort = NULL;
 
 	new->display_lines = 0;
 	new->line_data = NULL;
@@ -481,7 +469,6 @@ static void preset_list_window_delete(void *data)
 	/* Close any dialogues which belong to this window. */
 
 	dialogue_force_all_closed(NULL, windat);
-	sort_dialogue_close(preset_list_window_sort_dialogue, windat);
 }
 
 
@@ -528,7 +515,7 @@ static void preset_list_window_pane_click_handler(wimp_pointer *pointer, struct 
 			break;
 
 		case PRESET_LIST_WINDOW_PANE_SORT:
-			preset_list_window_open_sort_window(windat, pointer);
+			list_window_open_sort_window(windat->window, pointer);
 			break;
 		}
 	} else if (pointer->buttons == wimp_CLICK_ADJUST) {
@@ -598,7 +585,7 @@ static void preset_list_window_menu_selection_handler(wimp_w w, wimp_menu *menu,
 
 	switch (selection->items[0]){
 	case PRESET_LIST_WINDOW_MENU_SORT:
-		preset_list_window_open_sort_window(windat, &pointer);
+		list_window_open_sort_window(windat->window, &pointer);
 		break;
 
 	case PRESET_LIST_WINDOW_MENU_EDIT:
@@ -786,48 +773,6 @@ preset_t preset_list_window_get_preset_from_line(struct preset_list_window *wind
 		return NULL_PRESET;
 
 	return windat->line_data[line].preset;
-}
-
-
-/**
- * Open the Preset Sort dialogue for a given preset list window.
- *
- * \param *file			The preset window to own the dialogue.
- * \param *ptr			The current Wimp pointer position.
- */
-
-static void preset_list_window_open_sort_window(struct preset_list_window *windat, wimp_pointer *ptr)
-{
-	if (windat == NULL || ptr == NULL)
-		return;
-
-	sort_dialogue_open(preset_list_window_sort_dialogue, ptr, sort_get_order(windat->sort), windat);
-}
-
-
-/**
- * Take the contents of an updated Preset Sort window and process
- * the data.
- *
- * \param order			The new sort order selected by the user.
- * \param *data			The preset window associated with the Sort dialogue.
- * \return			TRUE if successful; else FALSE.
- */
-
-static osbool preset_list_window_process_sort_window(enum sort_type order, void *data)
-{
-	struct preset_list_window *windat = (struct preset_list_window *) data;
-
-	if (windat == NULL)
-		return FALSE;
-
-	sort_set_order(windat->sort, order);
-
-//	preset_list_window_adjust_sort_icon(windat);
-	windows_redraw(windat->preset_pane);
-	preset_list_window_sort(windat);
-
-	return TRUE;
 }
 
 
@@ -1098,18 +1043,10 @@ osbool preset_list_window_delete_preset(struct preset_list_window *windat, prese
 
 void preset_list_window_write_file(struct preset_list_window *windat, FILE *out)
 {
-	char	buffer[FILING_MAX_FILE_LINE_LEN];
-
 	if (windat == NULL)
 		return;
 
-	/* We should be in a [Presets] section by now. */
-
-	column_write_as_text(windat->columns, buffer, FILING_MAX_FILE_LINE_LEN);
-	fprintf(out, "WinColumns: %s\n", buffer);
-
-	sort_write_as_text(windat->sort, buffer, FILING_MAX_FILE_LINE_LEN);
-	fprintf(out, "SortOrder: %s\n", buffer);
+	list_window_write_file(windat->window, out);
 }
 
 
@@ -1141,7 +1078,7 @@ void preset_list_window_read_file_sortorder(struct preset_list_window *windat, c
 	if (windat == NULL)
 		return;
 
-	sort_read_from_text(windat->sort, order);
+	list_window_read_file_sortorder(windat->window, order);
 }
 
 

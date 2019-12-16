@@ -236,7 +236,6 @@ static struct list_window_definition preset_list_window_definition = {
 	NULL,
 	NULL,
 	NULL,
-	NULL,
 	NULL
 };
 
@@ -287,7 +286,6 @@ static struct saveas_block		*preset_list_window_saveas_tsv = NULL;
 
 /* Static Function Prototypes. */
 
-static void preset_list_window_delete(void *data);
 static void preset_list_window_click_handler(wimp_pointer *pointer, int index, struct file_block *file, void *data);
 static void preset_list_window_pane_click_handler(wimp_pointer *pointer, struct file_block *file, void *data);
 static void preset_list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer, int index, struct file_block *file, void *data);
@@ -310,7 +308,6 @@ static void preset_list_window_export_delimited_line(FILE *out, enum filing_deli
 
 void preset_list_window_initialise(osspriteop_area *sprites)
 {
-	preset_list_window_definition.callback_window_close_handler = preset_list_window_delete;
 	preset_list_window_definition.callback_window_click_handler = preset_list_window_click_handler;
 	preset_list_window_definition.callback_pane_click_handler = preset_list_window_pane_click_handler;
 	preset_list_window_definition.callback_redraw_handler = preset_list_window_redraw_handler;
@@ -388,34 +385,6 @@ void preset_list_window_open(struct preset_list_window *windat)
 		return;
 
 	list_window_open(windat->window);
-}
-
-
-/**
- * Close and delete a Preset List Window associated with the given
- * instance.
- * 
- * TODO -- This is probably unnecessary, if dialogues are opened with
- * the list window instance handle as their reference. Should it, and
- * its associated callback, be removed?
- *
- * \param *data		The instance being closed.
- */
-
-static void preset_list_window_delete(void *data)
-{
-	struct preset_list_window *windat = data;
-
-	if (windat == NULL)
-		return;
-
-//	#ifdef DEBUG
-	debug_printf ("\\RDeleting Preset List window");
-//	#endif
-
-	/* Close any dialogues which belong to this window. */
-
-	dialogue_force_all_closed(NULL, windat);
 }
 
 

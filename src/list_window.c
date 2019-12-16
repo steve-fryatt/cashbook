@@ -64,6 +64,7 @@
 #include "list_window.h"
 
 #include "column.h"
+#include "dialogue.h"
 #include "flexutils.h"
 #include "print_dialogue.h"
 #include "report.h"
@@ -645,14 +646,9 @@ static void list_window_delete(struct list_window *instance)
 	}
 
 	/* Close any dialogues which belong to this window. */
-// \TODO
-//	dialogue_force_all_closed(NULL, instance);
+
+	dialogue_force_all_closed(NULL, instance);
 	sort_dialogue_close(instance->parent->sort_dialogue, instance);
-
-	/* Allow the client to tidy up if it needs to. */
-
-	if (instance->parent->definition->callback_window_close_handler != NULL)
-		instance->parent->definition->callback_window_close_handler(instance->client_data);
 }
 
 

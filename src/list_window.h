@@ -190,8 +190,6 @@ struct list_window_definition {
 	 * windat pointer in.
 	 */
 
-	void		(*callback_window_close_handler)(void *data);
-
 	void		(*callback_window_click_handler)(wimp_pointer *pointer, int index, struct file_block *file, void *data);
 
 	void		(*callback_pane_click_handler)(wimp_pointer *pointer, struct file_block *file, void *data);

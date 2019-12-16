@@ -265,36 +265,6 @@ struct preset_list_window {
 	 * The list window for the Preset List Window.
 	 */
 	struct list_window			*window;
-
-	/**
-	 * Wimp window handle for the main Preset List Window.
-	 */
-//	wimp_w					preset_window;
-
-	/**
-	 * Indirected title data for the window.
-	 */
-//	char					window_title[WINDOW_TITLE_LENGTH];
-
-	/**
-	 * Wimp window handle for the Preset List Window Toolbar pane.
-	 */
-//	wimp_w					preset_pane;
-
-	/**
-	 * Instance handle for the window's column definitions.
-	 */
-//	struct column_block			*columns;
-
-	/**
-	 * Count of the number of populated display lines in the window.
-	 */
-//	int					display_lines;
-
-	/**
-	 * Flex array holding the line data for the window.
-	 */
-//	struct preset_list_window_redraw	*line_data;
 };
 
 /**

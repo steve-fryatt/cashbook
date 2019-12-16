@@ -169,6 +169,20 @@ struct list_window_definition {
 	 */
 	int				minimum_entries;
 
+	/**
+	 * The print dialogue box token.
+	 */
+	char				*print_title;
+
+	/**
+	 * The print report title token.
+	 */
+	char				*print_report_title;
+
+	/**
+	 * TRUE if the print dialogue box should contain dates.
+	 */
+	osbool				print_dates;
 
 	/**
 	 * The callback handlers below this point are subject to implementation change!
@@ -195,6 +209,12 @@ struct list_window_definition {
 	void		(*callback_menu_warning_handler)(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning, int index, struct file_block *file, void *data);
 
 	int		(*callback_sort_compare)(enum sort_type type, int index1, int index2, struct file_block *file);
+
+	osbool		(*callback_print_include)(int index, date_t from, date_t to);
+
+	void		(*callback_print_field)(struct file_block *file, wimp_i column, int preset, char *rec_char);
+
+	void		(*callback_export_line)(FILE *out, enum filing_delimit_type format, struct file_block *file, int index);
 };
 
 
@@ -257,14 +277,6 @@ void list_window_rebuild_file_titles(struct file_block *file);
  */
 
 osbool list_window_open(struct list_window *instance);
-
-
-
-
-
-
-
-
 
 
 /**
@@ -346,9 +358,28 @@ void list_window_open_sort_window(struct list_window *instance, wimp_pointer *pt
 void list_window_sort(struct list_window *instance);
 
 
+/**
+ * Open the Print dialogue for a given list window instance.
+ *
+ * \param *instance		The list window instance to own the dialogue.
+ * \param *ptr			The current Wimp pointer position.
+ * \param restore		TRUE to retain the previous settings; FALSE to
+ *				return to defaults.
+ */
+
+void list_window_open_print_window(struct list_window *instance, wimp_pointer *ptr, osbool restore);
 
 
+/**
+ * Export the data from a list window into CSV or TSV format.
+ *
+ * \param *instance		The list window instance to export from.
+ * \param *filename		The filename to export to.
+ * \param format		The file format to be used.
+ * \param filetype		The RISC OS filetype to save as.
+ */
 
+void list_window_export_delimited(struct list_window *instance, char *filename, enum filing_delimit_type format, int filetype);
 
 
 /**

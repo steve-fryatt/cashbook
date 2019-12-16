@@ -304,7 +304,13 @@ static struct list_window_definition window_definition = {
 	"MainMenu",					/**< Window Menu help token base.		*/
 	"SortTrans",					/**< Sort dialogue help token base.		*/
 	TRANSACT_LIST_WINDOW_MIN_ENTRIES,		/**< The minimum number of rows displayed.	*/
+	"PrintTransact",				/**< The print dialogue title token.		*/
+	"PrintTitleTransact",				/**< The print report title token.		*/
+	TRUE,						/**< Should the print dialogue use dates?	*/
 
+	NULL,
+	NULL,
+	NULL,
 	NULL,
 	NULL,
 	NULL,

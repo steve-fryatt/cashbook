@@ -65,8 +65,11 @@
 
 #include "column.h"
 #include "flexutils.h"
+#include "print_dialogue.h"
+#include "report.h"
 #include "sort.h"
 #include "sort_dialogue.h"
+#include "stringbuild.h"
 #include "window.h"
 
 /**
@@ -230,6 +233,8 @@ static int list_window_get_line_from_index(struct list_window *instance, int ind
 static osbool list_window_process_sort_window(enum sort_type order, void *data);
 static int list_window_sort_compare(enum sort_type type, int index1, int index2, void *data);
 static void list_window_sort_swap(int index1, int index2, void *data);
+static struct report *list_window_print(struct report *report, void *data, date_t from, date_t to);
+
 
 /**
  * Test whether a line number is safe to look up in the redraw data array.
@@ -1230,13 +1235,6 @@ static void list_window_build_title(struct list_window *instance)
 }
 
 
-
-
-
-
-
-
-
 /**
  * Initialise the contents of the list window, creating an entry for
  * each of the required entries.
@@ -1298,10 +1296,10 @@ osbool list_window_add_entry(struct list_window *instance, int entry, osbool sor
 
 	list_window_set_extent(instance);
 
-//	if (sort)
-//		preset_list_window_sort(windat);
-//	else
-//		preset_list_window_force_redraw(windat, windat->display_lines - 1, windat->display_lines - 1, wimp_ICON_WINDOW);
+	if (sort)
+		list_window_sort(instance);
+	else
+		list_window_force_redraw(instance, instance->display_lines - 1, instance->display_lines - 1, wimp_ICON_WINDOW);
 
 	return TRUE;
 }
@@ -1346,10 +1344,10 @@ osbool list_window_delete_entry(struct list_window *instance, int entry, osbool 
 
 	windows_open(instance->window);
 
-//	if (sort)
-//		preset_list_window_sort(windat);
-//	else
-//		preset_list_window_force_redraw(windat, delete, windat->display_lines, wimp_ICON_WINDOW);
+	if (sort)
+		list_window_sort(instance);
+	else
+		list_window_force_redraw(instance, delete, instance->display_lines, wimp_ICON_WINDOW);
 
 	return TRUE;
 }
@@ -1518,12 +1516,152 @@ static void list_window_sort_swap(int index1, int index2, void *data)
 }
 
 
+/**
+ * Open the Print dialogue for a given list window instance.
+ *
+ * \param *instance		The list window instance to own the dialogue.
+ * \param *ptr			The current Wimp pointer position.
+ * \param restore		TRUE to retain the previous settings; FALSE to
+ *				return to defaults.
+ */
+
+void list_window_open_print_window(struct list_window *instance, wimp_pointer *ptr, osbool restore)
+{
+	if (instance == NULL || instance->file == NULL || instance->parent == NULL)
+		return;
+
+	print_dialogue_open(instance->file->print, ptr, instance->parent->definition->print_dates, restore,
+			instance->parent->definition->print_title, instance->parent->definition->print_report_title,
+			instance, list_window_print, instance);
+}
 
 
+/**
+ * Send the contents of the list window to the printer, via the reporting
+ * system.
+ *
+ * \param *report		The report handle to use for output.
+ * \param *data			The list window instance to be printed.
+ * \param from			The date to print from.
+ * \param to			The date to print to.
+ * \return			Pointer to the report, or NULL on failure.
+ */
+
+static struct report *list_window_print(struct report *report, void *data, date_t from, date_t to)
+{
+	struct list_window	*instance = data;
+	int			line, column;
+	char			rec_char[REC_FIELD_LEN];
+	wimp_i			*columns;
+
+	if (report == NULL || instance == NULL || instance->parent == NULL)
+		return NULL;
+
+	if (instance->parent->definition->callback_print_field == NULL)
+		return NULL;
+
+	columns = heap_alloc(sizeof(wimp_i) * instance->parent->definition->column_count);
+	if (columns == NULL)
+		return NULL;
+
+	if (!column_get_icons(instance->columns, columns, instance->parent->definition->column_count, FALSE))
+		return NULL;
+
+	msgs_lookup("RecChar", rec_char, REC_FIELD_LEN);
+
+	hourglass_on();
+
+	/* Output the page title. */
+
+	stringbuild_reset();
+
+	stringbuild_add_string("\\b\\u");
+	stringbuild_add_message_param("PresetTitle",
+			file_get_leafname(instance->file, NULL, 0),
+			NULL, NULL, NULL);
+
+	stringbuild_report_line(report, 1);
+
+	report_write_line(report, 1, "");
+
+	/* Output the headings line, taking the text from the window icons. */
+
+	stringbuild_reset();
+	columns_print_heading_names(instance->columns, instance->toolbar);
+	stringbuild_report_line(report, 0);
+
+	/* Output the standing order data as a set of delimited lines. */
+
+	for (line = 0; line < instance->display_lines; line++) {
+		stringbuild_reset();
+
+		for (column = 0; column < instance->parent->definition->column_count; column++) {
+			if (column == 0)
+				stringbuild_add_string("\\k");
+			else
+				stringbuild_add_string("\\t");
+
+			instance->parent->definition->callback_print_field(instance->file,
+					columns[column], instance->line_data[line].index, rec_char);
+		}
+
+		stringbuild_report_line(report, 0);
+	}
+
+	heap_free(columns);
+
+	hourglass_off();
+
+	return report;
+}
 
 
+/**
+ * Export the data from a list window into CSV or TSV format.
+ *
+ * \param *instance		The list window instance to export from.
+ * \param *filename		The filename to export to.
+ * \param format		The file format to be used.
+ * \param filetype		The RISC OS filetype to save as.
+ */
 
+void list_window_export_delimited(struct list_window *instance, char *filename, enum filing_delimit_type format, int filetype)
+{
+	FILE	*out;
+	int	line;
+	char	buffer[FILING_DELIMITED_FIELD_LEN];
 
+	if (instance == NULL || instance->parent == NULL)
+		return;
+
+	if (instance->parent->definition->callback_export_line == NULL)
+		return;
+
+	out = fopen(filename, "w");
+
+	if (out == NULL) {
+		error_msgs_report_error("FileSaveFail");
+		return;
+	}
+
+	hourglass_on();
+
+	/* Output the headings line, taking the text from the window icons. */
+
+	columns_export_heading_names(instance->columns, instance->toolbar, out, format, buffer, FILING_DELIMITED_FIELD_LEN);
+
+	/* Output the preset data as a set of delimited lines. */
+
+	for (line = 0; line < instance->display_lines; line++)
+		instance->parent->definition->callback_export_line(out, format, instance->file, instance->line_data[line].index);
+
+	/* Close the file and set the type correctly. */
+
+	fclose(out);
+	osfile_set_type(filename, (bits) filetype);
+
+	hourglass_off();
+}
 
 
 /**

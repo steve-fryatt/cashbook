@@ -221,7 +221,13 @@ static struct list_window_definition preset_list_window_definition = {
 	"PresetMenu",					/**< Window Menu help token base.		*/
 	"SortPreset",					/**< Sort dialogue help token base.		*/
 	PRESET_LIST_WINDOW_MIN_ENTRIES,			/**< The minimum number of rows displayed.	*/
+	"PrintPreset",					/**< The print dialogue title token.		*/
+	"PrintTitlePreset",				/**< The print report title token.		*/
+	FALSE,						/**< Should the print dialogue use dates?	*/
 
+	NULL,
+	NULL,
+	NULL,
 	NULL,
 	NULL,
 	NULL,
@@ -319,11 +325,11 @@ static void preset_list_window_menu_selection_handler(wimp_w w, wimp_menu *menu,
 static void preset_list_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning, int index, struct file_block *file, void *data);
 static void preset_list_window_redraw_handler(int index, struct file_block *file, void *data);
 static void preset_list_window_open_print_window(struct preset_list_window *windat, wimp_pointer *ptr, osbool restore);
-static struct report *preset_list_window_print(struct report *report, void *data, date_t from, date_t to);
+static void preset_list_window_print_field(struct file_block *file, wimp_i column, int preset, char *rec_char);
 static int preset_list_window_sort_compare(enum sort_type type, int index1, int index2, struct file_block *file);
 static osbool preset_list_window_save_csv(char *filename, osbool selection, void *data);
 static osbool preset_list_window_save_tsv(char *filename, osbool selection, void *data);
-static void preset_list_window_export_delimited(struct preset_list_window *windat, char *filename, enum filing_delimit_type format, int filetype);
+static void preset_list_window_export_delimited_line(FILE *out, enum filing_delimit_type format, struct file_block *file, int index);
 
 
 /**
@@ -342,6 +348,8 @@ void preset_list_window_initialise(osspriteop_area *sprites)
 	preset_list_window_definition.callback_menu_selection_handler = preset_list_window_menu_selection_handler;
 	preset_list_window_definition.callback_menu_warning_handler = preset_list_window_menu_warning_handler;
 	preset_list_window_definition.callback_sort_compare = preset_list_window_sort_compare;
+	preset_list_window_definition.callback_print_field = preset_list_window_print_field;
+	preset_list_window_definition.callback_export_line = preset_list_window_export_delimited_line;
 
 	preset_list_window_block = list_window_create(&preset_list_window_definition, sprites);
 
@@ -696,16 +704,7 @@ preset_t preset_list_window_get_preset_from_line(struct preset_list_window *wind
 
 static void preset_list_window_open_print_window(struct preset_list_window *windat, wimp_pointer *ptr, osbool restore)
 {
-	struct file_block *file;
-
-	if (windat == NULL || windat->instance == NULL)
-		return;
-
-	file = preset_get_file(windat->instance);
-	if (file == NULL)
-		return;
-
-	print_dialogue_open(file->print, ptr, FALSE, restore, "PrintPreset", "PrintTitlePreset", windat, preset_list_window_print, windat);
+	list_window_open_print_window(windat->window, ptr, restore);
 }
 
 
@@ -713,118 +712,56 @@ static void preset_list_window_open_print_window(struct preset_list_window *wind
  * Send the contents of the Preset Window to the printer, via the reporting
  * system.
  *
- * \param *report		The report handle to use for output.
- * \param *data			The preset window structure to be printed.
- * \param from			The date to print from.
- * \param to			The date to print to.
- * \return			Pointer to the report, or NULL on failure.
+ * \param *file			The file owning the preset list.
+ * \param column		The column to be output.
+ * \param preset		The preset to be output.
+ * \param *rec_char		A string to use as the reconcile character.
  */
 
-static struct report *preset_list_window_print(struct report *report, void *data, date_t from, date_t to)
+static void preset_list_window_print_field(struct file_block *file, wimp_i column, int preset, char *rec_char)
 {
-	struct preset_list_window	*windat = data;
-	struct file_block		*file;
-	int				line, column;
-	preset_t			preset;
-	char				rec_char[REC_FIELD_LEN];
-	wimp_i				columns[PRESET_LIST_WINDOW_COLUMNS];
-
-	if (report == NULL || windat == NULL || windat->instance == NULL)
-		return NULL;
-
-	file = preset_get_file(windat->instance);
-	if (file == NULL)
-		return NULL;
-
-	if (!column_get_icons(windat->columns, columns, PRESET_LIST_WINDOW_COLUMNS, FALSE))
-		return NULL;
-
-	msgs_lookup("RecChar", rec_char, REC_FIELD_LEN);
-
-	hourglass_on();
-
-	/* Output the page title. */
-
-	stringbuild_reset();
-
-	stringbuild_add_string("\\b\\u");
-	stringbuild_add_message_param("PresetTitle",
-			file_get_leafname(file, NULL, 0),
-			NULL, NULL, NULL);
-
-	stringbuild_report_line(report, 1);
-
-	report_write_line(report, 1, "");
-
-	/* Output the headings line, taking the text from the window icons. */
-
-	stringbuild_reset();
-	columns_print_heading_names(windat->columns, windat->preset_pane);
-	stringbuild_report_line(report, 0);
-
-	/* Output the standing order data as a set of delimited lines. */
-
-	for (line = 0; line < windat->display_lines; line++) {
-		preset = windat->line_data[line].preset;
-
-		stringbuild_reset();
-
-		for (column = 0; column < PRESET_LIST_WINDOW_COLUMNS; column++) {
-			if (column == 0)
-				stringbuild_add_string("\\k");
-			else
-				stringbuild_add_string("\\t");
-
-			switch (columns[column]) {
-			case PRESET_LIST_WINDOW_KEY:
-				stringbuild_add_printf("\\v\\c%c", preset_get_action_key(file, preset));
-				/* Note that action_key can be zero, in which case %c terminates. */
-				break;
-			case PRESET_LIST_WINDOW_NAME:
-				stringbuild_add_printf("\\v%s", preset_get_name(file, preset, NULL, 0));
-				break;
-			case PRESET_LIST_WINDOW_FROM:
-				stringbuild_add_string(account_get_ident(file, preset_get_from(file, preset)));
-				break;
-			case PRESET_LIST_WINDOW_FROM_REC:
-				if (preset_get_flags(file, preset) & TRANS_REC_FROM)
-					stringbuild_add_string(rec_char);
-				break;
-			case PRESET_LIST_WINDOW_FROM_NAME:
-				stringbuild_add_string("\\v");
-				stringbuild_add_string(account_get_name(file, preset_get_from(file, preset)));
-				break;
-			case PRESET_LIST_WINDOW_TO:
-				stringbuild_add_string(account_get_ident(file, preset_get_to(file, preset)));
-				break;
-			case PRESET_LIST_WINDOW_TO_REC:
-				if (preset_get_flags(file, preset) & TRANS_REC_TO)
-					stringbuild_add_string(rec_char);
-				break;
-			case PRESET_LIST_WINDOW_TO_NAME:
-				stringbuild_add_string("\\v");
-				stringbuild_add_string(account_get_name(file, preset_get_to(file, preset)));
-				break;
-			case PRESET_LIST_WINDOW_AMOUNT:
-				stringbuild_add_string("\\v\\d\\r");
-				stringbuild_add_currency(preset_get_amount(file, preset), FALSE);
-				break;
-			case PRESET_LIST_WINDOW_DESCRIPTION:
-				stringbuild_add_string("\\v");
-				stringbuild_add_string(preset_get_description(file, preset, NULL, 0));
-				break;
-			default:
-				stringbuild_add_string("\\s");
-				break;
-			}
-		}
-
-		stringbuild_report_line(report, 0);
+	switch (column) {
+	case PRESET_LIST_WINDOW_KEY:
+		stringbuild_add_printf("\\v\\c%c", preset_get_action_key(file, preset));
+		/* Note that action_key can be zero, in which case %c terminates. */
+		break;
+	case PRESET_LIST_WINDOW_NAME:
+		stringbuild_add_printf("\\v%s", preset_get_name(file, preset, NULL, 0));
+		break;
+	case PRESET_LIST_WINDOW_FROM:
+		stringbuild_add_string(account_get_ident(file, preset_get_from(file, preset)));
+		break;
+	case PRESET_LIST_WINDOW_FROM_REC:
+		if (preset_get_flags(file, preset) & TRANS_REC_FROM)
+			stringbuild_add_string(rec_char);
+		break;
+	case PRESET_LIST_WINDOW_FROM_NAME:
+		stringbuild_add_string("\\v");
+		stringbuild_add_string(account_get_name(file, preset_get_from(file, preset)));
+		break;
+	case PRESET_LIST_WINDOW_TO:
+		stringbuild_add_string(account_get_ident(file, preset_get_to(file, preset)));
+		break;
+	case PRESET_LIST_WINDOW_TO_REC:
+		if (preset_get_flags(file, preset) & TRANS_REC_TO)
+			stringbuild_add_string(rec_char);
+		break;
+	case PRESET_LIST_WINDOW_TO_NAME:
+		stringbuild_add_string("\\v");
+		stringbuild_add_string(account_get_name(file, preset_get_to(file, preset)));
+		break;
+	case PRESET_LIST_WINDOW_AMOUNT:
+		stringbuild_add_string("\\v\\d\\r");
+		stringbuild_add_currency(preset_get_amount(file, preset), FALSE);
+		break;
+	case PRESET_LIST_WINDOW_DESCRIPTION:
+		stringbuild_add_string("\\v");
+		stringbuild_add_string(preset_get_description(file, preset, NULL, 0));
+		break;
+	default:
+		stringbuild_add_string("\\s");
+		break;
 	}
-
-	hourglass_off();
-
-	return report;
 }
 
 
@@ -1006,7 +943,7 @@ static osbool preset_list_window_save_csv(char *filename, osbool selection, void
 	if (windat == NULL)
 		return FALSE;
 
-	preset_list_window_export_delimited(windat, filename, DELIMIT_QUOTED_COMMA, dataxfer_TYPE_CSV);
+	list_window_export_delimited(windat->window, filename, DELIMIT_QUOTED_COMMA, dataxfer_TYPE_CSV);
 
 	return TRUE;
 }
@@ -1027,7 +964,7 @@ static osbool preset_list_window_save_tsv(char *filename, osbool selection, void
 	if (windat == NULL)
 		return FALSE;
 
-	preset_list_window_export_delimited(windat, filename, DELIMIT_TAB, dataxfer_TYPE_TSV);
+	list_window_export_delimited(windat->window, filename, DELIMIT_TAB, dataxfer_TYPE_TSV);
 
 	return TRUE;
 }
@@ -1042,61 +979,23 @@ static osbool preset_list_window_save_tsv(char *filename, osbool selection, void
  * \param filetype		The RISC OS filetype to save as.
  */
 
-static void preset_list_window_export_delimited(struct preset_list_window *windat, char *filename, enum filing_delimit_type format, int filetype)
+static void preset_list_window_export_delimited_line(FILE *out, enum filing_delimit_type format, struct file_block *file, int index)
 {
-	FILE			*out;
-	struct file_block	*file;
-	int			line;
-	preset_t		preset;
-	char			buffer[FILING_DELIMITED_FIELD_LEN];
+	char buffer[FILING_DELIMITED_FIELD_LEN];
 
-	if (windat == NULL || windat->instance == NULL)
-		return;
+	string_printf(buffer, FILING_DELIMITED_FIELD_LEN, "%c", preset_get_action_key(file, index));
+	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
-	file = preset_get_file(windat->instance);
-	if (file == NULL)
-		return;
+	filing_output_delimited_field(out, preset_get_name(file, index, NULL, 0), format, DELIMIT_NONE);
 
-	out = fopen(filename, "w");
+	account_build_name_pair(file, preset_get_from(file, index), buffer, FILING_DELIMITED_FIELD_LEN);
+	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
-	if (out == NULL) {
-		error_msgs_report_error("FileSaveFail");
-		return;
-	}
+	account_build_name_pair(file, preset_get_to(file, index), buffer, FILING_DELIMITED_FIELD_LEN);
+	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
-	hourglass_on();
+	currency_convert_to_string(preset_get_amount(file, index), buffer, FILING_DELIMITED_FIELD_LEN);
+	filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
-	/* Output the headings line, taking the text from the window icons. */
-
-	columns_export_heading_names(windat->columns, windat->preset_pane, out, format, buffer, FILING_DELIMITED_FIELD_LEN);
-
-	/* Output the preset data as a set of delimited lines. */
-
-	for (line = 0; line < windat->display_lines; line++) {
-		preset = windat->line_data[line].preset;
-
-		string_printf(buffer, FILING_DELIMITED_FIELD_LEN, "%c", preset_get_action_key(file, preset));
-		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-
-		filing_output_delimited_field(out, preset_get_name(file, preset, NULL, 0), format, DELIMIT_NONE);
-
-		account_build_name_pair(file, preset_get_from(file, preset), buffer, FILING_DELIMITED_FIELD_LEN);
-		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-
-		account_build_name_pair(file, preset_get_to(file, preset), buffer, FILING_DELIMITED_FIELD_LEN);
-		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-
-		currency_convert_to_string(preset_get_amount(file, preset), buffer, FILING_DELIMITED_FIELD_LEN);
-		filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
-
-		filing_output_delimited_field(out, preset_get_description(file, preset, NULL, 0), format, DELIMIT_LAST);
-	}
-
-	/* Close the file and set the type correctly. */
-
-	fclose(out);
-	osfile_set_type(filename, (bits) filetype);
-
-	hourglass_off();
+	filing_output_delimited_field(out, preset_get_description(file, index, NULL, 0), format, DELIMIT_LAST);
 }
-

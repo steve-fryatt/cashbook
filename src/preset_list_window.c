@@ -240,17 +240,6 @@ static struct list_window_definition preset_list_window_definition = {
 };
 
 /**
- * Preset List Window line redraw data.
- */
-
-struct preset_list_window_redraw {
-	/**
-	 * The number of the preset relating to the line.
-	 */
-	preset_t				preset;
-};
-
-/**
  * Preset List Window instance data structure.
  */
 
@@ -341,7 +330,6 @@ struct preset_list_window *preset_list_window_create_instance(struct preset_bloc
 		return NULL;
 
 	new->instance = parent;
-
 	new->window = NULL;
 
 	/* Initialise the List Window. */
@@ -416,6 +404,9 @@ static void preset_list_window_pane_click_handler(wimp_pointer *pointer, struct 
 {
 	struct preset_list_window *windat = data;
 
+	if (windat == NULL || windat->instance == NULL)
+		return;
+
 	if (pointer->buttons == wimp_CLICK_SELECT) {
 		switch (pointer->i) {
 		case PRESET_LIST_WINDOW_PANE_PARENT:
@@ -461,7 +452,7 @@ static void preset_list_window_pane_click_handler(wimp_pointer *pointer, struct 
 
 static void preset_list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer, int index, struct file_block *file, void *data)
 {
-	struct preset_list_window	*windat = data;
+	struct preset_list_window *windat = data;
 
 	if (windat == NULL)
 		return;
@@ -489,7 +480,7 @@ static void preset_list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, w
 
 static void preset_list_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection, wimp_pointer *pointer, int index, struct file_block *file, void *data)
 {
-	struct preset_list_window	*windat = data;
+	struct preset_list_window *windat = data;
 
 	if (windat == NULL || windat->instance == NULL)
 		return;

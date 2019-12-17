@@ -281,10 +281,14 @@ osbool list_window_open(struct list_window *instance);
  * Force the redraw of one or all of the lines in the given list window.
  *
  * \param *instance		The list window instance to be redrawn.
- * \param index		The index to redraw, or -1 for all.
+ * \param index			The index to redraw, or
+ *				LIST_WINDOW_NULL_INDEX for all.
+ * \param columns		The number of columns to be redrawn, or
+ *				0 to redraw all.
+ * \param ...			List of column icons if columns > 0.
  */
 
-void list_window_redraw(struct list_window *instance, int index);
+void list_window_redraw(struct list_window *instance, int index, int columns, ...);
 
 
 /**

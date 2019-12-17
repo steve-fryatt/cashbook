@@ -70,16 +70,6 @@ void sorder_list_window_open(struct sorder_list_window *windat);
 
 
 /**
- * Recreate the title of the given Standing Order List window.
- *
- * \param *windat		The standing order window to rebuild the
- *				title for.
- */
-
-void sorder_list_window_build_title(struct sorder_list_window *windat);
-
-
-/**
  * Force the redraw of one or all of the standing orders in the given
  * Standing Order list window.
  *

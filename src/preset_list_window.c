@@ -601,7 +601,7 @@ void preset_list_window_redraw(struct preset_list_window *windat, preset_t prese
 	if (windat == NULL)
 		return;
 
-	list_window_redraw(windat->window, preset);
+	list_window_redraw(windat->window, preset, 0);
 }
 
 

@@ -111,25 +111,6 @@ void sorder_open_window(struct file_block *file);
 
 
 /**
- * Recreate the title of the Standing Order List window connected to the given
- * file.
- *
- * \param *file			The file to rebuild the title for.
- */
-
-void sorder_build_window_title(struct file_block *file);
-
-
-/**
- * Force the complete redraw of the Standing Order list window.
- *
- * \param *file			The file owning the window to redraw.
- */
-
-void sorder_redraw_all(struct file_block *file);
-
-
-/**
  * Open the Standing Order Edit dialogue for a given standing order list window.
  *
  * \param *file			The file to own the dialogue.

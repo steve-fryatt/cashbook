@@ -357,7 +357,6 @@ void filing_save_cashbook_file(struct file_block *file, char *filename)
 
 	transact_build_window_title(file);
 	account_build_window_titles(file);
-	sorder_build_window_title(file);
 	interest_build_window_title(file);
 	list_window_rebuild_file_titles(file);
 

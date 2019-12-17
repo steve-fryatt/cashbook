@@ -659,7 +659,6 @@ void file_redraw_windows(struct file_block *file)
 	transact_redraw_all(file);
 	account_redraw_all(file);
 	accview_redraw_all(file);
-	sorder_redraw_all(file);
 	interest_redraw_all(file);
 	report_redraw_all(file);
 }

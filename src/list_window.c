@@ -32,6 +32,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 
 /* OSLib header files */
 
@@ -441,7 +442,7 @@ void list_window_redraw_file(struct file_block *file)
 
 	while (list != NULL) {
 		if (list->file == file)
-			list_window_redraw(list, LIST_WINDOW_NULL_INDEX);
+			list_window_redraw(list, LIST_WINDOW_NULL_INDEX, 0);
 
 		list = list->next;
 	}
@@ -865,11 +866,15 @@ static void list_window_redraw_handler(wimp_draw *redraw)
  * \param *instance		The list window instance to be redrawn.
  * \param index			The index to redraw, or
  *				LIST_WINDOW_NULL_INDEX for all.
+ * \param columns		The number of columns to be redrawn, or
+ *				0 to redraw all.
+ * \param ...			List of column icons if columns > 0.
  */
 
-void list_window_redraw(struct list_window *instance, int index)
+void list_window_redraw(struct list_window *instance, int index, int columns, ...)
 {
-	int from, to;
+	int	from, to, i;
+	va_list	ap;
 
 	if (instance == NULL)
 		return;
@@ -882,7 +887,16 @@ void list_window_redraw(struct list_window *instance, int index)
 		to = instance->display_lines - 1;
 	}
 
-	list_window_force_redraw(instance, from, to, wimp_ICON_WINDOW);
+	if (columns == 0) {
+		list_window_force_redraw(instance, from, to, wimp_ICON_WINDOW);
+	} else {
+		va_start(ap, columns);
+
+		for (i = 0; i < columns; i++)
+			list_window_force_redraw(instance, from, to, va_arg(ap, wimp_i));
+
+		va_end(ap);
+	}
 }
 
 

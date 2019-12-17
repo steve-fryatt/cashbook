@@ -529,7 +529,7 @@ static void sorder_list_window_menu_selection_handler(wimp_w w, wimp_menu *menu,
 
 static void sorder_list_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning, int index, struct file_block *file, void *data)
 {
-	struct sorder_list_window *windat;
+	struct sorder_list_window *windat = data;
 
 	if (windat == NULL)
 		return;
@@ -615,24 +615,14 @@ static void sorder_list_window_redraw_handler(int index, struct file_block *file
 
 void sorder_list_window_redraw(struct sorder_list_window *windat, sorder_t sorder, osbool stopped)
 {
-	int	from, to;
-
 	if (windat == NULL)
 		return;
 
-	if (sorder != NULL_SORDER) {
-		from = sorder_list_window_get_line_from_sorder(windat, sorder);
-		to = from;
-	} else {
-		from = 0;
-		to = windat->display_lines - 1;
-	}
-
 	if (stopped) {
-		sorder_list_window_force_redraw(windat, from, to, SORDER_LIST_WINDOW_PANE_NEXTDATE);
-		sorder_list_window_force_redraw(windat, from, to, SORDER_LIST_WINDOW_PANE_LEFT);
+		list_window_redraw(windat->window, sorder, 2,
+				SORDER_LIST_WINDOW_PANE_NEXTDATE, SORDER_LIST_WINDOW_PANE_LEFT);
 	} else {
-		sorder_list_window_force_redraw(windat, from, to, wimp_ICON_WINDOW);
+		list_window_redraw(windat->window, sorder, 0);
 	}
 }
 

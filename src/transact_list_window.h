@@ -103,27 +103,6 @@ void transact_list_window_set_extent(struct transact_list_window *windat);
 
 
 /**
- * Get the window state of the transaction window belonging to
- * the specified file.
- *
- * \param *file			The file containing the window.
- * \param *state		The structure to hold the window state.
- * \return			Pointer to an error block, or NULL on success.
- */
-
-os_error *transact_list_window_get_state(struct transact_list_window *windat, wimp_window_state *state);
-
-
-/**
- * Recreate the title of the given Transaction window.
- *
- * \param *windat		The transaction window to rebuild the title for.
- */
-
-void transact_list_window_build_title(struct transact_list_window *windat);
-
-
-/**
  * Re-index the transactions in a transaction list window.  This can *only*
  * be done after transact_sort_file_data() has been called, as it requires
  * data set up in the transaction block by that call.

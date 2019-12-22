@@ -355,10 +355,9 @@ void filing_save_cashbook_file(struct file_block *file, char *filename)
 	
 	string_copy(file->filename, filename, FILE_MAX_FILENAME);
 
-	transact_build_window_title(file);
 	account_build_window_titles(file);
 	interest_build_window_title(file);
-	list_window_rebuild_file_titles(file);
+	list_window_rebuild_file_titles(file, FALSE);
 
 	hourglass_off();
 }

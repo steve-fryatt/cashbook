@@ -51,6 +51,7 @@
 #include "accview.h"
 #include "date.h"
 #include "file.h"
+#include "list_window.h"
 #include "purge_dialogue.h"
 #include "sorder.h"
 #include "transact.h"
@@ -235,7 +236,7 @@ static void purge_file(struct file_block *file, osbool transactions, date_t cuto
 	/* account_recalculate_all(file); */
 
 	*(file->filename) = '\0';
-	transact_build_window_title(file);
+	list_window_rebuild_file_titles(file, TRUE);
 	file_set_data_integrity(file, TRUE);
 
 	/* Put the caret into the first empty line. */

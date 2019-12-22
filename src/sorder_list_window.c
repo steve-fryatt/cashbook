@@ -226,10 +226,13 @@ static struct list_window_definition sorder_list_window_definition = {
 	"SOrderMenu",					/**< Window Menu help token base.		*/
 	"SortSOrder",					/**< Sort dialogue help token base.		*/
 	SORDER_LIST_WINDOW_MIN_ENTRIES,			/**< The minimum number of rows displayed.	*/
+	0,						/**< The minimum number of blank lines.		*/
 	"PrintSOrder",					/**< The print dialogue title token.		*/
 	"PrintTitleSOrder",				/**< The print report title token.		*/
 	FALSE,						/**< Should the print dialogue use dates?	*/
+	LIST_WINDOW_FLAGS_NONE,				/**< The window flags.				*/
 
+	NULL,
 	NULL,
 	NULL,
 	NULL,

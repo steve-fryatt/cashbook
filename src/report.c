@@ -80,6 +80,7 @@
 #include "filing.h"
 #include "fontlist.h"
 #include "flexutils.h"
+#include "list_window.h"
 #include "print_dialogue.h"
 #include "print_protocol.h"
 #include "report_cell.h"
@@ -615,7 +616,7 @@ void report_close(struct report *report)
 
 	/* Position the report window. */
 
-	transact_get_window_state(report->file, &parent);
+	list_window_get_state(report->file, &parent);
 
 	if (!report_get_window_extent(report, &xextent, &yextent)) {
 		xextent = REPORT_MIN_WIDTH;

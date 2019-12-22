@@ -221,10 +221,13 @@ static struct list_window_definition preset_list_window_definition = {
 	"PresetMenu",					/**< Window Menu help token base.		*/
 	"SortPreset",					/**< Sort dialogue help token base.		*/
 	PRESET_LIST_WINDOW_MIN_ENTRIES,			/**< The minimum number of rows displayed.	*/
+	0,						/**< The minimum number of blank lines.		*/
 	"PrintPreset",					/**< The print dialogue title token.		*/
 	"PrintTitlePreset",				/**< The print report title token.		*/
 	FALSE,						/**< Should the print dialogue use dates?	*/
+	LIST_WINDOW_FLAGS_NONE,				/**< The window flags.				*/
 
+	NULL,
 	NULL,
 	NULL,
 	NULL,

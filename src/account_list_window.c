@@ -561,7 +561,7 @@ void account_list_window_open(struct account_list_window *windat)
 
 	/* Find the position to open the window at. */
 
-	transact_get_window_state(file, &parent);
+	list_window_get_state(file, &parent);
 
 	window_set_initial_area(account_list_window_def, column_get_window_width(windat->columns),
 			(height * WINDOW_ROW_HEIGHT) + ACCOUNT_LIST_WINDOW_TOOLBAR_HEIGHT + ACCOUNT_LIST_WINDOW_FOOTER_HEIGHT + 2,

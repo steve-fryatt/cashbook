@@ -74,6 +74,7 @@
 #include "edit.h"
 #include "file.h"
 #include "flexutils.h"
+#include "list_window.h"
 #include "window.h"
 
 /**
@@ -375,7 +376,7 @@ void interest_open_window(struct interest_block *instance, acct_t account)
 //	height = (file->sorders->sorder_count > MIN_SORDER_ENTRIES) ? file->sorders->sorder_count : MIN_SORDER_ENTRIES;
 	height = 10;
 
-	transact_get_window_state(instance->file, &parent);
+	list_window_get_state(instance->file, &parent);
 
 	window_set_initial_area(interest_window_def, column_get_window_width(instance->columns),
 			(height * WINDOW_ROW_HEIGHT) + INTEREST_TOOLBAR_HEIGHT,

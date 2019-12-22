@@ -319,54 +319,6 @@ void transact_set_window_extent(struct file_block *file)
 
 
 /**
- * Get the window state of the transaction window belonging to
- * the specified file.
- *
- * \param *file			The file containing the window.
- * \param *state		The structure to hold the window state.
- * \return			Pointer to an error block, or NULL on success.
- */
-
-os_error *transact_get_window_state(struct file_block *file, wimp_window_state *state)
-{
-	if (file == NULL || file->transacts == NULL)
-		return NULL;
-
-	return transact_list_window_get_state(file->transacts->transact_window, state);
-}
-
-
-/**
- * Recreate the title of the Transaction window connected to the given file.
- *
- * \param *file			The file to rebuild the title for.
- */
-
-void transact_build_window_title(struct file_block *file)
-{
-	if (file == NULL || file->transacts == NULL)
-		return;
-
-	transact_list_window_build_title(file->transacts->transact_window);
-}
-
-
-/**
- * Force the complete redraw of the Transaction window.
- *
- * \param *file			The file owning the window to redraw.
- */
-
-void transact_redraw_all(struct file_block *file)
-{
-	if (file == NULL || file->transacts == NULL)
-		return;
-
-	transact_list_window_redraw(file->transacts->transact_window, NULL_TRANSACTION);
-}
-
-
-/**
  * Update the state of the buttons in a transaction window toolbar.
  *
  * \param *file			The file owning the window to update.

@@ -69,6 +69,7 @@
 #include "edit.h"
 #include "file.h"
 #include "flexutils.h"
+#inclide "list_window.h"
 #include "print_dialogue.h"
 #include "report.h"
 #include "sort.h"
@@ -484,7 +485,7 @@ void accview_open_window(struct file_block *file, acct_t account)
 
 	/* Find the position to open the window at. */
 
-	transact_get_window_state(file, &parent);
+	list_window_get_state(file, &parent);
 
 	window_set_initial_area(accview_window_def, column_get_window_width(view->columns),
 			(height * WINDOW_ROW_HEIGHT) + ACCVIEW_TOOLBAR_HEIGHT,

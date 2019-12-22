@@ -33,6 +33,16 @@
 #define LIST_WINDOW_NULL_INDEX ((int) -1)
 
 /**
+ * Flags defining aspects of the list window's behaviour.
+ */
+
+enum list_window_flags {
+	LIST_WINDOW_FLAGS_NONE = 0,		/**< No flags set.					*/
+	LIST_WINDOW_FLAGS_PARENT = 1,		/**< The window is the main window of a file instance.	*/
+	LIST_WINDOW_FLAGS_EDIT = 2,		/**< The window has an edit line.			*/
+};
+
+/**
  * A one-time window defintion object.
  */
 
@@ -170,6 +180,11 @@ struct list_window_definition {
 	int				minimum_entries;
 
 	/**
+	 * The minimum number of lbank lines in the window.
+	 */
+	int				minimum_blank_lines;
+
+	/**
 	 * The print dialogue box token.
 	 */
 	char				*print_title;
@@ -183,6 +198,11 @@ struct list_window_definition {
 	 * TRUE if the print dialogue box should contain dates.
 	 */
 	osbool				print_dates;
+
+	/**
+	 * Flags relating to the window's behaviour.
+	 */
+	enum list_window_flags		flags;
 
 	/**
 	 * The callback handlers below this point are subject to implementation change!
@@ -213,6 +233,8 @@ struct list_window_definition {
 	void		(*callback_print_field)(struct file_block *file, wimp_i column, int preset, char *rec_char);
 
 	void		(*callback_export_line)(FILE *out, enum filing_delimit_type format, struct file_block *file, int index);
+
+	wimp_colour	(*callback_get_colour)(int index, struct file_block *file, void *data);
 };
 
 
@@ -262,9 +284,10 @@ void list_window_redraw_file(struct file_block *file);
  * to a file.
  * 
  * \param *file			The file to be updated.
+ * \param osbool		TRUE to redraw just the parent; FALSE for all.
  */
 
-void list_window_rebuild_file_titles(struct file_block *file);
+void list_window_rebuild_file_titles(struct file_block *file, osbool parent);
 
 
 /**
@@ -416,12 +439,5 @@ void list_window_read_file_wincolumns(struct list_window *instance, int start, o
  */
 
 void list_window_read_file_sortorder(struct list_window *instance, char *order);
-
-
-
-
-
-wimp_window *list_window_get_window_def(struct list_window_block *block);
-wimp_window *list_window_get_toolbar_def(struct list_window_block *block);
 
 #endif

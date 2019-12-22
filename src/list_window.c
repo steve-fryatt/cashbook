@@ -66,6 +66,7 @@
 
 #include "column.h"
 #include "dialogue.h"
+#include "edit.h"
 #include "flexutils.h"
 #include "print_dialogue.h"
 #include "report.h"
@@ -73,6 +74,18 @@
 #include "sort_dialogue.h"
 #include "stringbuild.h"
 #include "window.h"
+
+/**
+ * The screen offset at which to open new Parent List Windows, in OS Units.
+ */
+
+#define LIST_WINDOW_OPEN_OFFSET 48
+
+/**
+ * The maximum number of offsets to apply, before wrapping around.
+ */
+
+#define LIST_WINDOW_OPEN_OFFSET_LIMIT 8
 
 /**
  * List Window Definition data structure.
@@ -168,6 +181,11 @@ struct list_window {
 	wimp_w				footer;
 
 	/**
+	 * Instance handle for the window's edit line.
+	 */
+	struct edit_block		*edit_line;
+
+	/**
 	 * Instance handle for the window's column definitions.
 	 */
 	struct column_block		*columns;
@@ -198,6 +216,11 @@ struct list_window {
 	struct list_window_redraw	*line_data;
 
 	/**
+	 * The number of visible lines in the window, including blank lines.
+	 */
+	int					visible_lines;
+
+	/**
 	 * Pointer to the next list window instance in the list.
 	 */
 	struct list_window		*next;
@@ -207,7 +230,13 @@ struct list_window {
  * Linked list of dialogue instances.
  */
 
-static struct list_window *instance_list = NULL;
+static struct list_window	*list_window_instance_list = NULL;
+
+/**
+ * Offset, in OS Units, at which to open the next parent window.
+ */
+
+static int			list_window_new_offset = 0;
 
 /* Static Function Prototypes. */
 
@@ -349,10 +378,12 @@ struct list_window *list_window_create_instance(struct list_window_block *parent
 	new->window = NULL;
 	new->toolbar = NULL;
 	new->footer = NULL;
+	new->edit_line = NULL;
 	new->columns = NULL;
 	new->sort = NULL;
 
 	new->display_lines = 0;
+	new->visible_lines = 0;
 	new->line_data = NULL;
 	new->menu_line = -1;
 
@@ -385,8 +416,8 @@ struct list_window *list_window_create_instance(struct list_window_block *parent
 
 	/* Link the instance in to the linked list. */
 
-	new->next = instance_list;
-	instance_list = new;
+	new->next = list_window_instance_list;
+	list_window_instance_list = new;
 
 	return new;
 }
@@ -415,7 +446,7 @@ void list_window_delete_instance(struct list_window *instance)
 
 	/* De-link the instance from the list of instances. */
 
-	list = &instance_list;
+	list = &list_window_instance_list;
 
 	while (*list != NULL && *list != instance)
 		list = &((*list)->next);
@@ -438,7 +469,7 @@ void list_window_delete_instance(struct list_window *instance)
 
 void list_window_redraw_file(struct file_block *file)
 {
-	struct list_window *list = instance_list;
+	struct list_window *list = list_window_instance_list;
 
 	while (list != NULL) {
 		if (list->file == file)
@@ -454,11 +485,12 @@ void list_window_redraw_file(struct file_block *file)
  * to a file.
  * 
  * \param *file			The file to be updated.
+ * \param osbool		TRUE to redraw just the parent; FALSE for all.
  */
 
-void list_window_rebuild_file_titles(struct file_block *file)
+void list_window_rebuild_file_titles(struct file_block *file, osbool parent)
 {
-	struct list_window *list = instance_list;
+	struct list_window *list = list_window_instance_list;
 
 	while (list != NULL) {
 		if (list->file == file)
@@ -466,6 +498,34 @@ void list_window_rebuild_file_titles(struct file_block *file)
 
 		list = list->next;
 	}
+}
+
+
+/**
+ * Get the window state of the parent window belonging to
+ * the specified file.
+ *
+ * \param *file			The file containing the window.
+ * \param *state		The structure to hold the window state.
+ * \return			Pointer to an error block, or NULL on success.
+ */
+
+os_error *list_window_get_state(struct file_block *file, wimp_window_state *state)
+{
+	struct list_window *list = list_window_instance_list;
+
+	while (list != NULL) {
+		if (list->file == file && list->parent != NULL || list->parent->definition != NULL) {
+			if (list->parent->definition->flags & LIST_WINDOW_FLAGS_PARENT) {
+				state->w = list->window;
+				return xwimp_get_window_state(state);
+			}
+		}
+
+		list = list->next;
+	}
+
+	return NULL;
 }
 
 
@@ -493,23 +553,37 @@ osbool list_window_open(struct list_window *instance)
 	}
 
 	#ifdef DEBUG
-	debug_printf("\\CCreating preset window");
+	debug_printf("\\CCreating list window");
 	#endif
+
+	/* Set the default values */
+
+	instance->visible_lines = (instance->display_lines + instance->parent->definition->minimum_blank_lines > instance->parent->definition->minimum_entries) ?
+			instance->display_lines + instance->parent->definition->minimum_blank_lines : instance->parent->definition->minimum_entries;
 
 	/* Create the new window data and build the window. */
 
 	*(instance->title) = '\0';
 	instance->parent->window_def->title_data.indirected_text.text = instance->title;
 
-	height = (instance->display_lines > instance->parent->definition->minimum_entries) ?
-			instance->display_lines : instance->parent->definition->minimum_entries;
+	height = instance->visible_lines;
 
-	transact_get_window_state(instance->file, &parent);
+	if (instance->parent->definition->flags & LIST_WINDOW_FLAGS_PARENT) {
+		window_set_initial_area(instance->parent->window_def, column_get_window_width(instance->columns),
+				(height * WINDOW_ROW_HEIGHT) + instance->parent->definition->toolbar_height,
+				-1, -1, list_window_new_offset * LIST_WINDOW_OPEN_OFFSET);
 
-	window_set_initial_area(instance->parent->window_def, column_get_window_width(instance->columns),
-			(height * WINDOW_ROW_HEIGHT) + instance->parent->definition->toolbar_height,
-			parent.visible.x0 + CHILD_WINDOW_OFFSET + file_get_next_open_offset(instance->file),
-			parent.visible.y0 - CHILD_WINDOW_OFFSET, 0);
+		list_window_new_offset++;
+		if (list_window_new_offset >= LIST_WINDOW_OPEN_OFFSET_LIMIT)
+			list_window_new_offset = 0;
+	} else {
+		list_window_get_state(instance->file, &parent);
+
+		window_set_initial_area(instance->parent->window_def, column_get_window_width(instance->columns),
+				(height * WINDOW_ROW_HEIGHT) + instance->parent->definition->toolbar_height,
+				parent.visible.x0 + CHILD_WINDOW_OFFSET + file_get_next_open_offset(instance->file),
+				parent.visible.y0 - CHILD_WINDOW_OFFSET, 0);
+	}
 
 	error = xwimp_create_window(instance->parent->window_def, &(instance->window));
 	if (error != NULL) {
@@ -547,6 +621,21 @@ osbool list_window_open(struct list_window *instance)
 			list_window_delete(instance);
 			error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
 			return FALSE;
+		}
+	}
+
+	/* Construct the edit line. */
+
+	if (instance->parent->definition->flags & LIST_WINDOW_FLAGS_EDIT) {
+		instance->edit_line = edit_create_instance(instance->file, instance->parent->window_def,
+				instance->window, instance->columns,
+				instance->parent->definition->toolbar_height,
+				&transact_list_window_edit_callbacks, instance);
+
+		if (instance->edit_line == NULL) {
+			list_window_delete(instance);
+			error_msgs_report_error("TransactNoMem");
+			return;
 		}
 	}
 
@@ -618,6 +707,13 @@ static void list_window_delete(struct list_window *instance)
 	#ifdef DEBUG
 	debug_printf ("\\RDeleting List window instance");
 	#endif
+
+	/* Delete the edit line, if it exists. */
+
+	if (instance->edit_line != NULL) {
+		edit_delete_instance(instance->edit_line);
+		instance->edit_line = NULL;
+	}
 
 	/* Delete the main window, if it exists. */
 
@@ -934,6 +1030,28 @@ static void list_window_force_redraw(struct list_window *instance, int from, int
 
 
 /**
+ * Find the Wimp colour of a given line in a list window instance.
+ *
+ * \param *windat		The list window instance of interest.
+ * \param line			The line of interest.
+ * \return			The required Wimp colour, or Black on failure.
+ */
+
+static wimp_colour list_window_line_colour(struct list_window *instance, int line)
+{
+	int index;
+
+	if (instance == NULL || instance->parent == NULL || instance->parent->definition == NULL ||
+			instance->parent->definition->callback_get_colour == NULL ||
+			instance ->line_data == NULL || !list_window_line_valid(instance, line))
+		return wimp_COLOUR_BLACK;
+
+	return instance->parent->definition->callback_get_colour(instance->line_data[line].index,
+			instance->file, instance->client_data);
+}
+
+
+/**
  * Turn a mouse position over the a list window into an interactive help
  * token.
  *
@@ -1118,6 +1236,7 @@ static void list_window_adjust_columns(void *data, wimp_i group, int width)
 	struct list_window	*instance = data;
 	int			new_extent;
 	wimp_window_info	window;
+	wimp_caret		caret;
 
 	if (instance == NULL || instance->parent == NULL)
 		return;
@@ -1130,10 +1249,22 @@ static void list_window_adjust_columns(void *data, wimp_i group, int width)
 
 	/* Replace the edit line to force a redraw and redraw the rest of the window. */
 
+	if (instance->edit_line != NULL) {
+		wimp_get_caret_position(&caret);
+		edit_place_new_line(instance->edit_line, -1, wimp_COLOUR_BLACK);
+	}
+
 	windows_redraw(instance->window);
 
 	if (instance->toolbar != NULL)
 		windows_redraw(instance->toolbar);
+
+	/* If the caret's position was in the current transaction window, we need to replace it in the same position
+	 * now, so that we don't lose input focus.
+	 */
+
+	if (instance->edit_line != NULL && instance->window == caret.w)
+		wimp_set_caret_position(caret.w, caret.i, 0, 0, -1, caret.index);
 
 	/* Set the horizontal extent of the window and pane. */
 
@@ -1230,15 +1361,22 @@ static void list_window_set_extent(struct list_window *instance)
 
 static void list_window_build_title(struct list_window *instance)
 {
-	char			name[WINDOW_TITLE_LENGTH];
+	char name[WINDOW_TITLE_LENGTH];
 
 	if (instance == NULL || instance->file == NULL)
 		return;
 
-	file_get_leafname(instance->file, name, WINDOW_TITLE_LENGTH);
+	if (instance->parent->definition->window_title == NULL) {
+		file_get_pathname(instance->file, instance->title, WINDOW_TITLE_LENGTH - 2);
 
-	msgs_param_lookup(instance->parent->definition->window_title, instance->title,
-			WINDOW_TITLE_LENGTH, name, NULL, NULL, NULL);
+		if (file_get_data_integrity(instance->file))
+			strcat(instance->title, " *");
+	} else {
+		file_get_leafname(instance->file, name, WINDOW_TITLE_LENGTH);
+
+		msgs_param_lookup(instance->parent->definition->window_title, instance->title,
+				WINDOW_TITLE_LENGTH, name, NULL, NULL, NULL);
+	}
 
 	if (instance->window != NULL)
 		wimp_force_redraw_title(instance->window);
@@ -1733,24 +1871,4 @@ void list_window_read_file_sortorder(struct list_window *instance, char *order)
 		return;
 
 	sort_read_from_text(instance->sort, order);
-}
-
-
-
-
-
-wimp_window *list_window_get_window_def(struct list_window_block *block)
-{
-	if (block == NULL)
-		return NULL;
-
-	return block->window_def;
-}
-
-wimp_window *list_window_get_toolbar_def(struct list_window_block *block)
-{
-	if (block == NULL)
-		return NULL;
-
-	return block->toolbar_def;
 }

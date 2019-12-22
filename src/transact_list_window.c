@@ -222,18 +222,6 @@
 
 #define TRANSACT_LIST_WINDOW_COLUMNS 11
 
-/**
- * The screen offset at which to open new Transaction List Windows, in OS Units.
- */
-
-#define TRANSACT_LIST_WINDOW_OPEN_OFFSET 48
-
-/**
- * The maximum number of offsets to apply, before wrapping around.
- */
-
-#define TRANSACT_LIST_WINDOW_OPEN_OFFSET_LIMIT 8
-
 /* The Transaction List Window column map. */
 
 static struct column_map transact_list_window_columns[TRANSACT_LIST_WINDOW_COLUMNS] = {
@@ -279,7 +267,7 @@ static struct sort_dialogue_icon transact_list_window_sort_directions[] = {
  * The Transaction List Window definition.
  */
 
-static struct list_window_definition window_definition = {
+static struct list_window_definition transact_list_window_definition = {
 	"Transact",					/**< The list window template name.		*/
 	"TransactTB",					/**< The list toolbar template name.		*/
 	NULL,						/**< The list footer template name.		*/
@@ -304,10 +292,14 @@ static struct list_window_definition window_definition = {
 	"MainMenu",					/**< Window Menu help token base.		*/
 	"SortTrans",					/**< Sort dialogue help token base.		*/
 	TRANSACT_LIST_WINDOW_MIN_ENTRIES,		/**< The minimum number of rows displayed.	*/
+	TRANSACT_LIST_WINDOW_MIN_BLANK_LINES,		/**< The minimum number of blank lines.		*/
 	"PrintTransact",				/**< The print dialogue title token.		*/
 	"PrintTitleTransact",				/**< The print report title token.		*/
 	TRUE,						/**< Should the print dialogue use dates?	*/
+	LIST_WINDOW_FLAGS_PARENT |			/**< The window flags.				*/
+		LIST_WINDOW_FLAGS_EDIT,
 
+	NULL,
 	NULL,
 	NULL,
 	NULL,
@@ -344,54 +336,9 @@ struct transact_list_window {
 	struct transact_block			*instance;
 
 	/**
-	 * Wimp window handle for the main Transaction List Window.
+	 * The list window for the Preset List Window.
 	 */
-	wimp_w					transaction_window;
-
-	/**
-	 * Indirected title data for the window.
-	 */
-	char					window_title[WINDOW_TITLE_LENGTH];
-
-	/**
-	 * Wimp window handle for the Transaction List Window Toolbar pane.
-	 */
-	wimp_w					transaction_pane;
-
-	/**
-	 * Instance handle for the window's edit line.
-	 */
-	struct edit_block			*edit_line;
-
-	/**
-	 * Instance handle for the window's column definitions.
-	 */
-	struct column_block			*columns;
-
-	/**
-	 * Instance handle for the window's sort code.
-	 */
-	struct sort_block			*sort;
-
-	/**
-	 * Indirected text data for the sort sprite icon.
-	 */
-	char					sort_sprite[COLUMN_SORT_SPRITE_LEN];
-
-	/**
-	 * Count of the number of visible lines in the window.
-	 */
-	int					visible_lines;
-
-	/**
-	 * Count of the number of populated display lines in the window.
-	 */
-	int					display_lines;
-
-	/**
-	 * Flex array holding the line data for the window.
-	 */
-	struct transact_list_window_redraw	*line_data;
+	struct list_window			*window;
 
 	/**
 	 * True if reconcile should automatically jump to the next unreconciled entry.
@@ -436,12 +383,6 @@ static wimp_menu			*transact_list_window_menu_analysis = NULL;
 static wimp_menu			*transact_list_window_account_list_menu = NULL;
 
 /**
- * The window line associated with the most recent menu opening.
- */
-
-static int				transact_list_window_menu_line = -1;
-
-/**
  * Set to TRUE to disable forced redraw requests within the window.
  */
 
@@ -452,18 +393,6 @@ static osbool				transact_list_window_disable_redraw = FALSE;
  */
 
 static struct edit_callback		transact_list_window_edit_callbacks;
-
-/**
- * The Transaction List Window Sort dialogue.
- */
-
-static struct sort_dialogue_block	*transact_list_window_sort_dialaogue = NULL;
-
-/**
- * The Transaction List Window Sort callbacks.
- */
-
-static struct sort_callback		transact_list_window_sort_callbacks;
 
 /**
  * The Save File saveas data handle.
@@ -482,12 +411,6 @@ static struct saveas_block		*transact_list_window_saveas_csv = NULL;
  */
 
 static struct saveas_block		*transact_list_window_saveas_tsv = NULL;
-
-/**
- * Offset, in OS Units, at which to open the next window.
- */
-
-static int				transact_list_window_new_offset = 0;
 
 /**
  * Data relating to field dragging.
@@ -542,7 +465,7 @@ static void transact_list_window_open_handler(wimp_open *open);
 static void transact_list_window_close_handler(wimp_close *close);
 static void transact_list_window_click_handler(wimp_pointer *pointer);
 static void transact_list_window_lose_caret_handler(wimp_caret *caret);
-static void transact_list_window_pane_click_handler(wimp_pointer *pointer);
+static void transact_list_window_pane_click_handler(wimp_pointer *pointer, struct file_block *file, void *data);
 static osbool transact_list_window_keypress_handler(wimp_key *key);
 static void transact_list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer);
 static void transact_list_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection);
@@ -550,14 +473,10 @@ static void transact_list_window_menu_warning_handler(wimp_w w, wimp_menu *menu,
 static void transact_list_window_menu_close_handler(wimp_w w, wimp_menu *menu);
 static void transact_list_window_scroll_handler(wimp_scroll *scroll);
 static void transact_list_window_redraw_handler(wimp_draw *redraw);
-static void transact_list_window_adjust_columns(void *data, wimp_i icon, int width);
-static void transact_list_window_adjust_sort_icon(struct transact_list_window *windat);
-static void transact_list_window_adjust_sort_icon_data(struct transact_list_window *windat, wimp_icon *icon);
 static void transact_list_window_minimise_extent(struct transact_list_window *windat);
 
 
 static void transact_list_window_force_redraw(struct transact_list_window *windat, int from, int to, wimp_i column);
-static void transact_list_window_decode_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
 static void transact_list_window_start_drag(struct transact_list_window *windat, wimp_window_state *window, wimp_i column, int line);
 static void transaction_list_window_terminate_drag(wimp_dragged *drag, void *data);
 
@@ -578,7 +497,7 @@ static void transact_list_window_find_next_reconcile_line(struct transact_list_w
 static osbool transact_list_window_edit_insert_preset(int line, wimp_key_no key, void *data);
 static wimp_i transact_list_window_convert_preset_icon_number(enum preset_caret caret);
 static int transact_list_window_edit_auto_sort(wimp_i icon, void *data);
-static wimp_colour transact_list_window_line_colour(struct transact_list_window *windat, int line);
+static wimp_colour transact_list_window_line_colour(tran_t transaction, struct file_block *file, void *data);
 static osbool transact_list_window_extend_display_lines(struct transact_list_window *windat, int line);
 
 
@@ -586,13 +505,12 @@ static void transact_list_window_open_sort_window(struct transact_list_window *w
 static osbool transact_list_window_process_sort_window(enum sort_type order, void *data);
 static void transact_list_window_open_print_window(struct transact_list_window *windat, wimp_pointer *ptr, osbool restore);
 static struct report *transact_list_window_print(struct report *report, void *data, date_t from, date_t to);
-static int transact_list_window_sort_compare(enum sort_type type, int index1, int index2, void *data);
-static void transact_list_window_sort_swap(int index1, int index2, void *data);
+static int transact_list_window_sort_compare(enum sort_type type, int index1, int index2, struct file_block *file);
 static void transact_list_window_start_direct_save(struct transact_list_window *windat);
 static osbool transact_list_window_save_file(char *filename, osbool selection, void *data);
 static osbool transact_list_window_save_csv(char *filename, osbool selection, void *data);
 static osbool transact_list_window_save_tsv(char *filename, osbool selection, void *data);
-static void transact_list_window_export_delimited(struct transact_list_window *windat, char *filename, enum filing_delimit_type format, int filetype);
+static void transact_list_window_export_delimited_line(FILE *out, enum filing_delimit_type format, struct file_block *file, int index);
 static osbool transact_list_window_load_csv(wimp_w w, wimp_i i, unsigned filetype, char *filename, void *data);
 
 /**
@@ -610,20 +528,18 @@ static osbool transact_list_window_load_csv(wimp_w w, wimp_i i, unsigned filetyp
 
 void transact_list_window_initialise(osspriteop_area *sprites)
 {
-	wimp_w sort_window;
-
-	sort_window = templates_create_window("SortTrans");
-	ihelp_add_window(sort_window, "SortTrans", NULL);
-	transact_list_window_sort_dialaogue = sort_dialogue_create(sort_window, transact_list_window_sort_columns, transact_list_window_sort_directions,
-			TRANSACT_LIST_WINDOW_SORT_OK, TRANSACT_LIST_WINDOW_SORT_CANCEL, transact_list_window_process_sort_window);
-
-	transact_list_window_sort_callbacks.compare = transact_list_window_sort_compare;
-	transact_list_window_sort_callbacks.swap = transact_list_window_sort_swap;
+	transact_list_window_definition.callback_window_click_handler = transact_list_window_click_handler;
+	transact_list_window_definition.callback_pane_click_handler = transact_list_window_pane_click_handler;
+	transact_list_window_definition.callback_redraw_handler = transact_list_window_redraw_handler;
+	transact_list_window_definition.callback_menu_prepare_handler = transact_list_window_menu_prepare_handler;
+	transact_list_window_definition.callback_menu_selection_handler = transact_list_window_menu_selection_handler;
+	transact_list_window_definition.callback_menu_warning_handler = transact_list_window_menu_warning_handler;
+	transact_list_window_definition.callback_sort_compare = transact_list_window_sort_compare;
+	transact_list_window_definition.callback_print_field = transact_list_window_print_field;
+	transact_list_window_definition.callback_export_line = transact_list_window_export_delimited_line;
 
 	transact_list_window_block = list_window_create(&window_definition, sprites);
 
-	transact_list_window_menu = templates_get_menu("MainMenu");
-	ihelp_add_menu(transact_list_window_menu, "MainMenu");
 	transact_list_window_menu_account = templates_get_menu("MainAccountsSubmenu");
 	transact_list_window_menu_transact = templates_get_menu("MainTransactionsSubmenu");
 	transact_list_window_menu_analysis = templates_get_menu("MainAnalysisSubmenu");
@@ -660,40 +576,14 @@ struct transact_list_window *transact_list_window_create_instance(struct transac
 		return NULL;
 
 	new->instance = parent;
-
-	new->transaction_window = NULL;
-	new->transaction_pane = NULL;
-	new->edit_line = NULL;
-	new->columns = NULL;
-	new->sort = NULL;
-
-	new->display_lines = 0;
-	new->line_data = NULL;
+	new->window = NULL;
 
 	new->auto_reconcile = FALSE;
 
-	/* Initialise the window columns. */
+	/* Initialise the List Window. */
 
-	new->columns = column_create_instance(TRANSACT_LIST_WINDOW_COLUMNS, transact_list_window_columns, NULL, TRANSACT_LIST_WINDOW_PANE_SORT_DIR_ICON);
-	if (new->columns == NULL) {
-		transact_list_window_delete_instance(new);
-		return NULL;
-	}
-
-	column_set_minimum_widths(new->columns, config_str_read("LimTransactCols"));
-	column_init_window(new->columns, 0, FALSE, config_str_read("TransactCols"));
-
-	/* Initialise the window sort. */
-
-	new->sort = sort_create_instance(SORT_DATE | SORT_ASCENDING, SORT_ROW | SORT_ASCENDING,  &transact_list_window_sort_callbacks, new);
-	if (new->sort == NULL) {
-		transact_list_window_delete_instance(new);
-		return NULL;
-	}
-
-	/* Set the initial lines up */
-
-	if (!flexutils_initialise((void **) &(new->line_data))) {
+	new->window = list_window_create_instance(transact_list_window_block, transact_get_file(parent), new);
+	if (new->window == NULL) {
 		transact_list_window_delete_instance(new);
 		return NULL;
 	}
@@ -713,13 +603,9 @@ void transact_list_window_delete_instance(struct transact_list_window *windat)
 	if (windat == NULL)
 		return;
 
-	if (windat->line_data != NULL)
-		flexutils_free((void **) &(windat->line_data));
+	transact_list_window_delete(windat); // TODO -- No longer required?
 
-	column_delete_instance(windat->columns);
-	sort_delete_instance(windat->sort);
-
-	transact_list_window_delete(windat);
+	list_window_delete_instance(windat->window);
 
 	heap_free(windat);
 }
@@ -733,89 +619,13 @@ void transact_list_window_delete_instance(struct transact_list_window *windat)
 
 void transact_list_window_open(struct transact_list_window *windat)
 {
-	int			height;
-	os_error		*error;
-	struct file_block	*file;
-	wimp_window		*window_def, *pane_def;
-
-	if (windat == NULL || windat->instance == NULL)
+	if (windat == NULL)
 		return;
 
-	file = transact_get_file(windat->instance);
-	if (file == NULL)
-		return;
+	list_window_open(windat->window);
 
-	/* Create or re-open the window. */
 
-	if (windat->transaction_window != NULL) {
-		windows_open(windat->transaction_window);
-		return;
-	}
 
-	#ifdef DEBUG
-	debug_printf("\\CCreating transaction window");
-	#endif
-
-	/* Set the default values */
-
-	windat->visible_lines = (windat->display_lines + TRANSACT_LIST_WINDOW_MIN_BLANK_LINES > TRANSACT_LIST_WINDOW_MIN_ENTRIES) ?
-			windat->display_lines + TRANSACT_LIST_WINDOW_MIN_BLANK_LINES : TRANSACT_LIST_WINDOW_MIN_ENTRIES;
-
-	/* Create the new window data and build the window. */
-
-	window_def = list_window_get_window_def(transact_list_window_block);
-	pane_def = list_window_get_toolbar_def(transact_list_window_block);
-
-	*(windat->window_title) = '\0';
-	window_def->title_data.indirected_text.text = windat->window_title;
-
-	height =  windat->visible_lines;
-
-	window_set_initial_area(window_def, column_get_window_width(windat->columns),
-			(height * WINDOW_ROW_HEIGHT) + TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT,
-			-1, -1, transact_list_window_new_offset * TRANSACT_LIST_WINDOW_OPEN_OFFSET);
-
-	error = xwimp_create_window(window_def, &(windat->transaction_window));
-	if (error != NULL) {
-		transact_list_window_delete(windat);
-		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
-		return;
-	}
-
-	transact_list_window_new_offset++;
-	if (transact_list_window_new_offset >= TRANSACT_LIST_WINDOW_OPEN_OFFSET_LIMIT)
-		transact_list_window_new_offset = 0;
-
-	/* Create the toolbar pane. */
-
-	windows_place_as_toolbar(window_def, pane_def, TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT-4);
-	columns_place_heading_icons(windat->columns, pane_def);
-
-	pane_def->icons[TRANSACT_LIST_WINDOW_PANE_SORT_DIR_ICON].data.indirected_sprite.id =
-			(osspriteop_id) windat->sort_sprite;
-	pane_def->icons[TRANSACT_LIST_WINDOW_PANE_SORT_DIR_ICON].data.indirected_sprite.area =
-			pane_def->sprite_area;
-	pane_def->icons[TRANSACT_LIST_WINDOW_PANE_SORT_DIR_ICON].data.indirected_sprite.size = COLUMN_SORT_SPRITE_LEN;
-
-	transact_list_window_adjust_sort_icon_data(windat, &(pane_def->icons[TRANSACT_LIST_WINDOW_PANE_SORT_DIR_ICON]));
-
-	error = xwimp_create_window(pane_def, &(windat->transaction_pane));
-	if (error != NULL) {
-		transact_list_window_delete(windat);
-		error_report_os_error(error, wimp_ERROR_BOX_CANCEL_ICON);
-		return;
-	}
-
-	/* Construct the edit line. */
-
-	windat->edit_line = edit_create_instance(file, window_def, windat->transaction_window,
-			windat->columns, TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT,
-			&transact_list_window_edit_callbacks, windat);
-	if (windat->edit_line == NULL) {
-		transact_list_window_delete(windat);
-		error_msgs_report_error("TransactNoMem");
-		return;
-	}
 
 	edit_add_field(windat->edit_line, EDIT_FIELD_DISPLAY,
 			TRANSACT_LIST_WINDOW_ROW, transact_buffer_row, TRANSACT_ROW_FIELD_LEN);
@@ -842,47 +652,18 @@ void transact_list_window_open(struct transact_list_window *windat)
 		return;
 	}
 
-	/* Set the title */
-
-	transact_build_window_title(file);
 
 	/* Update the toolbar */
 
 	transact_update_toolbar(file);
 
-	/* Open the window. */
-
-	windows_open(windat->transaction_window);
-	windows_open_nested_as_toolbar(windat->transaction_pane,
-			windat->transaction_window,
-			TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT-4, FALSE);
-
-	ihelp_add_window(windat->transaction_window , "Transact", transact_list_window_decode_help);
-	ihelp_add_window(windat->transaction_pane , "TransactTB", NULL);
 
 	/* Register event handlers for the two windows. */
 
-	event_add_window_user_data(windat->transaction_window, windat);
-	event_add_window_menu(windat->transaction_window, transact_list_window_menu);
 	event_add_window_open_event(windat->transaction_window, transact_list_window_open_handler);
-	event_add_window_close_event(windat->transaction_window, transact_list_window_close_handler);
 	event_add_window_lose_caret_event(windat->transaction_window, transact_list_window_lose_caret_handler);
-	event_add_window_mouse_event(windat->transaction_window, transact_list_window_click_handler);
 	event_add_window_key_event(windat->transaction_window, transact_list_window_keypress_handler);
-	event_add_window_scroll_event(windat->transaction_window, transact_list_window_scroll_handler);
-	event_add_window_redraw_event(windat->transaction_window, transact_list_window_redraw_handler);
-	event_add_window_menu_prepare(windat->transaction_window, transact_list_window_menu_prepare_handler);
-	event_add_window_menu_selection(windat->transaction_window, transact_list_window_menu_selection_handler);
-	event_add_window_menu_warning(windat->transaction_window, transact_list_window_menu_warning_handler);
-	event_add_window_menu_close(windat->transaction_window, transact_list_window_menu_close_handler);
 
-	event_add_window_user_data(windat->transaction_pane, windat);
-	event_add_window_menu(windat->transaction_pane, transact_list_window_menu);
-	event_add_window_mouse_event(windat->transaction_pane, transact_list_window_pane_click_handler);
-	event_add_window_menu_prepare(windat->transaction_pane, transact_list_window_menu_prepare_handler);
-	event_add_window_menu_selection(windat->transaction_pane, transact_list_window_menu_selection_handler);
-	event_add_window_menu_warning(windat->transaction_pane, transact_list_window_menu_warning_handler);
-	event_add_window_menu_close(windat->transaction_pane, transact_list_window_menu_close_handler);
 	event_add_window_icon_popup(windat->transaction_pane, TRANSACT_LIST_WINDOW_PANE_VIEWACCT, transact_list_window_account_list_menu, -1, NULL);
 
 	dataxfer_set_drop_target(dataxfer_TYPE_CSV, windat->transaction_window, -1, NULL, transact_list_window_load_csv, file);
@@ -910,33 +691,14 @@ static void transact_list_window_delete(struct transact_list_window *windat)
 	if (windat == NULL)
 		return;
 
-	/* Delete the window, if it exists. */
-
-	if (windat->edit_line != NULL) {
-		edit_delete_instance(windat->edit_line);
-		windat->edit_line = NULL;
-	}
 
 	if (windat->transaction_window != NULL) {
-		ihelp_remove_window(windat->transaction_window);
-		event_delete_window(windat->transaction_window);
-		wimp_delete_window(windat->transaction_window);
 		dataxfer_delete_drop_target(dataxfer_TYPE_CSV, windat->transaction_window, -1);
-		windat->transaction_window = NULL;
 	}
 
 	if (windat->transaction_pane != NULL) {
-		ihelp_remove_window(windat->transaction_pane);
-		event_delete_window(windat->transaction_pane);
 		dataxfer_delete_drop_target(dataxfer_TYPE_CSV, windat->transaction_pane, -1);
-		wimp_delete_window(windat->transaction_pane);
-		windat->transaction_pane = NULL;
 	}
-
-	/* Close any dialogues which belong to this window. */
-
-	dialogue_force_all_closed(NULL, windat);
-	sort_dialogue_close(transact_list_window_sort_dialaogue, windat);
 }
 
 
@@ -1028,7 +790,8 @@ static void transact_list_window_click_handler(wimp_pointer *pointer)
 		return;
 
 	/* Force a refresh of the current edit line, if there is one.  We avoid refreshing the icon where the mouse
-	 * was clicked.
+	 * was clicked. This applies across all windows, so as to refresh a line in another window before it gets
+	 * moved into the current window.
 	 */
 
 	edit_refresh_line_contents(NULL, wimp_ICON_WINDOW, pointer->i);
@@ -1151,34 +914,22 @@ static void transact_list_window_lose_caret_handler(wimp_caret *caret)
 	edit_refresh_line_contents(windat->edit_line, wimp_ICON_WINDOW, wimp_ICON_WINDOW);
 }
 
+
 /**
  * Process mouse clicks in the Transaction List pane.
  *
  * \param *pointer		The mouse event block to handle.
+ * \param *file			The file owining the window.
+ * \param *data			The Standing Order List Window instance.
  */
-
-static void transact_list_window_pane_click_handler(wimp_pointer *pointer)
+static void transact_list_window_pane_click_handler(wimp_pointer *pointer, struct file_block *file, void *data)
 {
-	struct transact_list_window	*windat;
-	struct file_block		*file;
-	wimp_window_state		window;
-	wimp_icon_state			icon;
-	int				ox;
+	struct transact_list_window	*windat = data;
 	char				*filename;
-	enum sort_type			sort_order;
 
-
-	windat = event_get_window_user_data(pointer->w);
 	if (windat == NULL || windat->instance == NULL)
 		return;
 
-	file = transact_get_file(windat->instance);
-	if (file == NULL)
-		return;
-
-	/* If the click was on the sort indicator arrow, change the icon to be the icon below it. */
-
-	column_update_heading_icon_click(windat->columns, pointer);
 
 	if (pointer->buttons == wimp_CLICK_SELECT) {
 		switch (pointer->i) {
@@ -1275,37 +1026,6 @@ static void transact_list_window_pane_click_handler(wimp_pointer *pointer)
 			windat->auto_reconcile = !windat->auto_reconcile;
 			break;
 		}
-	} else if ((pointer->buttons == wimp_CLICK_SELECT * 256 ||
-			pointer->buttons == wimp_CLICK_ADJUST * 256) && pointer->i != wimp_ICON_WINDOW) {
-
-		/* Process clicks on the column headings, for sorting the data.  This tests to see if the click was
-		 * outside of the column size drag hotspot before proceeding.
-		 */
-
-		window.w = pointer->w;
-		wimp_get_window_state(&window);
-
-		ox = window.visible.x0 - window.xscroll;
-
-		icon.w = pointer->w;
-		icon.i = pointer->i;
-		wimp_get_icon_state(&icon);
-
-		if (pointer->pos.x < (ox + icon.icon.extent.x1 - COLUMN_DRAG_HOTSPOT)) {
-			sort_order = column_get_sort_type_from_heading(windat->columns, pointer->i);
-
-			if (sort_order != SORT_NONE) {
-				sort_order |= (pointer->buttons == wimp_CLICK_SELECT * 256) ? SORT_ASCENDING : SORT_DESCENDING;
-
-				sort_set_order(windat->sort, sort_order);
-				transact_list_window_adjust_sort_icon(windat);
-				windows_redraw(windat->transaction_pane);
-				transact_list_window_sort(windat);
-			}
-		}
-	} else if (pointer->buttons == wimp_DRAG_SELECT && column_is_heading_draggable(windat->columns, pointer->i)) {
-		column_set_minimum_widths(windat->columns, config_str_read("LimTransactCols"));
-		column_start_drag(windat->columns, pointer, windat, windat->transaction_window, transact_list_window_adjust_columns);
 	}
 }
 
@@ -1440,7 +1160,7 @@ static void transact_list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu,
 		return;
 	}
 
-	/* Otherwsie, this is the standard window menu.
+	/* Otherwise, this is the standard window menu.
 	 */
 
 	if (pointer != NULL) {
@@ -1880,119 +1600,6 @@ static void transact_list_window_redraw_handler(wimp_draw *redraw)
 
 
 /**
- * Callback handler for completing the drag of a column heading.
- *
- * \param *data			The window block for the origin of the drag.
- * \param group			The column group which has been dragged.
- * \param width			The new width for the group.
- */
-
-static void transact_list_window_adjust_columns(void *data, wimp_i target, int width)
-{
-	struct transact_list_window	*windat = data;
-	struct file_block		*file;
-	int				new_extent;
-	wimp_window_info		window;
-	wimp_caret			caret;
-
-	if (windat == NULL || windat->instance == NULL || windat->transaction_window == NULL || windat->transaction_pane == NULL)
-		return;
-
-	file = transact_get_file(windat->instance);
-	if (file == NULL)
-		return;
-
-	columns_update_dragged(windat->columns, windat->transaction_pane, NULL, target, width);
-
-	new_extent = column_get_window_width(windat->columns);
-
-	transact_list_window_adjust_sort_icon(windat);
-
-	/* Replace the edit line to update the icon positions and redraw the rest of the window. */
-
-	wimp_get_caret_position(&caret);
-
-	edit_place_new_line(windat->edit_line, -1, wimp_COLOUR_BLACK);
-	windows_redraw(windat->transaction_window);
-	windows_redraw(windat->transaction_pane);
-
-
-	/* If the caret's position was in the current transaction window, we need to replace it in the same position
-	 * now, so that we don't lose input focus.
-	 */
-
-	if (windat->transaction_window == caret.w)
-		wimp_set_caret_position(caret.w, caret.i, 0, 0, -1, caret.index);
-
-	/* Set the horizontal extent of the window and pane. */
-
-	window.w = windat->transaction_pane;
-	wimp_get_window_info_header_only(&window);
-	window.extent.x1 = window.extent.x0 + new_extent;
-	wimp_set_extent(window.w, &(window.extent));
-
-	window.w = windat->transaction_window;
-	wimp_get_window_info_header_only(&window);
-	window.extent.x1 = window.extent.x0 + new_extent;
-	wimp_set_extent(window.w, &(window.extent));
-
-	windows_open(window.w);
-
-	file_set_data_integrity(file, TRUE);
-}
-
-
-/**
- * Adjust the sort icon in a transaction window, to reflect the current column
- * heading positions.
- *
- * \param *windat		The window to be updated.
- */
-
-static void transact_list_window_adjust_sort_icon(struct transact_list_window *windat)
-{
-	wimp_icon_state icon;
-
-	if (windat == NULL)
-		return;
-
-	icon.w = windat->transaction_pane;
-	icon.i = TRANSACT_LIST_WINDOW_PANE_SORT_DIR_ICON;
-	wimp_get_icon_state(&icon);
-
-	transact_list_window_adjust_sort_icon_data(windat, &(icon.icon));
-
-	wimp_resize_icon(icon.w, icon.i, icon.icon.extent.x0, icon.icon.extent.y0,
-			icon.icon.extent.x1, icon.icon.extent.y1);
-}
-
-
-/**
- * Adjust an icon definition to match the current transaction sort settings.
- *
- * \param *windat		The window to be updated.
- * \param *icon			The icon to be updated.
- */
-
-static void transact_list_window_adjust_sort_icon_data(struct transact_list_window *windat, wimp_icon *icon)
-{
-	enum sort_type	sort_order;
-	wimp_window	*pane_def;
-
-	if (windat == NULL)
-		return;
-
-	pane_def = list_window_get_toolbar_def(transact_list_window_block);
-	if (pane_def == NULL)
-		return;
-
-	sort_order = sort_get_order(windat->sort);
-
-	column_update_sort_indicator(windat->columns, icon, pane_def, sort_order);
-}
-
-
-/**
  * Return the name of a transaction window column.
  *
  * \param *windat		The transaction list window instance to query.
@@ -2177,53 +1784,6 @@ void transact_list_window_set_extent(struct transact_list_window *windat)
 
 
 /**
- * Get the window state of the transaction window belonging to
- * the specified file.
- *
- * \param *file			The file containing the window.
- * \param *state		The structure to hold the window state.
- * \return			Pointer to an error block, or NULL on success.
- */
-
-os_error *transact_list_window_get_state(struct transact_list_window *windat, wimp_window_state *state)
-{
-	if (windat == NULL || state == NULL)
-		return NULL;
-
-	state->w = windat->transaction_pane;
-	return xwimp_get_window_state(state);
-}
-
-
-
-/**
- * Recreate the title of the given Transaction window.
- *
- * \param *windat		The transaction window to rebuild the title for.
- */
-
-void transact_list_window_build_title(struct transact_list_window *windat)
-{
-	struct file_block *file;
-
-	if (windat == NULL || windat->instance == NULL)
-		return;
-
-	file = transact_get_file(windat->instance);
-	if (file == NULL)
-		return;
-
-	file_get_pathname(file, windat->window_title, WINDOW_TITLE_LENGTH - 2);
-
-	if (file_get_data_integrity(file))
-		strcat(windat->window_title, " *");
-
-	if (windat->transaction_window != NULL)
-		wimp_force_redraw_title(windat->transaction_window);
-}
-
-
-/**
  * Re-index the transactions in a transaction list window.  This can *only*
  * be done after transact_sort_file_data() has been called, as it requires
  * data set up in the transaction block by that call.
@@ -2333,49 +1893,6 @@ static void transact_list_window_force_redraw(struct transact_list_window *winda
 	window.extent.y0 = WINDOW_ROW_BASE(TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT, to);
 
 	wimp_force_redraw(windat->transaction_window, window.extent.x0, window.extent.y0, window.extent.x1, window.extent.y1);
-}
-
-
-/**
- * Turn a mouse position over a Transaction window into an interactive
- * help token.
- *
- * \param *buffer		A buffer to take the generated token.
- * \param w			The window under the pointer.
- * \param i			The icon under the pointer.
- * \param pos			The current mouse position.
- * \param buttons		The current mouse button state.
- */
-
-static void transact_list_window_decode_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons)
-{
-	int				xpos;
-	wimp_i				icon;
-	wimp_window_state		window;
-	struct transact_list_window	*windat;
-	wimp_window			*window_def;
-
-	*buffer = '\0';
-
-	windat = event_get_window_user_data(w);
-	if (windat == NULL)
-		return;
-
-	window_def = list_window_get_window_def(transact_list_window_block);
-	if (window_def == NULL)
-		return;
-
-	window.w = w;
-	wimp_get_window_state(&window);
-
-	xpos = (pos.x - window.visible.x0) + window.xscroll;
-
-	icon = column_find_icon_from_xpos(windat->columns, xpos);
-	if (icon == wimp_ICON_WINDOW)
-		return;
-
-	if (!icons_extract_validation_command(buffer, IHELP_INAME_LEN, window_def->icons[icon].data.indirected_text.validation, 'N'))
-		string_printf(buffer, IHELP_INAME_LEN, "Col%d", icon);
 }
 
 
@@ -3713,26 +3230,14 @@ static int transact_list_window_edit_auto_sort(wimp_i icon, void *data)
 /**
  * Find the Wimp colour of a given line in a transaction window.
  *
- * \param *windat		The transaction window instance of interest.
- * \param line			The line of interest.
+ * \param transaction		The transaction index of interest.
+ * \param *file			The parent file.
+ * \param *data			The transaction window instance of interest.
  * \return			The required Wimp colour, or Black on failure.
  */
 
-static wimp_colour transact_list_window_line_colour(struct transact_list_window *windat, int line)
+static wimp_colour transact_list_window_line_colour(tran_t transaction, struct file_block *file, void *data)
 {
-	struct file_block	*file;
-	tran_t			transaction;
-
-	if (windat == NULL || windat->instance == NULL || windat->line_data == NULL ||
-			!transact_list_window_line_valid(windat, line))
-		return wimp_COLOUR_BLACK;
-
-	file = transact_get_file(windat->instance);
-	if (file == NULL)
-		return FALSE;
-
-	transaction = windat->line_data[line].transaction;
-
 	if (config_opt_read("ShadeReconciled") &&
 			((transact_get_flags(file, transaction) & (TRANS_REC_FROM | TRANS_REC_TO)) == (TRANS_REC_FROM | TRANS_REC_TO)))
 		return config_int_read("ShadeReconciledColour");
@@ -4206,76 +3711,44 @@ void transact_list_window_sort(struct transact_list_window *windat)
  * \param type			The required column type of the comparison.
  * \param index1		The index of the first line to be compared.
  * \param index2		The index of the second line to be compared.
- * \param *data			Client specific data, which is our window block.
+ * \param *file			The file relating to the data being sorted.
  * \return			The comparison result.
  */
 
-static int transact_list_window_sort_compare(enum sort_type type, int index1, int index2, void *data)
+static int transact_list_window_sort_compare(enum sort_type type, int index1, int index2, struct file_block *file)
 {
-	struct transact_list_window	*windat = data;
-	struct file_block		*file;
-
-	if (windat == NULL || windat->instance == NULL)
-		return 0;
-
-	file = transact_get_file(windat->instance);
-	if (file == NULL)
-		return 0;
-
 	switch (type) {
 	case SORT_ROW:
-		return (transact_get_transaction_number(windat->line_data[index1].transaction) -
-				transact_get_transaction_number(windat->line_data[index2].transaction));
+		return (transact_get_transaction_number(index1)) -
+				transact_get_transaction_number(index2)));
 
 	case SORT_DATE:
-		return ((transact_get_date(file, windat->line_data[index1].transaction) & DATE_SORT_MASK) -
-				(transact_get_date(file, windat->line_data[index2].transaction) & DATE_SORT_MASK));
+		return ((transact_get_date(file, index1) & DATE_SORT_MASK) -
+				(transact_get_date(file, index2) & DATE_SORT_MASK));
 
 	case SORT_FROM:
-		return strcmp(account_get_name(file, transact_get_from(file, windat->line_data[index1].transaction)),
-				account_get_name(file, transact_get_from(file, windat->line_data[index2].transaction)));
+		return strcmp(account_get_name(file, transact_get_from(file, index1)),
+				account_get_name(file, transact_get_from(file, index2)));
 
 	case SORT_TO:
-		return strcmp(account_get_name(file, transact_get_to(file, windat->line_data[index1].transaction)),
-				account_get_name(file, transact_get_to(file, windat->line_data[index2].transaction)));
+		return strcmp(account_get_name(file, transact_get_to(file, index1)),
+				account_get_name(file, transact_get_to(file, index2)));
 
 	case SORT_REFERENCE:
-		return strcmp(transact_get_reference(file, windat->line_data[index1].transaction, NULL, 0),
-				transact_get_reference(file, windat->line_data[index2].transaction, NULL, 0));
+		return strcmp(transact_get_reference(file, index1, NULL, 0),
+				transact_get_reference(file, index2, NULL, 0));
 
 	case SORT_AMOUNT:
-		return (transact_get_amount(file, windat->line_data[index1].transaction) -
-				transact_get_amount(file, windat->line_data[index2].transaction));
+		return (transact_get_amount(file, index1) -
+				transact_get_amount(file, index2));
 
 	case SORT_DESCRIPTION:
-		return strcmp(transact_get_description(file, windat->line_data[index1].transaction, NULL, 0),
-				transact_get_description(file, windat->line_data[index2].transaction, NULL, 0));
+		return strcmp(transact_get_description(file, index1, NULL, 0),
+				transact_get_description(file, index2, NULL, 0));
 
 	default:
 		return 0;
 	}
-}
-
-
-/**
- * Swap the sort index of two lines of a transaction list.
- *
- * \param index1		The index of the first line to be swapped.
- * \param index2		The index of the second line to be swapped.
- * \param *data			Client specific data, which is our window block.
- */
-
-static void transact_list_window_sort_swap(int index1, int index2, void *data)
-{
-	struct transact_list_window	*windat = data;
-	int				temp;
-
-	if (windat == NULL || windat->line_data == NULL)
-		return;
-
-	temp = windat->line_data[index1].transaction;
-	windat->line_data[index1].transaction = windat->line_data[index2].transaction;
-	windat->line_data[index2].transaction = temp;
 }
 
 
@@ -4290,22 +3763,10 @@ static void transact_list_window_sort_swap(int index1, int index2, void *data)
 
 osbool transact_list_window_initialise_entries(struct transact_list_window *windat, int transacts)
 {
-	int i;
-
-	if (windat == NULL || windat->line_data == NULL)
+	if (windat == NULL)
 		return FALSE;
 
-	if (!flexutils_resize((void **) &(windat->line_data), sizeof(struct transact_list_window_redraw), transacts))
-		return FALSE;
-
-	windat->display_lines = transacts;
-
-	for (i = 0; i < transacts; i++)
-		windat->line_data[i].transaction = i;
-
-	transact_list_window_sort(windat);
-
-	return TRUE;
+	return list_window_initialise_entries(windat->window, transacts);
 }
 
 
@@ -4319,27 +3780,10 @@ osbool transact_list_window_initialise_entries(struct transact_list_window *wind
 
 osbool transact_list_window_add_transaction(struct transact_list_window *windat, tran_t transaction)
 {
-	if (windat == NULL || windat->line_data == NULL)
+	if (windat == NULL)
 		return FALSE;
 
-	debug_printf("Adding a new transaction to the window: transaction=%d, index=%d", transaction, windat->display_lines);
-
-	/* Extend the index array. */
-
-	if (!flexutils_resize((void **) &(windat->line_data), sizeof(struct transact_list_window_redraw), windat->display_lines + 1))
-		return FALSE;
-
-	windat->display_lines++;
-
-	/* Add the new entry, expand the window and sort the entries. */
-
-	windat->line_data[windat->display_lines - 1].transaction = transaction;
-
-	transact_list_window_set_extent(windat);
-
-	transact_list_window_force_redraw(windat, windat->display_lines - 1, windat->display_lines - 1, wimp_ICON_WINDOW);
-
-	return TRUE;
+	return list_window_add_entry(windat->window, transaction, FALSE);
 }
 
 
@@ -4354,38 +3798,10 @@ osbool transact_list_window_add_transaction(struct transact_list_window *windat,
 
 osbool transact_list_window_delete_transaction(struct transact_list_window *windat, tran_t transaction)
 {
-	int i = 0, delete = -1;
-
-	if (windat == NULL || windat->line_data == NULL)
+	if (windat == NULL)
 		return FALSE;
 
-	/* Find the transaction, and decrement any index entries above it. */
-
-	for (i = 0; i < windat->display_lines; i++) {
-		if (windat->line_data[i].transaction == transaction)
-			delete = i;
-		else if (windat->line_data[i].transaction > transaction)
-			windat->line_data[i].transaction--;
-	}
-
-	debug_printf("Removing a transaction from the window: transaction=%d, index=%d", transaction, delete);
-
-	/* Delete the index entry. */
-
-	if (delete >= 0 && !flexutils_delete_object((void **) &(windat->line_data), sizeof(struct transact_list_window_redraw), delete))
-		return FALSE;
-
-	windat->display_lines--;
-
-	/* Update the preset window. */
-
-	transact_list_window_set_extent(windat);
-
-	windows_open(windat->transaction_window);
-
-	transact_list_window_force_redraw(windat, delete, windat->display_lines, wimp_ICON_WINDOW);
-
-	return TRUE;
+	return list_window_delete_entry(windat->window, transaction, FALSE);
 }
 
 
@@ -4405,13 +3821,7 @@ void transact_list_window_write_file(struct transact_list_window *windat, FILE *
 	if (windat == NULL)
 		return;
 
-	/* We should be in a [StandingOrders] section by now. */
-
-	column_write_as_text(windat->columns, buffer, FILING_MAX_FILE_LINE_LEN);
-	fprintf(out, "WinColumns: %s\n", buffer);
-
-	sort_write_as_text(windat->sort, buffer, FILING_MAX_FILE_LINE_LEN);
-	fprintf(out, "SortOrder: %s\n", buffer);
+	list_window_write_file(windat->window, out);
 }
 
 
@@ -4432,7 +3842,7 @@ void transact_list_window_read_file_wincolumns(struct transact_list_window *wind
 	 * start of the line so skip on to colunn 1 (date).
 	 */
 
-	column_init_window(windat->columns, (format <= 100) ? 1 : 0, TRUE, columns);
+	list_window_read_file_wincolumns(windat->window, (format <= 100) ? 1 : 0, TRUE, columns);
 }
 
 
@@ -4448,7 +3858,7 @@ void transact_list_window_read_file_sortorder(struct transact_list_window *winda
 	if (windat == NULL)
 		return;
 
-	sort_read_from_text(windat->sort, order);
+	list_window_read_file_sortorder(windat->window, order);
 }
 
 
@@ -4524,7 +3934,7 @@ static osbool transact_list_window_save_csv(char *filename, osbool selection, vo
 	if (windat == NULL)
 		return FALSE;
 
-	transact_list_window_export_delimited(windat, filename, DELIMIT_QUOTED_COMMA, dataxfer_TYPE_CSV);
+	list_window_export_delimited(windat->window, filename, DELIMIT_QUOTED_COMMA, dataxfer_TYPE_CSV);
 
 	return TRUE;
 }
@@ -4545,80 +3955,43 @@ static osbool transact_list_window_save_tsv(char *filename, osbool selection, vo
 	if (windat == NULL)
 		return FALSE;
 
-	transact_list_window_export_delimited(windat, filename, DELIMIT_TAB, dataxfer_TYPE_TSV);
+	list_window_export_delimited(windat->window, filename, DELIMIT_TAB, dataxfer_TYPE_TSV);
 
 	return TRUE;
 }
 
 
 /**
- * Export the transaction data from a file into CSV or TSV format.
+ * Export the standing order data from a file into CSV or TSV format.
  *
- * \param *windat		The window to export from.
+ * \param *windat		The standing order window to export from.
  * \param *filename		The filename to export to.
  * \param format		The file format to be used.
  * \param filetype		The RISC OS filetype to save as.
  */
 
-static void transact_list_window_export_delimited(struct transact_list_window *windat, char *filename, enum filing_delimit_type format, int filetype)
+static void transact_list_window_export_delimited_line(FILE *out, enum filing_delimit_type format, struct file_block *file, int index)
 {
-	FILE			*out;
-	struct file_block	*file;
-	int			line;
-	tran_t			transaction;
 	char			buffer[FILING_DELIMITED_FIELD_LEN];
 
-	if (windat == NULL || windat->instance == NULL)
-		return;
+	string_printf(buffer, FILING_DELIMITED_FIELD_LEN, "%d", transact_get_transaction_number(index));
+	filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
-	file = transact_get_file(windat->instance);
-	if (file == NULL)
-		return;
+	date_convert_to_string(transact_get_date(file, index), buffer, FILING_DELIMITED_FIELD_LEN);
+	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
-	out = fopen(filename, "w");
+	account_build_name_pair(file, transact_get_from(file, index), buffer, FILING_DELIMITED_FIELD_LEN);
+	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
-	if (out == NULL) {
-		error_msgs_report_error("FileSaveFail");
-		return;
-	}
+	account_build_name_pair(file, transact_get_to(file, index), buffer, FILING_DELIMITED_FIELD_LEN);
+	filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
 
-	hourglass_on();
+	filing_output_delimited_field(out, transact_get_reference(file, index, NULL, 0), format, DELIMIT_NONE);
 
-	/* Output the headings line, taking the text from the window icons. */
+	currency_convert_to_string(transact_get_amount(file, index), buffer, FILING_DELIMITED_FIELD_LEN);
+	filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
 
-	columns_export_heading_names(windat->columns, windat->transaction_pane, out, format, buffer, FILING_DELIMITED_FIELD_LEN);
-
-	/* Output the transaction data as a set of delimited lines. */
-
-	for (line = 0; line < windat->display_lines; line++) {
-		transaction = windat->line_data[line].transaction;
-
-		string_printf(buffer, FILING_DELIMITED_FIELD_LEN, "%d", transact_get_transaction_number(transaction));
-		filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
-
-		date_convert_to_string(transact_get_date(file, transaction), buffer, FILING_DELIMITED_FIELD_LEN);
-		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-
-		account_build_name_pair(file, transact_get_from(file, transaction), buffer, FILING_DELIMITED_FIELD_LEN);
-		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-
-		account_build_name_pair(file, transact_get_to(file, transaction), buffer, FILING_DELIMITED_FIELD_LEN);
-		filing_output_delimited_field(out, buffer, format, DELIMIT_NONE);
-
-		filing_output_delimited_field(out, transact_get_reference(file, transaction, NULL, 0), format, DELIMIT_NONE);
-
-		currency_convert_to_string(transact_get_amount(file, transaction), buffer, FILING_DELIMITED_FIELD_LEN);
-		filing_output_delimited_field(out, buffer, format, DELIMIT_NUM);
-
-		filing_output_delimited_field(out, transact_get_description(file, transaction, NULL, 0), format, DELIMIT_LAST);
-	}
-
-	/* Close the file and set the type correctly. */
-
-	fclose(out);
-	osfile_set_type(filename, (bits) filetype);
-
-	hourglass_off();
+	filing_output_delimited_field(out, transact_get_description(file, index, NULL, 0), format, DELIMIT_LAST);
 }
 
 

@@ -481,7 +481,7 @@ void file_set_data_integrity(struct file_block *file, osbool unsafe)
 {
 	if (file != NULL && file->modified != unsafe) {
 		file->modified = unsafe;
-		transact_build_window_title(file);
+		list_window_rebuild_file_titles(file, TRUE);
 	}
 }
 

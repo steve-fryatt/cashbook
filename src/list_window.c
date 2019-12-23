@@ -260,7 +260,11 @@ static void list_window_adjust_sort_icon_data(struct list_window *instance, wimp
 static void list_window_set_extent(struct list_window *instance);
 static void list_window_build_title(struct list_window *instance);
 
-static int list_window_get_line_from_index(struct list_window *instance, int index);
+static int list_window_find_edit_line_by_index(struct list_window *instance);
+static void list_window_place_edit_line_by_index(struct list_window *windat, int index);
+static void list_window_place_edit_line(struct transact_list_window *windat, int line);
+
+
 static osbool list_window_process_sort_window(enum sort_type order, void *data);
 static int list_window_sort_compare(enum sort_type type, int index1, int index2, void *data);
 static void list_window_sort_swap(int index1, int index2, void *data);
@@ -1383,6 +1387,87 @@ static void list_window_build_title(struct list_window *instance)
 }
 
 
+
+
+/**
+ * Get the underlying index relating to the current edit line position
+ * in a given list window instance.
+ *
+ * \param *instance		The list window instance that we're interested in.
+ * \return			The index number number, or LIST_WINDOW_NULL_INDEX
+ *				if the line isn't in the specified instance.
+ */
+
+static int list_window_find_edit_line_by_index(struct list_window *instance)
+{
+	int line;
+
+	if (instance == NULL || instance->line_data == NULL)
+		return LIST_WINDOW_NULL_INDEX;
+
+	line = edit_get_line(instance->edit_line);
+	if (!list_window_line_valid(instance, line))
+		return LIST_WINDOW_NULL_INDEX;
+
+	return instance->line_data[line].index;
+}
+
+
+/**
+ * Place a new edit line in a list window by index number.
+ *
+ * \param *instance		The list window instance to place the line in.
+ * \param index			The index to place the line at.
+ */
+
+static void list_window_place_edit_line_by_index(struct list_window *instance, int index)
+{
+	int i, line;
+
+	if (instance == NULL || instance->edit_line == NULL || instance->line_data == NULL)
+		return;
+
+	line = instance->display_lines;
+
+	if (index != LIST_WINDOW_NULL_INDEX) {
+		for (i = 0; i < instance->display_lines; i++) {
+			if (instance->line_data[i].index == index) {
+				line = i;
+				break;
+			}
+		}
+	}
+
+	list_window_place_edit_line(instance, line);
+	list_window_find_edit_line_vertically(instance);
+}
+
+
+/**
+ * Place a new edit line in a list window by visible line number,
+ * extending the window if required.
+ *
+ * \param *instance		The list window instance to place the line in.
+ * \param line			The visible line to place edit line at.
+ */
+
+static void list_window_place_edit_line(struct list_window *instance, int line)
+{
+	wimp_colour colour;
+
+	if (instance == NULL || instance->edit_line == NULL)
+		return;
+
+	if (line >= instance->visible_lines) {
+		instance->visible_lines = line + 1;
+		list_window_set_extent(instance);
+	}
+
+	colour = list_window_line_colour(instance, line);
+	edit_place_new_line(instance->edit_line, line, colour);
+}
+
+
 /**
  * Initialise the contents of the list window, creating an entry for
  * each of the required entries.
@@ -1510,7 +1595,7 @@ osbool list_window_delete_entry(struct list_window *instance, int entry, osbool 
  * \return			The appropriate line, or -1 if not found.
  */
 
-static int list_window_get_line_from_index(struct list_window *instance, int index)
+int list_window_get_line_from_index(struct list_window *instance, int index)
 {
 	int	i;
 	int	line = -1;
@@ -1597,6 +1682,9 @@ static osbool list_window_process_sort_window(enum sort_type order, void *data)
 
 void list_window_sort(struct list_window *instance)
 {
+	wimp_caret	caret;
+	int		edit_index;
+
 	if (instance == NULL)
 		return;
 
@@ -1606,9 +1694,30 @@ void list_window_sort(struct list_window *instance)
 
 	hourglass_on();
 
+	/* If the window can have an edit line, fine the line and caret before sorting. */
+
+	if (instance->edit_line != NULL) {
+		wimp_get_caret_position(&caret);
+		edit_index = list_window_find_edit_line_by_index(instance);
+	}
+
 	/* Run the sort. */
 
 	sort_process(instance->sort, instance->display_lines);
+
+	/* Replace the edit line where we found it prior to the sort, and if the
+	 * caret's position was in the current transaction window, we need to replace
+	 * it in the same position now, so that we don't lose input focus.
+	 */
+
+	if (instance->edit_line != NULL) {
+		list_window_place_edit_line_by_index(instance, edit_index);
+
+		if (instance->window != NULL && instance->window == caret.w)
+			wimp_set_caret_position(caret.w, caret.i, 0, 0, -1, caret.index);
+	}
+
+	/* Force a redraw of the window contents. */
 
 	list_window_force_redraw(instance, 0, instance->display_lines - 1, wimp_ICON_WINDOW);
 
@@ -1629,7 +1738,7 @@ void list_window_sort(struct list_window *instance)
 
 static int list_window_sort_compare(enum sort_type type, int index1, int index2, void *data)
 {
-	struct list_window	*instance = data;
+	struct list_window *instance = data;
 
 	if (instance == NULL || instance->parent == NULL || instance->line_data == NULL)
 		return 0;
@@ -1698,7 +1807,7 @@ void list_window_open_print_window(struct list_window *instance, wimp_pointer *p
 static struct report *list_window_print(struct report *report, void *data, date_t from, date_t to)
 {
 	struct list_window	*instance = data;
-	int			line, column;
+	int			line, column, index;
 	char			rec_char[REC_FIELD_LEN];
 	wimp_i			*columns;
 
@@ -1738,9 +1847,15 @@ static struct report *list_window_print(struct report *report, void *data, date_
 	columns_print_heading_names(instance->columns, instance->toolbar);
 	stringbuild_report_line(report, 0);
 
-	/* Output the standing order data as a set of delimited lines. */
+	/* Output the data in the window as lines in the table. */
 
 	for (line = 0; line < instance->display_lines; line++) {
+		index = instance->line_data[line].index;
+
+		if ((instance->parent->definition->callback_print_include != NULL) &&
+				(instance->parent->definition->callback_print_include(instance->file, index, from, to) == FALSE))
+			continue;
+
 		stringbuild_reset();
 
 		for (column = 0; column < instance->parent->definition->column_count; column++) {
@@ -1750,7 +1865,7 @@ static struct report *list_window_print(struct report *report, void *data, date_
 				stringbuild_add_string("\\t");
 
 			instance->parent->definition->callback_print_field(instance->file,
-					columns[column], instance->line_data[line].index, rec_char);
+					columns[column], index, rec_char);
 		}
 
 		stringbuild_report_line(report, 0);

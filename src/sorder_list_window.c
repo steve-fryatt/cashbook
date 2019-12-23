@@ -672,7 +672,7 @@ static void sorder_list_window_open_print_window(struct sorder_list_window *wind
  * \param *rec_char		A string to use as the reconcile character.
  */
 
-static void sorder_list_window_print_field(struct file_block *file, wimp_i column, int sorder, char *rec_char)
+static void sorder_list_window_print_field(struct file_block *file, wimp_i column, sorder_t sorder, char *rec_char)
 {
 	date_t next_date;
 

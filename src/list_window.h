@@ -228,9 +228,9 @@ struct list_window_definition {
 
 	int		(*callback_sort_compare)(enum sort_type type, int index1, int index2, struct file_block *file);
 
-	osbool		(*callback_print_include)(int index, date_t from, date_t to);
+	osbool		(*callback_print_include)(struct file_block *file, int index, date_t from, date_t to);
 
-	void		(*callback_print_field)(struct file_block *file, wimp_i column, int preset, char *rec_char);
+	void		(*callback_print_field)(struct file_block *file, wimp_i column, int index, char *rec_char);
 
 	void		(*callback_export_line)(FILE *out, enum filing_delimit_type format, struct file_block *file, int index);
 
@@ -349,6 +349,18 @@ osbool list_window_add_entry(struct list_window *instance, int entry, osbool sor
  */
 
 osbool list_window_delete_entry(struct list_window *instance, int entry, osbool sort);
+
+
+/**
+ * Find the display line in a list window which points to the specified
+ * index under the applied sort.
+ *
+ * \param *instance		The list window instance to search.
+ * \param index			The index to return the line for.
+ * \return			The appropriate line, or -1 if not found.
+ */
+
+int list_window_get_line_from_index(struct list_window *instance, int index);
 
 
 /**

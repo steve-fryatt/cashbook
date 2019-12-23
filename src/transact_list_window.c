@@ -481,9 +481,6 @@ static void transact_list_window_start_drag(struct transact_list_window *windat,
 static void transaction_list_window_terminate_drag(wimp_dragged *drag, void *data);
 
 
-static tran_t transact_list_window_find_edit_line_by_transaction(struct transact_list_window *windat);
-static void transact_list_window_place_edit_line_by_transaction(struct transact_list_window *windat, tran_t transaction);
-static osbool transact_list_window_edit_place_line(int line, void *data);
 static void transact_list_window_place_edit_line(struct transact_list_window *windat, int line);
 static void transact_list_window_find_edit_line_vertically(struct transact_list_window *windat);
 static osbool transact_list_window_edit_find_field(int line, int xmin, int xmax, enum edit_align target, void *data);
@@ -501,10 +498,9 @@ static wimp_colour transact_list_window_line_colour(tran_t transaction, struct f
 static osbool transact_list_window_extend_display_lines(struct transact_list_window *windat, int line);
 
 
-static void transact_list_window_open_sort_window(struct transact_list_window *windat, wimp_pointer *ptr);
-static osbool transact_list_window_process_sort_window(enum sort_type order, void *data);
 static void transact_list_window_open_print_window(struct transact_list_window *windat, wimp_pointer *ptr, osbool restore);
-static struct report *transact_list_window_print(struct report *report, void *data, date_t from, date_t to);
+static osbool transact_list_window_print_include(struct file_block *file, tran_t transaction, date_t from, date_t to);
+static struct report *transact_list_window_print_field(struct file_block *file, wimp_i column, tran_t transaction, char *rec_char);
 static int transact_list_window_sort_compare(enum sort_type type, int index1, int index2, struct file_block *file);
 static void transact_list_window_start_direct_save(struct transact_list_window *windat);
 static osbool transact_list_window_save_file(char *filename, osbool selection, void *data);
@@ -535,6 +531,7 @@ void transact_list_window_initialise(osspriteop_area *sprites)
 	transact_list_window_definition.callback_menu_selection_handler = transact_list_window_menu_selection_handler;
 	transact_list_window_definition.callback_menu_warning_handler = transact_list_window_menu_warning_handler;
 	transact_list_window_definition.callback_sort_compare = transact_list_window_sort_compare;
+	transact_list_window_definition.callback_print_include = transact_list_window_print_include;
 	transact_list_window_definition.callback_print_field = transact_list_window_print_field;
 	transact_list_window_definition.callback_export_line = transact_list_window_export_delimited_line;
 
@@ -2283,20 +2280,10 @@ int transact_list_window_find_nearest_centre(struct transact_list_window *windat
 
 int transact_list_window_get_line_from_transaction(struct transact_list_window *windat, tran_t transaction)
 {
-	int	i;
-	int	line = -1;
+	if (windat == NULL)
+		return -1;
 
-	if (windat == NULL || windat->line_data == NULL)
-		return line;
-
-	for (i = 0; i < windat->display_lines; i++) {
-		if (windat->line_data[i].transaction == transaction) {
-			line = i;
-			break;
-		}
-	}
-
-	return line;
+	return list_window_get_line_from_index(windat->window, transaction);
 }
 
 
@@ -2311,10 +2298,10 @@ int transact_list_window_get_line_from_transaction(struct transact_list_window *
 
 tran_t transact_list_window_get_transaction_from_line(struct transact_list_window *windat, int line)
 {
-	if (windat == NULL || windat->line_data == NULL || !transact_list_window_line_valid(windat, line))
+	if (windat == NULL)
 		return NULL_TRANSACTION;
 
-	return windat->line_data[line].transaction;
+	return list_window_get_index_from_line(windat->window, line);
 }
 
 
@@ -2337,60 +2324,6 @@ int transact_list_window_get_caret_line(struct transact_list_window *windat)
 	return (entry_line >= 0) ? entry_line : 0;
 }
 
-/**
- * Get the underlying transaction number relating to the current edit line
- * position.
- *
- * \param *file			The file that we're interested in.
- * \return			The transaction number, or NULL_TRANSACTION if the
- *				line isn't in the specified file.
- */
-
-static tran_t transact_list_window_find_edit_line_by_transaction(struct transact_list_window *windat)
-{
-	int	line;
-
-	if (windat == NULL || windat->line_data == NULL)
-		return NULL_TRANSACTION;
-
-	line = edit_get_line(windat->edit_line);
-	if (!transact_list_window_line_valid(windat, line))
-		return NULL_TRANSACTION;
-
-	return windat->line_data[line].transaction;
-}
-
-
-/**
- * Place a new edit line by raw transaction number.
- *
- * \param *windat		The transaction window to place the line in.
- * \param transaction		The transaction to place the line on.
- */
-
-static void transact_list_window_place_edit_line_by_transaction(struct transact_list_window *windat, tran_t transaction)
-{
-	int		i, line;
-
-	if (windat == NULL || windat->line_data == NULL)
-		return;
-
-	line = windat->display_lines;
-
-	if (transaction != NULL_TRANSACTION) {
-		for (i = 0; i < windat->display_lines; i++) {
-			if (windat->line_data[i].transaction == transaction) {
-				line = i;
-				break;
-			}
-		}
-	}
-
-	transact_list_window_place_edit_line(windat, line);
-
-	transact_list_window_find_edit_line_vertically(windat);
-}
-
 
 /**
  * Callback to allow the edit line to move.
@@ -2411,31 +2344,6 @@ static osbool transact_list_window_edit_place_line(int line, void *data)
 	transact_list_window_find_edit_line_vertically(windat);
 
 	return TRUE;
-}
-
-
-/**
- * Place a new edit line in a transaction window by visible line number,
- * extending the window if required.
- *
- * \param *windat		The transaction window to place the line in.
- * \param line			The line to place.
- */
-
-static void transact_list_window_place_edit_line(struct transact_list_window *windat, int line)
-{
-	wimp_colour	colour;
-
-	if (windat == NULL)
-		return;
-
-	if (line >= windat->visible_lines) {
-		windat->visible_lines = line + 1;
-		transact_list_window_set_extent(windat);
-	}
-
-	colour = transact_list_window_line_colour(windat, line);
-	edit_place_new_line(windat->edit_line, line, colour);
 }
 
 
@@ -3464,48 +3372,6 @@ enum transact_field transact_list_window_search(struct transact_list_window *win
 
 
 /**
- * Open the Transaction List Sort dialogue for a given transaction list window.
- *
- * \param *windat		The transaction window to own the dialogue.
- * \param *ptr			The current Wimp pointer position.
- */
-
-static void transact_list_window_open_sort_window(struct transact_list_window *windat, wimp_pointer *ptr)
-{
-	if (windat == NULL || ptr == NULL)
-		return;
-
-	sort_dialogue_open(transact_list_window_sort_dialaogue, ptr, sort_get_order(windat->sort), windat);
-}
-
-
-/**
- * Take the contents of an updated Transaction List Sort window and process
- * the data.
- *
- * \param order			The new sort order selected by the user.
- * \param *data			The transaction window associated with the Sort dialogue.
- * \return			TRUE if successful; else FALSE.
- */
-
-static osbool transact_list_window_process_sort_window(enum sort_type order, void *data)
-{
-	struct transact_list_window *windat = (struct transact_list_window *) data;
-
-	if (windat == NULL)
-		return FALSE;
-
-	sort_set_order(windat->sort, order);
-
-	transact_list_window_adjust_sort_icon(windat);
-	windows_redraw(windat->transaction_pane);
-	transact_list_window_sort(windat);
-
-	return TRUE;
-}
-
-
-/**
  * Open the Transaction Print dialogue for a given account list window.
  *
  * \param *file			The file to own the dialogue.
@@ -3515,145 +3381,88 @@ static osbool transact_list_window_process_sort_window(enum sort_type order, voi
 
 static void transact_list_window_open_print_window(struct transact_list_window *windat, wimp_pointer *ptr, osbool restore)
 {
-	struct file_block *file;
-
-	if (windat == NULL || windat->instance == NULL)
-		return;
-
-	file = transact_get_file(windat->instance);
-	if (file == NULL)
-		return;
-
-	print_dialogue_open(file->print, ptr, TRUE, restore, "PrintTransact", "PrintTitleTransact", NULL, transact_list_window_print, windat);
+	list_window_open_print_window(windat->window, ptr, restore);
 }
 
 
 /**
- * Send the contents of the Transaction Window to the printer, via the reporting
- * system.
- *
- * \param *report		The report handle to use for output.
- * \param *data			The transaction window structure to be printed.
- * \param from			The date to print from.
- * \param to			The date to print to.
- * \return			Pointer to the report, or NULL on failure.
+ * Determine whether to include a transaction in a print job.
+ * 
+ * \param *file			The file owning the transaction list.
+ * \param transaction		The transaction to be output.
+ * \param from			The earliest date to be included, or NULL_DATE.
+ * \param to			The latest date to be included, or NULL_DATE.
+ * \return			TRUE to include the transaction; FALSE to omit it.
  */
 
-static struct report *transact_list_window_print(struct report *report, void *data, date_t from, date_t to)
+static osbool transact_list_window_print_include(struct file_block *file, tran_t transaction, date_t from, date_t to)
 {
-	struct transact_list_window	*windat = data;
-	struct file_block		*file;
-	int				line, column;
-	tran_t				transaction;
-	date_t				date;
-	char				rec_char[REC_FIELD_LEN];
-	wimp_i				columns[TRANSACT_LIST_WINDOW_COLUMNS];
+	date_t date;
 
-	if (report == NULL || windat == NULL || windat->instance == NULL)
-		return NULL;
+	date = transact_get_date(file, transaction);
 
-	file = transact_get_file(windat->instance);
-	if (file == NULL)
-		return NULL;
+	return !((from != NULL_DATE && date < from) || (to != NULL_DATE && date > to));
+}
 
-	if (!column_get_icons(windat->columns, columns, TRANSACT_LIST_WINDOW_COLUMNS, FALSE))
-		return NULL;
 
-	msgs_lookup("RecChar", rec_char, REC_FIELD_LEN);
+/**
+ * Send the contents of the Standing Order Window to the printer, via the reporting
+ * system.
+ *
+ * \param *file			The file owning the transaction list.
+ * \param column		The column to be output.
+ * \param transaction		The transaction to be output.
+ * \param *rec_char		A string to use as the reconcile character.
+ */
 
-	hourglass_on();
-
-	/* Output the page title. */
-
-	stringbuild_reset();
-
-	stringbuild_add_string("\\b\\u");
-	stringbuild_add_message_param("TransTitle",
-			file_get_leafname(file, NULL, 0),
-			NULL, NULL, NULL);
-
-	stringbuild_report_line(report, 1);
-
-	report_write_line(report, 1, "");
-
-	/* Output the headings line, taking the text from the window icons. */
-
-	stringbuild_reset();
-	columns_print_heading_names(windat->columns, windat->transaction_pane);
-	stringbuild_report_line(report, 0);
-
-	/* Output the transaction data as a set of delimited lines. */
-
-	for (line = 0; line < windat->display_lines; line++) {
-		transaction = windat->line_data[line].transaction;
-
-		date = transact_get_date(file, transaction);
-
-		if ((from != NULL_DATE && date < from) || (to != NULL_DATE && date > to))
-			continue;
-
-		stringbuild_reset();
-
-		for (column = 0; column < TRANSACT_LIST_WINDOW_COLUMNS; column++) {
-			if (column == 0)
-				stringbuild_add_string("\\k");
-			else
-				stringbuild_add_string("\\t");
-
-			switch (columns[column]) {
-			case TRANSACT_LIST_WINDOW_ROW:
-				stringbuild_add_printf("\\v\\d\\r%d", transact_get_transaction_number(transaction));
-				break;
-			case TRANSACT_LIST_WINDOW_DATE:
-				stringbuild_add_string("\\v\\c");
-				stringbuild_add_date(date);
-				break;
-			case TRANSACT_LIST_WINDOW_FROM:
-				stringbuild_add_string(account_get_ident(file, transact_get_from(file, transaction)));
-				break;
-			case TRANSACT_LIST_WINDOW_FROM_REC:
-				if (transact_get_flags(file, transaction) & TRANS_REC_FROM)
-					stringbuild_add_string(rec_char);
-				break;
-			case TRANSACT_LIST_WINDOW_FROM_NAME:
-				stringbuild_add_string("\\v");
-				stringbuild_add_string(account_get_name(file, transact_get_from(file, transaction)));
-				break;
-			case TRANSACT_LIST_WINDOW_TO:
-				stringbuild_add_string(account_get_ident(file, transact_get_to(file, transaction)));
-				break;
-			case TRANSACT_LIST_WINDOW_TO_REC:
-				if (transact_get_flags(file, transaction) & TRANS_REC_TO)
-					stringbuild_add_string(rec_char);
-				break;
-			case TRANSACT_LIST_WINDOW_TO_NAME:
-				stringbuild_add_string("\\v");
-				stringbuild_add_string(account_get_name(file, transact_get_to(file, transaction)));
-				break;
-			case TRANSACT_LIST_WINDOW_REFERENCE:
-				stringbuild_add_string("\\v");
-				stringbuild_add_string(transact_get_reference(file, transaction, NULL, 0));
-				break;
-			case TRANSACT_LIST_WINDOW_AMOUNT:
-				stringbuild_add_string("\\v\\d\\r");
-				stringbuild_add_currency(transact_get_amount(file, transaction), FALSE);
-				break;
-			case TRANSACT_LIST_WINDOW_DESCRIPTION:
-				stringbuild_add_string("\\v");
-				stringbuild_add_string(transact_get_description(file, transaction, NULL, 0));
-				break;
-			default:
-				stringbuild_add_string("\\s");
-				break;
-			}
-		}
-
-		stringbuild_report_line(report, 0);
+static struct report *transact_list_window_print_field(struct file_block *file, wimp_i column, tran_t transaction, char *rec_char)
+{
+	switch (column) {
+	case TRANSACT_LIST_WINDOW_ROW:
+		stringbuild_add_printf("\\v\\d\\r%d", transact_get_transaction_number(transaction));
+		break;
+	case TRANSACT_LIST_WINDOW_DATE:
+		stringbuild_add_string("\\v\\c");
+		stringbuild_add_date(transact_get_date(file, transaction));
+		break;
+	case TRANSACT_LIST_WINDOW_FROM:
+		stringbuild_add_string(account_get_ident(file, transact_get_from(file, transaction)));
+		break;
+	case TRANSACT_LIST_WINDOW_FROM_REC:
+		if (transact_get_flags(file, transaction) & TRANS_REC_FROM)
+			stringbuild_add_string(rec_char);
+		break;
+	case TRANSACT_LIST_WINDOW_FROM_NAME:
+		stringbuild_add_string("\\v");
+		stringbuild_add_string(account_get_name(file, transact_get_from(file, transaction)));
+		break;
+	case TRANSACT_LIST_WINDOW_TO:
+		stringbuild_add_string(account_get_ident(file, transact_get_to(file, transaction)));
+		break;
+	case TRANSACT_LIST_WINDOW_TO_REC:
+		if (transact_get_flags(file, transaction) & TRANS_REC_TO)
+			stringbuild_add_string(rec_char);
+		break;
+	case TRANSACT_LIST_WINDOW_TO_NAME:
+		stringbuild_add_string("\\v");
+		stringbuild_add_string(account_get_name(file, transact_get_to(file, transaction)));
+		break;
+	case TRANSACT_LIST_WINDOW_REFERENCE:
+		stringbuild_add_string("\\v");
+		stringbuild_add_string(transact_get_reference(file, transaction, NULL, 0));
+		break;
+	case TRANSACT_LIST_WINDOW_AMOUNT:
+		stringbuild_add_string("\\v\\d\\r");
+		stringbuild_add_currency(transact_get_amount(file, transaction), FALSE);
+		break;
+	case TRANSACT_LIST_WINDOW_DESCRIPTION:
+		stringbuild_add_string("\\v");
+		stringbuild_add_string(transact_get_description(file, transaction, NULL, 0));
+		break;
+	default:
+		stringbuild_add_string("\\s");
+		break;
 	}
-
-	hourglass_off();
-
-	return report;
 }
 
 
@@ -3666,41 +3475,10 @@ static struct report *transact_list_window_print(struct report *report, void *da
 
 void transact_list_window_sort(struct transact_list_window *windat)
 {
-	wimp_caret	caret;
-	tran_t		edit_transaction;
-
 	if (windat == NULL)
 		return;
 
-#ifdef DEBUG
-	debug_printf("Sorting transaction window");
-#endif
-
-	hourglass_on();
-
-	/* Find the caret position and edit line before sorting. */
-
-	wimp_get_caret_position(&caret);
-	edit_transaction = transact_list_window_find_edit_line_by_transaction(windat);
-
-	/* Run the sort. */
-
-	sort_process(windat->sort, windat->display_lines);
-
-	/* Replace the edit line where we found it prior to the sort. */
-
-	transact_list_window_place_edit_line_by_transaction(windat, edit_transaction);
-
-	/* If the caret's position was in the current transaction window, we need to
-	 * replace it in the same position now, so that we don't lose input focus.
-	 */
-
-	if (windat->transaction_window != NULL && windat->transaction_window == caret.w)
-		wimp_set_caret_position(caret.w, caret.i, 0, 0, -1, caret.index);
-
-	transact_list_window_redraw(windat, NULL_TRANSACTION);
-
-	hourglass_off();
+	list_window_sort(windat->window);
 }
 
 
@@ -3719,8 +3497,8 @@ static int transact_list_window_sort_compare(enum sort_type type, int index1, in
 {
 	switch (type) {
 	case SORT_ROW:
-		return (transact_get_transaction_number(index1)) -
-				transact_get_transaction_number(index2)));
+		return (transact_get_transaction_number(index1) -
+				transact_get_transaction_number(index2));
 
 	case SORT_DATE:
 		return ((transact_get_date(file, index1) & DATE_SORT_MASK) -

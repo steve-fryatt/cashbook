@@ -678,7 +678,7 @@ void file_process_date_change(struct file_block *file)
 
 	sorder_process(file);
 	account_recalculate_all(file);
-	transact_set_window_extent(file);
+	list_window_set_file_extent(file, TRUE);
 }
 
 

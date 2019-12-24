@@ -257,6 +257,7 @@ static void list_window_menu_close_handler(wimp_w w, wimp_menu *menu);
 static void list_window_adjust_columns(void *data, wimp_i group, int width);
 static void list_window_adjust_sort_icon(struct list_window *instance);
 static void list_window_adjust_sort_icon_data(struct list_window *instance, wimp_icon *icon);
+static void list_window_minimise_extent(struct list_window *instance);
 static void list_window_set_extent(struct list_window *instance);
 static void list_window_build_title(struct list_window *instance);
 
@@ -497,7 +498,8 @@ void list_window_rebuild_file_titles(struct file_block *file, osbool parent)
 	struct list_window *list = list_window_instance_list;
 
 	while (list != NULL) {
-		if (list->file == file)
+		if (list->file == file && list->parent != NULL && list->parent->definition != NULL &&
+				((parent == FALSE) || (list->parent->definition->flags & LIST_WINDOW_FLAGS_PARENT)))
 			list_window_build_title(list);
 
 		list = list->next;
@@ -519,12 +521,34 @@ os_error *list_window_get_state(struct file_block *file, wimp_window_state *stat
 	struct list_window *list = list_window_instance_list;
 
 	while (list != NULL) {
-		if (list->file == file && list->parent != NULL || list->parent->definition != NULL) {
-			if (list->parent->definition->flags & LIST_WINDOW_FLAGS_PARENT) {
-				state->w = list->window;
-				return xwimp_get_window_state(state);
-			}
+		if (list->file == file && list->parent != NULL && list->parent->definition != NULL &&
+				(list->parent->definition->flags & LIST_WINDOW_FLAGS_PARENT)) {
+			state->w = list->window;
+			return xwimp_get_window_state(state);
 		}
+
+		list = list->next;
+	}
+
+	return NULL;
+}
+
+
+/**
+ * Set the extent of windows relating to the specified file.
+ *
+ * \param *file			The file containing the window.
+ * \param osbool		TRUE to update just the parent; FALSE for all.
+ */
+
+os_error *list_window_set_file_extent(struct file_block *file, osbool parent)
+{
+	struct list_window *list = list_window_instance_list;
+
+	while (list != NULL) {
+		if (list->file == file && list->parent != NULL && list->parent->definition != NULL &&
+				((parent == FALSE) || (list->parent->definition->flags & LIST_WINDOW_FLAGS_PARENT)))
+			list_window_set_extent(list);
 
 		list = list->next;
 	}
@@ -562,7 +586,7 @@ osbool list_window_open(struct list_window *instance)
 
 	/* Set the default values */
 
-	instance->visible_lines = (instance->display_lines + instance->parent->definition->minimum_blank_lines > instance->parent->definition->minimum_entries) ?
+	instance->visible_lines = ((instance->display_lines + instance->parent->definition->minimum_blank_lines) > instance->parent->definition->minimum_entries) ?
 			instance->display_lines + instance->parent->definition->minimum_blank_lines : instance->parent->definition->minimum_entries;
 
 	/* Create the new window data and build the window. */
@@ -1337,6 +1361,58 @@ static void list_window_adjust_sort_icon_data(struct list_window *instance, wimp
 
 
 /**
+ * Minimise the extent of an extendable list window instance, by removing
+ * unnecessary blank lines as they are scrolled out of sight.
+ *
+ * \param *instance		The list window instance to update.
+ */
+
+static void list_window_minimise_extent(struct list_window *instance)
+{
+	int			height, last_visible_line, minimum_length, entry_line;
+	wimp_window_state	window;
+
+	if (instance == NULL || instance->window == NULL)
+		return;
+
+	window.w = instance->window;
+	wimp_get_window_state(&window);
+
+	/* Calculate the height of the window and the last line that
+	 * is on display in the visible area.
+	 */
+
+	height = (window.visible.y1 - window.visible.y0) - instance->parent->definition->toolbar_height;
+	last_visible_line = (-window.yscroll + height) / WINDOW_ROW_HEIGHT;
+
+	/* Work out what the minimum length of the window needs to be,
+	 * taking into account minimum window size, entries and blank lines
+	 * and the location of the edit line.
+	 */
+
+	minimum_length = ((instance->display_lines + instance->parent->definition->minimum_blank_lines) > instance->parent->definition->minimum_entries) ?
+			instance->display_lines + instance->parent->definition->minimum_blank_lines : instance->parent->definition->minimum_entries;
+
+	if (instance->edit_line != NULL) {
+		entry_line = edit_get_line(instance->edit_line);
+
+		if (entry_line >= minimum_length)
+			minimum_length = entry_line + 1;
+	}
+
+	if (last_visible_line > minimum_length)
+		minimum_length = last_visible_line;
+
+	/* Shrink the window. */
+
+	if (instance->visible_lines > minimum_length) {
+		instance->visible_lines = minimum_length;
+		list_window_set_extent(instance);
+	}
+}
+
+
+/**
  * Set the extent of the list window for the specified instance.
  *
  * \param *instance		The list window to update.
@@ -1344,15 +1420,16 @@ static void list_window_adjust_sort_icon_data(struct list_window *instance, wimp
 
 static void list_window_set_extent(struct list_window *instance)
 {
-	int	lines;
-
 	if (instance == NULL || instance->parent == NULL || instance->window == NULL)
 		return;
 
-	lines = (instance->display_lines > instance->parent->definition->minimum_entries) ?
-			instance->display_lines : instance->parent->definition->minimum_entries;
+	if ((instance->visible_lines <= (instance->display_lines + instance->parent->definition->minimum_blank_lines)) ||
+			(instance->parent->definition->minimum_blank_lines == 0)) {
+		instance->visible_lines = ((instance->display_lines + instance->parent->definition->minimum_blank_lines) > instance->parent->definition->minimum_entries) ?
+				instance->display_lines + instance->parent->definition->minimum_blank_lines : instance->parent->definition->minimum_entries;
+	}
 
-	window_set_extent(instance->window, lines, instance->parent->definition->toolbar_height,
+	window_set_extent(instance->window, instance->visible_lines, instance->parent->definition->toolbar_height,
 			column_get_window_width(instance->columns));
 }
 

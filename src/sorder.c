@@ -63,6 +63,7 @@
 #include "file.h"
 #include "filing.h"
 #include "flexutils.h"
+#include "list_window.h"
 #include "sorder_dialogue.h"
 #include "sorder_list_window.h"
 #include "transact.h"
@@ -401,7 +402,7 @@ static osbool sorder_process_edit_window(void *parent, struct sorder_dialogue_da
 	file_set_data_integrity(windat->file, TRUE);
 	sorder_process(windat->file);
 	account_recalculate_all(windat->file);
-	transact_set_window_extent(windat->file);
+	list_window_set_file_extent(windat->file, TRUE);
 
 	return TRUE;
 }

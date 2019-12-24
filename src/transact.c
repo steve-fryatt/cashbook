@@ -304,21 +304,6 @@ char *transact_get_column_name(struct file_block *file, enum transact_field fiel
 
 
 /**
- * Set the extent of the transaction window for the specified file.
- *
- * \param *file			The file containing the window to update.
- */
-
-void transact_set_window_extent(struct file_block *file)
-{
-	if (file == NULL || file->transacts == NULL)
-		return;
-
-	transact_list_window_set_extent(file->transacts->transact_window);
-}
-
-
-/**
  * Update the state of the buttons in a transaction window toolbar.
  *
  * \param *file			The file owning the window to update.

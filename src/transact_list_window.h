@@ -94,15 +94,6 @@ void transact_list_window_place_caret(struct transact_list_window *windat, int l
 
 
 /**
- * Set the extent of the transaction window for the specified file.
- *
- * \param *windat		The transaction list window to update.
- */
-
-void transact_list_window_set_extent(struct transact_list_window *windat);
-
-
-/**
  * Re-index the transactions in a transaction list window.  This can *only*
  * be done after transact_sort_file_data() has been called, as it requires
  * data set up in the transaction block by that call.

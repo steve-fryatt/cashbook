@@ -514,7 +514,7 @@ void filing_import_csv_file(struct file_block *file, char *filename)
 
 		fclose(input);
 
-		transact_set_window_extent(file);
+		list_window_set_file_extent(file, TRUE);
 		transact_sort_file_data(file);
 		sorder_trial(file);
 		account_recalculate_all(file);

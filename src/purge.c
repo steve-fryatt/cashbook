@@ -243,7 +243,7 @@ static void purge_file(struct file_block *file, osbool transactions, date_t cuto
 
 	transact_scroll_window_to_end(file, TRANSACT_SCROLL_HOME);
 
-	transact_set_window_extent(file);
+	list_window_set_file_extent(file, TRUE);
 
 	transact_place_caret(file, transact_find_first_blank_line(file), TRANSACT_FIELD_DATE);
 

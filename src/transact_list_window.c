@@ -473,7 +473,6 @@ static void transact_list_window_menu_warning_handler(wimp_w w, wimp_menu *menu,
 static void transact_list_window_menu_close_handler(wimp_w w, wimp_menu *menu);
 static void transact_list_window_scroll_handler(wimp_scroll *scroll);
 static void transact_list_window_redraw_handler(wimp_draw *redraw);
-static void transact_list_window_minimise_extent(struct transact_list_window *windat);
 
 
 static void transact_list_window_force_redraw(struct transact_list_window *windat, int from, int to, wimp_i column);
@@ -1704,79 +1703,6 @@ void transact_list_window_place_caret(struct transact_list_window *windat, int l
 
 	icons_put_caret_at_end(windat->transaction_window, icon);
 	transact_list_window_find_edit_line_vertically(windat);
-}
-
-
-/**
- * Minimise the extent of the transaction window, by removing unnecessary
- * blank lines as they are scrolled out of sight.
- *
- * \param *windat		The transaction list window to update.
- */
-
-static void transact_list_window_minimise_extent(struct transact_list_window *windat)
-{
-	int			height, last_visible_line, minimum_length, entry_line;
-	wimp_window_state	window;
-
-	if (windat == NULL || windat->transaction_window == NULL)
-		return;
-
-	window.w = windat->transaction_window;
-	wimp_get_window_state(&window);
-
-	/* Calculate the height of the window and the last line that
-	 * is on display in the visible area.
-	 */
-
-	height = (window.visible.y1 - window.visible.y0) - TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT;
-	last_visible_line = (-window.yscroll + height) / WINDOW_ROW_HEIGHT;
-
-	/* Work out what the minimum length of the window needs to be,
-	 * taking into account minimum window size, entries and blank lines
-	 * and the location of the edit line.
-	 */
-
-	minimum_length = (windat->display_lines + TRANSACT_LIST_WINDOW_MIN_BLANK_LINES > TRANSACT_LIST_WINDOW_MIN_ENTRIES) ?
-			windat->display_lines + TRANSACT_LIST_WINDOW_MIN_BLANK_LINES : TRANSACT_LIST_WINDOW_MIN_ENTRIES;
-
-	entry_line = edit_get_line(windat->edit_line);
-
-	if (entry_line >= minimum_length)
-		minimum_length = entry_line + 1;
-
-	if (last_visible_line > minimum_length)
-		minimum_length = last_visible_line;
-
-	/* Shrink the window. */
-
-	if (windat->visible_lines > minimum_length) {
-		windat->visible_lines = minimum_length;
-		transact_list_window_set_extent(windat);
-	}
-}
-
-
-/**
- * Set the extent of the transaction window for the specified file.
- *
- * \param *windat		The transaction list window to update.
- */
-
-void transact_list_window_set_extent(struct transact_list_window *windat)
-{
-	if (windat == NULL || windat->transaction_window == NULL)
-		return;
-
-	/* If the window display length is too small, extend it to one blank line after the data. */
-
-	if (windat->visible_lines <= (windat->display_lines + TRANSACT_LIST_WINDOW_MIN_BLANK_LINES)) {
-		windat->visible_lines = (windat->display_lines + TRANSACT_LIST_WINDOW_MIN_BLANK_LINES > TRANSACT_LIST_WINDOW_MIN_ENTRIES) ?
-				windat->display_lines + TRANSACT_LIST_WINDOW_MIN_BLANK_LINES : TRANSACT_LIST_WINDOW_MIN_ENTRIES;
-	}
-
-	window_set_extent(windat->transaction_window, windat->visible_lines, TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT,
-			column_get_window_width(windat->columns));
 }
 
 

@@ -291,6 +291,28 @@ void list_window_rebuild_file_titles(struct file_block *file, osbool parent);
 
 
 /**
+ * Get the window state of the parent window belonging to
+ * the specified file.
+ *
+ * \param *file			The file containing the window.
+ * \param *state		The structure to hold the window state.
+ * \return			Pointer to an error block, or NULL on success.
+ */
+
+os_error *list_window_get_state(struct file_block *file, wimp_window_state *state);
+
+
+/**
+ * Set the extent of windows relating to the specified file.
+ *
+ * \param *file			The file containing the window.
+ * \param osbool		TRUE to update just the parent; FALSE for all.
+ */
+
+os_error *list_window_set_file_extent(struct file_block *file, osbool parent);
+
+
+/**
  * Create and open a List window for the given instance.
  *
  * \param *instance		The instance to open a window for.

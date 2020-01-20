@@ -281,6 +281,7 @@ static void list_window_find_edit_line_vertically(struct list_window *instance);
 static void list_window_place_edit_line_by_index(struct list_window *instance, int index);
 static void list_window_place_edit_line(struct list_window *instance, int line);
 
+static osbool list_window_edit_place_line(int line, void *data);
 
 static osbool list_window_process_sort_window(enum sort_type order, void *data);
 static int list_window_sort_compare(enum sort_type type, int index1, int index2, void *data);
@@ -300,7 +301,7 @@ void list_window_initialise(void)
 	list_window_edit_callbacks.get_field = NULL; //transact_list_window_edit_get_field;
 	list_window_edit_callbacks.put_field = NULL; //transact_list_window_edit_put_field;
 	list_window_edit_callbacks.test_line = NULL; //transact_list_window_edit_test_line;
-	list_window_edit_callbacks.place_line = NULL; //transact_list_window_edit_place_line;
+	list_window_edit_callbacks.place_line = list_window_edit_place_line;
 	list_window_edit_callbacks.find_field = NULL; //transact_list_window_edit_find_field;
 	list_window_edit_callbacks.first_blank_line = NULL; //transact_list_window_edit_first_blank_line;
 	list_window_edit_callbacks.auto_sort = NULL; //transact_list_window_edit_auto_sort;
@@ -1658,7 +1659,7 @@ static void list_window_find_edit_line_vertically(struct list_window *instance)
 		return;
 
 #ifdef DEBUG
-	debug_printf("\\BFind transaction edit line");
+	debug_printf("\\BFind list window edit line");
 	debug_printf("Top: %d, Bottom: %d, Entry line: %d", top, bottom, line);
 #endif
 
@@ -1728,6 +1729,48 @@ static void list_window_place_edit_line(struct list_window *instance, int line)
 
 	colour = list_window_line_colour(instance, line);
 	edit_place_new_line(instance->edit_line, line, colour);
+}
+
+
+/**
+ * Find the display line number of the current entry line.
+ *
+ * \param *instance		The list window instance to interrogate.
+ * \return			The display line number of the line with the caret.
+ */
+
+int list_window_get_caret_line(struct list_window *instance)
+{
+	int entry_line = 0;
+
+	if (instance == NULL || instance->edit_line == NULL)
+		return 0;
+
+	entry_line = edit_get_line(instance->edit_line);
+
+	return (entry_line >= 0) ? entry_line : 0;
+}
+
+
+/**
+ * Callback to allow the edit line to move.
+ *
+ * \param line			The line in which to place the edit line.
+ * \param *data			Client data: the instance.
+ * \return			TRUE if successful; FALSE on failure.
+ */
+
+static osbool list_window_edit_place_line(int line, void *data)
+{
+	struct list_window *instance = data;
+
+	if (instance == NULL)
+		return FALSE;
+
+	list_window_place_edit_line(instance, line);
+	list_window_find_edit_line_vertically(instance);
+
+	return TRUE;
 }
 
 

@@ -2055,36 +2055,10 @@ tran_t transact_list_window_get_transaction_from_line(struct transact_list_windo
 
 int transact_list_window_get_caret_line(struct transact_list_window *windat)
 {
-	int entry_line = 0;
-
 	if (windat == NULL)
 		return 0;
 
-//	entry_line = edit_get_line(windat->edit_line);
-
-	return (entry_line >= 0) ? entry_line : 0;
-}
-
-
-/**
- * Callback to allow the edit line to move.
- *
- * \param line			The line in which to place the edit line.
- * \param *data			Client data: windat.
- * \return			TRUE if successful; FALSE on failure.
- */
-
-static osbool transact_list_window_edit_place_line(int line, void *data)
-{
-	struct transact_list_window *windat = data;
-
-	if (windat == NULL)
-		return FALSE;
-
-	transact_list_window_place_edit_line(windat, line);
-	transact_list_window_find_edit_line_vertically(windat);
-
-	return TRUE;
+	return list_window_get_caret_line(windat->window);
 }
 
 

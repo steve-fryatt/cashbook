@@ -483,7 +483,6 @@ static void transaction_list_window_terminate_drag(wimp_dragged *drag, void *dat
 
 
 static void transact_list_window_place_edit_line(struct transact_list_window *windat, int line);
-static void transact_list_window_find_edit_line_vertically(struct transact_list_window *windat);
 static osbool transact_list_window_edit_find_field(int line, int xmin, int xmax, enum edit_align target, void *data);
 static int transact_list_window_edit_first_blank_line(void *data);
 static osbool transact_list_window_edit_test_line(int line, void *data);
@@ -2086,63 +2085,6 @@ static osbool transact_list_window_edit_place_line(int line, void *data)
 	transact_list_window_find_edit_line_vertically(windat);
 
 	return TRUE;
-}
-
-
-/**
- * Bring the edit line into view in a vertical direction within a transaction
- * window.
- *
- * \param *windat		The transaction window to be updated.
- */
-
-static void transact_list_window_find_edit_line_vertically(struct transact_list_window *windat)
-{
-	wimp_window_state	window;
-	int			height, top, bottom, line;
-
-
-//	if (windat == NULL || windat->transaction_window == NULL || !edit_get_active(windat->edit_line))
-//		return;
-
-//	window.w = windat->transaction_window;
-//	wimp_get_window_state(&window);
-
-	/* Calculate the height of the useful visible window, leaving out any OS units taken up by part lines.
-	 * This will allow the edit line to be aligned with the top or bottom of the window.
-	 */
-
-//	height = window.visible.y1 - window.visible.y0 - WINDOW_ROW_HEIGHT - TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT;
-
-	/* Calculate the top full line and bottom full line that are showing in the window.  Part lines don't
-	 * count and are discarded.
-	 */
-
-//	top = (-window.yscroll + WINDOW_ROW_ICON_HEIGHT) / WINDOW_ROW_HEIGHT;
-//	bottom = (height / WINDOW_ROW_HEIGHT) + top;
-
-	/* If the edit line is above or below the visible area, bring it into range. */
-
-//	line = edit_get_line(windat->edit_line);
-//	if (line < 0)
-//		return;
-
-#ifdef DEBUG
-	debug_printf("\\BFind transaction edit line");
-	debug_printf("Top: %d, Bottom: %d, Entry line: %d", top, bottom, line);
-#endif
-
-//	if (line < top) {
-//		window.yscroll = -(line * WINDOW_ROW_HEIGHT);
-//		wimp_open_window((wimp_open *) &window);
-//		transact_list_window_minimise_extent(windat);
-//	}
-
-//	if (line > bottom) {
-//		window.yscroll = -(line * WINDOW_ROW_HEIGHT - height);
-//		wimp_open_window((wimp_open *) &window);
-//		transact_list_window_minimise_extent(windat);
-//	}
 }
 
 

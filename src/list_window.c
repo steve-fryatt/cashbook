@@ -277,6 +277,7 @@ static void list_window_set_extent(struct list_window *instance);
 static void list_window_build_title(struct list_window *instance);
 
 static int list_window_find_edit_line_by_index(struct list_window *instance);
+static void list_window_find_edit_line_vertically(struct list_window *instance);
 static void list_window_place_edit_line_by_index(struct list_window *instance, int index);
 static void list_window_place_edit_line(struct list_window *instance, int line);
 
@@ -1616,6 +1617,66 @@ static int list_window_find_edit_line_by_index(struct list_window *instance)
 
 
 /**
+ * Bring the edit line into view in a vertical direction within a list
+ * window instance.
+ *
+ * \param *instance		The list window to be updated.
+ */
+
+static void list_window_find_edit_line_vertically(struct list_window *instance)
+{
+	wimp_window_state	window;
+	int			height, top, bottom, line;
+
+
+	if (instance == NULL || instance->window == NULL || instance->edit_line == NULL ||
+			!edit_get_active(instance->edit_line))
+		return;
+
+	window.w = instance->window;
+	wimp_get_window_state(&window);
+
+	/* Calculate the height of the useful visible window, leaving out any OS units
+	 * taken up by part lines. This will allow the edit line to be aligned with the
+	 * top or bottom of the window.
+	 */
+
+	height = window.visible.y1 - window.visible.y0 - WINDOW_ROW_HEIGHT -
+			instance->parent->definition->toolbar_height;
+
+	/* Calculate the top full line and bottom full line that are showing in the window.
+	 * Part lines don't count and are discarded.
+	 */
+
+	top = (-window.yscroll + WINDOW_ROW_ICON_HEIGHT) / WINDOW_ROW_HEIGHT;
+	bottom = (height / WINDOW_ROW_HEIGHT) + top;
+
+	/* If the edit line is above or below the visible area, bring it into range. */
+
+	line = edit_get_line(instance->edit_line);
+	if (line < 0)
+		return;
+
+#ifdef DEBUG
+	debug_printf("\\BFind transaction edit line");
+	debug_printf("Top: %d, Bottom: %d, Entry line: %d", top, bottom, line);
+#endif
+
+	if (line < top) {
+		window.yscroll = -(line * WINDOW_ROW_HEIGHT);
+		wimp_open_window((wimp_open *) &window);
+		list_window_minimise_extent(instance);
+	}
+
+	if (line > bottom) {
+		window.yscroll = -(line * WINDOW_ROW_HEIGHT - height);
+		wimp_open_window((wimp_open *) &window);
+		list_window_minimise_extent(instance);
+	}
+}
+
+
+/**
  * Place a new edit line in a list window by index number.
  *
  * \param *instance		The list window instance to place the line in.
@@ -1641,7 +1702,7 @@ static void list_window_place_edit_line_by_index(struct list_window *instance, i
 	}
 
 	list_window_place_edit_line(instance, line);
-	list_window_find_edit_line_verlist_window_find_edit_line_vertically(instance);
+	list_window_find_edit_line_vertically(instance);
 }
 
 
@@ -1885,7 +1946,7 @@ static osbool list_window_process_sort_window(enum sort_type order, void *data)
 void list_window_sort(struct list_window *instance)
 {
 	wimp_caret	caret;
-	int		edit_index;
+	int		edit_index = 0;
 
 	if (instance == NULL)
 		return;

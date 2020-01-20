@@ -282,6 +282,7 @@ static void list_window_place_edit_line_by_index(struct list_window *instance, i
 static void list_window_place_edit_line(struct list_window *instance, int line);
 
 static osbool list_window_edit_place_line(int line, void *data);
+static osbool list_window_edit_test_line(int line, void *data);
 
 static osbool list_window_process_sort_window(enum sort_type order, void *data);
 static int list_window_sort_compare(enum sort_type type, int index1, int index2, void *data);
@@ -300,7 +301,7 @@ void list_window_initialise(void)
 {
 	list_window_edit_callbacks.get_field = NULL; //transact_list_window_edit_get_field;
 	list_window_edit_callbacks.put_field = NULL; //transact_list_window_edit_put_field;
-	list_window_edit_callbacks.test_line = NULL; //transact_list_window_edit_test_line;
+	list_window_edit_callbacks.test_line = list_window_edit_test_line;
 	list_window_edit_callbacks.place_line = list_window_edit_place_line;
 	list_window_edit_callbacks.find_field = NULL; //transact_list_window_edit_find_field;
 	list_window_edit_callbacks.first_blank_line = NULL; //transact_list_window_edit_first_blank_line;
@@ -1756,7 +1757,7 @@ int list_window_get_caret_line(struct list_window *instance)
  * Callback to allow the edit line to move.
  *
  * \param line			The line in which to place the edit line.
- * \param *data			Client data: the instance.
+ * \param *data			Our client data, holding the instance.
  * \return			TRUE if successful; FALSE on failure.
  */
 
@@ -1771,6 +1772,26 @@ static osbool list_window_edit_place_line(int line, void *data)
 	list_window_find_edit_line_vertically(instance);
 
 	return TRUE;
+}
+
+
+/**
+ * Inform the edit line whether a given line in the window contains a valid
+ * transaction.
+ *
+ * \param line			The line in the window to be tested.
+ * \param *data			Our client data, holding the window instance.
+ * \return			TRUE if valid; FALSE if not or on error.
+ */
+
+static osbool list_window_edit_test_line(int line, void *data)
+{
+	struct list_window *instance = data;
+
+	if (instance == NULL)
+		return FALSE;
+
+	return (list_window_line_valid(instance, line)) ? TRUE : FALSE;
 }
 
 

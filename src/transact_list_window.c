@@ -485,7 +485,6 @@ static void transaction_list_window_terminate_drag(wimp_dragged *drag, void *dat
 static void transact_list_window_place_edit_line(struct transact_list_window *windat, int line);
 static osbool transact_list_window_edit_find_field(int line, int xmin, int xmax, enum edit_align target, void *data);
 static int transact_list_window_edit_first_blank_line(void *data);
-static osbool transact_list_window_edit_test_line(int line, void *data);
 static osbool transact_list_window_edit_get_field(struct edit_data *data);
 static osbool transact_list_window_edit_put_field(struct edit_data *data);
 static osbool transact_list_window_edit_auto_complete(struct edit_data *data);
@@ -2153,27 +2152,6 @@ static int transact_list_window_edit_first_blank_line(void *data)
 		return -1;
 
 	return transact_list_window_find_first_blank_line(windat);
-}
-
-
-/**
- * Inform the edit line whether a given line in the window contains a valid
- * transaction.
- *
- * \param line			The line in the window to be tested.
- * \param *data			Our client data, holding the window instance.
- * \return			TRUE if valid; FALSE if not or on error.
- */
-
-static osbool transact_list_window_edit_test_line(int line, void *data)
-{
-	struct transact_list_window *windat = data;
-
-	if (windat == NULL)
-		return FALSE;
-
-//	return (transact_list_window_line_valid(windat, line)) ? TRUE : FALSE;
-	return FALSE;
 }
 
 

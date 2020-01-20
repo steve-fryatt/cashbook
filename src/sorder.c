@@ -954,7 +954,7 @@ void sorder_process(struct file_block *file)
 		if (config_opt_read("SortAfterSOrders")) {
 			transact_sort(file->transacts);
 		} else {
-			transact_redraw_all(file);
+			list_window_redraw_file(file);
 		}
 
 		if (config_opt_read("AutoSortSOrders"))

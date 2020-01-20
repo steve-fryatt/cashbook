@@ -227,6 +227,12 @@ struct list_window {
 };
 
 /**
+ * The list window Edit Line callbacks.
+ */
+
+static struct edit_callback	list_window_edit_callbacks;
+
+/**
  * Linked list of dialogue instances.
  */
 
@@ -238,15 +244,24 @@ static struct list_window	*list_window_instance_list = NULL;
 
 static int			list_window_new_offset = 0;
 
+/**
+ * Set to TRUE to disable forced redraw requests within the active window.
+ */
+
+static osbool			list_window_disable_redraw = FALSE;
+
 /* Static Function Prototypes. */
 
 static void list_window_delete(struct list_window *instance);
+static void list_window_open_handler(wimp_open *open);
 static void list_window_close_handler(wimp_close *close);
 static void list_window_click_handler(wimp_pointer *pointer);
 static void list_window_pane_click_handler(wimp_pointer *pointer);
+static void list_window_lose_caret_handler(wimp_caret *caret);
 static void list_window_scroll_handler(wimp_scroll *scroll);
 static void list_window_redraw_handler(wimp_draw *redraw);
 static void list_window_force_redraw(struct list_window *instance, int from, int to, wimp_i column);
+static wimp_colour list_window_line_colour(struct list_window *instance, int line);
 static void list_window_decode_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
 
 static void list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer);
@@ -262,8 +277,8 @@ static void list_window_set_extent(struct list_window *instance);
 static void list_window_build_title(struct list_window *instance);
 
 static int list_window_find_edit_line_by_index(struct list_window *instance);
-static void list_window_place_edit_line_by_index(struct list_window *windat, int index);
-static void list_window_place_edit_line(struct transact_list_window *windat, int line);
+static void list_window_place_edit_line_by_index(struct list_window *instance, int index);
+static void list_window_place_edit_line(struct list_window *instance, int line);
 
 
 static osbool list_window_process_sort_window(enum sort_type order, void *data);
@@ -281,7 +296,15 @@ static struct report *list_window_print(struct report *report, void *data, date_
 
 void list_window_initialise(void)
 {
-
+	list_window_edit_callbacks.get_field = NULL; //transact_list_window_edit_get_field;
+	list_window_edit_callbacks.put_field = NULL; //transact_list_window_edit_put_field;
+	list_window_edit_callbacks.test_line = NULL; //transact_list_window_edit_test_line;
+	list_window_edit_callbacks.place_line = NULL; //transact_list_window_edit_place_line;
+	list_window_edit_callbacks.find_field = NULL; //transact_list_window_edit_find_field;
+	list_window_edit_callbacks.first_blank_line = NULL; //transact_list_window_edit_first_blank_line;
+	list_window_edit_callbacks.auto_sort = NULL; //transact_list_window_edit_auto_sort;
+	list_window_edit_callbacks.auto_complete = NULL; //transact_list_window_edit_auto_complete;
+	list_window_edit_callbacks.insert_preset = NULL; //transact_list_window_edit_insert_preset;
 }
 
 /**
@@ -658,12 +681,12 @@ osbool list_window_open(struct list_window *instance)
 		instance->edit_line = edit_create_instance(instance->file, instance->parent->window_def,
 				instance->window, instance->columns,
 				instance->parent->definition->toolbar_height,
-				&transact_list_window_edit_callbacks, instance);
+				&list_window_edit_callbacks, instance);
 
 		if (instance->edit_line == NULL) {
 			list_window_delete(instance);
 			error_msgs_report_error("TransactNoMem");
-			return;
+			return FALSE;
 		}
 	}
 
@@ -702,6 +725,14 @@ osbool list_window_open(struct list_window *instance)
 	event_add_window_menu_selection(instance->window, list_window_menu_selection_handler);
 	event_add_window_menu_warning(instance->window, list_window_menu_warning_handler);
 	event_add_window_menu_close(instance->window, list_window_menu_close_handler);
+
+	if (instance->edit_line != NULL) {
+		event_add_window_lose_caret_event(instance->window, list_window_lose_caret_handler);
+	}
+
+	if (instance->parent->definition->minimum_blank_lines > 0) {
+		event_add_window_open_event(instance->window, list_window_open_handler);
+	}
 
 	/* Register event handlers for the toolbar pane. */
 
@@ -774,6 +805,24 @@ static void list_window_delete(struct list_window *instance)
 
 	dialogue_force_all_closed(NULL, instance);
 	sort_dialogue_close(instance->parent->sort_dialogue, instance);
+}
+
+
+/**
+ * Handle Open events on List windows, to adjust the extent.
+ *
+ * \param *open			The Wimp Open data block.
+ */
+
+static void list_window_open_handler(wimp_open *open)
+{
+	struct list_window *instance;
+
+	instance = event_get_window_user_data(open->w);
+	if (instance != NULL)
+		list_window_minimise_extent(instance);
+
+	wimp_open_window(open);
 }
 
 
@@ -893,7 +942,25 @@ static void list_window_pane_click_handler(wimp_pointer *pointer)
 
 
 /**
- * Process scroll events in the Preset List window.
+ * Process lose caret events for a list window instance.
+ *
+ * \param *caret		The caret event block to handle.
+ */
+
+static void list_window_lose_caret_handler(wimp_caret *caret)
+{
+	struct list_window *instance;
+
+	instance = event_get_window_user_data(caret->w);
+	if (instance == NULL || instance->edit_line == NULL)
+		return;
+
+	edit_refresh_line_contents(instance->edit_line, wimp_ICON_WINDOW, wimp_ICON_WINDOW);
+}
+
+
+/**
+ * Process scroll events for a list window instance.
  *
  * \param *scroll		The scroll event block to handle.
  */
@@ -901,6 +968,7 @@ static void list_window_pane_click_handler(wimp_pointer *pointer)
 static void list_window_scroll_handler(wimp_scroll *scroll)
 {
 	struct list_window	*instance;
+	int			line;
 
 	instance = event_get_window_user_data(scroll->w);
 	if (instance == NULL || instance->parent == NULL)
@@ -909,9 +977,25 @@ static void list_window_scroll_handler(wimp_scroll *scroll)
 
 	window_process_scroll_event(scroll, instance->parent->definition->toolbar_height);
 
+	/* Extend the window downwards if necessary. */
+
+	if ((instance->parent->definition->minimum_blank_lines > 0) && (scroll->ymin == wimp_SCROLL_LINE_DOWN)) {
+		line = (-scroll->yscroll + (scroll->visible.y1 - scroll->visible.y0) - instance->parent->definition->toolbar_height) / WINDOW_ROW_HEIGHT;
+
+		if (line > instance->visible_lines) {
+			instance->visible_lines = line;
+			list_window_set_extent(instance);
+		}
+	}
+
 	/* Re-open the window. It is assumed that the wimp will deal with out-of-bounds offsets for us. */
 
 	wimp_open_window((wimp_open *) scroll);
+
+	/* Try to reduce the window extent, if possible. */
+
+	if (instance->parent->definition->minimum_blank_lines > 0)
+		list_window_minimise_extent(instance);
 }
 
 
@@ -924,13 +1008,15 @@ static void list_window_scroll_handler(wimp_scroll *scroll)
 static void list_window_redraw_handler(wimp_draw *redraw)
 {
 	struct list_window	*instance;
-	int			top, base, y, select, index;
+	void			*client_data = NULL;
+	int			top, base, y, select, index, entry_line;
 	char			icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN]; /* Assumes descript is longest. */
 	osbool			more;
 	wimp_window		*window_def;
+	wimp_colour		background_colour;
 
 	instance = event_get_window_user_data(redraw->w);
-	if (instance == NULL || instance->parent == NULL)
+	if (instance == NULL || instance->parent == NULL || instance->columns == NULL)
 		return;
 
 	window_def = instance->parent->window_def;
@@ -950,17 +1036,37 @@ static void list_window_redraw_handler(wimp_draw *redraw)
 
 	window_set_icon_templates(window_def);
 
+	/* Locate the entry line. */
+
+	if (instance->edit_line != NULL) {
+		entry_line = edit_get_line(instance->edit_line);
+		background_colour = wimp_COLOUR_VERY_LIGHT_GREY;
+	} else {
+		entry_line = -1;
+		background_colour = wimp_COLOUR_WHITE;
+	}
+
+	/* Allow the client to set up their client data for the session. */
+
+	if (instance->parent->definition->callback_redraw_prepare != NULL)
+		client_data = instance->parent->definition->callback_redraw_prepare(instance->file, instance->client_data);
+
 	/* Perform the redraw. */
 
 	more = wimp_redraw_window(redraw);
 
 	while (more) {
-		window_plot_background(redraw, instance->parent->definition->toolbar_height, wimp_COLOUR_WHITE, select, &top, &base);
+		window_plot_background(redraw, instance->parent->definition->toolbar_height, background_colour, select, &top, &base);
 
 		/* Redraw the data into the window. */
 
 		for (y = top; y <= base; y++) {
 			index = (y < instance->display_lines) ? instance->line_data[y].index : 0;
+
+			/* We don't need to plot the current edit line, as that has real icons in it. */
+
+			if (y == entry_line)
+				continue;
 
 			/* Place the icons in the current row. */
 
@@ -976,11 +1082,16 @@ static void list_window_redraw_handler(wimp_draw *redraw)
 			}
 
 			if (instance->parent->definition->callback_redraw_handler != NULL)
-				instance->parent->definition->callback_redraw_handler(index, instance->file, instance->client_data);
+				instance->parent->definition->callback_redraw_handler(index, instance->file, instance->client_data, client_data);
 		}
 
 		more = wimp_get_rectangle(redraw);
 	}
+
+	/* Allow the client to tidy up their client data for the session. */
+
+	if (instance->parent->definition->callback_redraw_finalise != NULL)
+		instance->parent->definition->callback_redraw_finalise(instance->file, instance->client_data, client_data);
 }
 
 
@@ -1035,10 +1146,26 @@ void list_window_redraw(struct list_window *instance, int index, int columns, ..
 
 static void list_window_force_redraw(struct list_window *instance, int from, int to, wimp_i column)
 {
+	int			line;
 	wimp_window_info	window;
 
-	if (instance == NULL || instance->window == NULL)
+	if (instance == NULL || instance->window == NULL || list_window_disable_redraw)
 		return;
+
+	/* If the edit line falls inside the redraw range, refresh it. */
+
+	if (instance->edit_line != NULL) {
+		line = edit_get_line(instance->edit_line);
+
+		if (line >= from && line <= to) {
+			// \TODO -- Not sure if column is heading or field icon?
+			edit_refresh_line_contents(instance->edit_line, column, wimp_ICON_WINDOW);
+			edit_set_line_colour(instance->edit_line, list_window_line_colour(instance, line));
+			icons_replace_caret_in_window(instance->window);
+		}
+	}
+
+	/* Now force a redraw of the whole range. */
 
 	window.w = instance->window;
 	if (xwimp_get_window_info_header_only(&window) != NULL)
@@ -1067,8 +1194,6 @@ static void list_window_force_redraw(struct list_window *instance, int from, int
 
 static wimp_colour list_window_line_colour(struct list_window *instance, int line)
 {
-	int index;
-
 	if (instance == NULL || instance->parent == NULL || instance->parent->definition == NULL ||
 			instance->parent->definition->callback_get_colour == NULL ||
 			instance ->line_data == NULL || !list_window_line_valid(instance, line))
@@ -1516,7 +1641,7 @@ static void list_window_place_edit_line_by_index(struct list_window *instance, i
 	}
 
 	list_window_place_edit_line(instance, line);
-	list_window_find_edit_line_vertically(instance);
+	list_window_find_edit_line_verlist_window_find_edit_line_vertically(instance);
 }
 
 

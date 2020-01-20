@@ -84,6 +84,7 @@
 #include "filing.h"
 #include "flexutils.h"
 #include "interest.h"
+#include "list_window.h"
 #include "preset.h"
 #include "print_dialogue.h"
 #include "report.h"

@@ -244,7 +244,9 @@ static struct list_window_definition sorder_list_window_definition = {
 	NULL,
 	NULL,
 	NULL,
-	NULL
+	NULL,
+	NULL,
+	NULL,
 };
 
 
@@ -289,7 +291,7 @@ static void sorder_list_window_pane_click_handler(wimp_pointer *pointer, struct 
 static void sorder_list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer, int index, struct file_block *file, void *data);
 static void sorder_list_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection, wimp_pointer *pointer, int index, struct file_block *file, void *data);
 static void sorder_list_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning, int index, struct file_block *file, void *data);
-static void sorder_list_window_redraw_handler(int index, struct file_block *file, void *data);
+static void sorder_list_window_redraw_handler(int index, struct file_block *file, void *data, void *redraw);
 static void sorder_list_window_open_print_window(struct sorder_list_window *windat, wimp_pointer *ptr, osbool restore);
 static void sorder_list_window_print_field(struct file_block *file, wimp_i column, int sorder, char *rec_char);
 static int sorder_list_window_sort_compare(enum sort_type type, int index1, int index2, struct file_block *file);
@@ -557,9 +559,10 @@ static void sorder_list_window_menu_warning_handler(wimp_w w, wimp_menu *menu, w
  * \param *index		The index of the item in the line to be redrawn.
  * \param *file			Pointer to the owning file instance.
  * \param *data			Pointer to the Standing Order List Window instance.
+ * \param *redraw		Pointer to the redraw instance data.
  */
 
-static void sorder_list_window_redraw_handler(int index, struct file_block *file, void *data)
+static void sorder_list_window_redraw_handler(int index, struct file_block *file, void *data, void *redraw)
 {
 	sorder_t			sorder = index;
 	acct_t				account;

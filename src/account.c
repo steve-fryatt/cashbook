@@ -85,6 +85,7 @@
 #include "filing.h"
 #include "flexutils.h"
 #include "interest.h"
+#include "list_window.h"
 #include "preset.h"
 #include "print_dialogue.h"
 #include "report.h"
@@ -543,7 +544,7 @@ debug_printf("Two");
 	sorder_trial(instance->file);
 	account_recalculate_all(instance->file);
 	accview_recalculate(instance->file, content->account, 0);
-	transact_redraw_all(instance->file);
+	list_window_redraw_file(instance->file);
 	accview_redraw_all(instance->file);
 	file_set_data_integrity(instance->file, TRUE);
 
@@ -605,7 +606,7 @@ static osbool account_process_heading_edit_window(void *parent, struct account_h
 	/* Tidy up and redraw the windows */
 
 	account_recalculate_all(instance->file);
-	transact_redraw_all(instance->file);
+	list_window_redraw_file(instance->file);
 	accview_redraw_all(instance->file);
 	file_set_data_integrity(instance->file, TRUE);
 

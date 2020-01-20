@@ -656,7 +656,6 @@ int file_get_next_open_offset(struct file_block *file)
 void file_redraw_windows(struct file_block *file)
 {
 	list_window_redraw_file(file);
-	transact_redraw_all(file);
 	account_redraw_all(file);
 	accview_redraw_all(file);
 	interest_redraw_all(file);

@@ -521,7 +521,7 @@ void filing_import_csv_file(struct file_block *file, char *filename)
 		accview_rebuild_all(file);
 		file_set_data_integrity(file, TRUE);
 
-		transact_redraw_all(file);
+		list_window_redraw_file(file);
 	}
 
 	/* Sort out the import results window. */

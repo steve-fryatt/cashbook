@@ -45,6 +45,7 @@
 #include "oslib/hourglass.h"
 #include "oslib/osspriteop.h"
 #include "oslib/territory.h"
+#include "oslib/types.h"
 
 /* SF-Lib header files. */
 
@@ -311,6 +312,8 @@ static struct list_window_definition transact_list_window_definition = {
 	NULL,
 	NULL,
 	NULL,
+	NULL,
+	NULL,
 	NULL
 };
 
@@ -383,18 +386,6 @@ static wimp_menu			*transact_list_window_menu_analysis = NULL;
 static wimp_menu			*transact_list_window_account_list_menu = NULL;
 
 /**
- * Set to TRUE to disable forced redraw requests within the window.
- */
-
-static osbool				transact_list_window_disable_redraw = FALSE;
-
-/**
- * The Transaction List Window Edit Line callbacks.
- */
-
-static struct edit_callback		transact_list_window_edit_callbacks;
-
-/**
  * The Save File saveas data handle.
  */
 
@@ -444,6 +435,20 @@ struct transact_list_window_drag_data {
 
 static struct transact_list_window_drag_data transact_list_window_dragging_data;
 
+/**
+ * Data relating to window redrawing.
+ */
+
+struct transact_list_window_redraw_data {
+	wimp_colour	shade_rec_colour;
+};
+
+/**
+ * Instance of the window redraw data, held statically to avoid heap shifts on every redraw.
+ */
+
+static struct transact_list_window_redraw_data transact_list_window_redraw_data_block;
+
 /* Buffers used by the Transaction List Window Edit Line. */
 
 static char	transact_buffer_row[TRANSACT_ROW_FIELD_LEN];
@@ -461,21 +466,18 @@ static char	transact_buffer_description[TRANSACT_DESCRIPT_FIELD_LEN];
 /* Static Function Prototypes. */
 
 static void transact_list_window_delete(struct transact_list_window *windat);
-static void transact_list_window_open_handler(wimp_open *open);
 static void transact_list_window_close_handler(wimp_close *close);
 static void transact_list_window_click_handler(wimp_pointer *pointer);
-static void transact_list_window_lose_caret_handler(wimp_caret *caret);
 static void transact_list_window_pane_click_handler(wimp_pointer *pointer, struct file_block *file, void *data);
 static osbool transact_list_window_keypress_handler(wimp_key *key);
 static void transact_list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer);
 static void transact_list_window_menu_selection_handler(wimp_w w, wimp_menu *menu, wimp_selection *selection);
 static void transact_list_window_menu_warning_handler(wimp_w w, wimp_menu *menu, wimp_message_menu_warning *warning);
 static void transact_list_window_menu_close_handler(wimp_w w, wimp_menu *menu);
-static void transact_list_window_scroll_handler(wimp_scroll *scroll);
-static void transact_list_window_redraw_handler(wimp_draw *redraw);
+static void *transact_list_window_redraw_prepare(struct file_block *file, void *data);
+static void transact_list_window_redraw_handler(int index, struct file_block *file, void *data, void *redraw);
 
 
-static void transact_list_window_force_redraw(struct transact_list_window *windat, int from, int to, wimp_i column);
 static void transact_list_window_start_drag(struct transact_list_window *windat, wimp_window_state *window, wimp_i column, int line);
 static void transaction_list_window_terminate_drag(wimp_dragged *drag, void *data);
 
@@ -523,32 +525,23 @@ static osbool transact_list_window_load_csv(wimp_w w, wimp_i i, unsigned filetyp
 
 void transact_list_window_initialise(osspriteop_area *sprites)
 {
-	transact_list_window_definition.callback_window_click_handler = transact_list_window_click_handler;
+//	transact_list_window_definition.callback_window_click_handler = transact_list_window_click_handler;
 	transact_list_window_definition.callback_pane_click_handler = transact_list_window_pane_click_handler;
+	transact_list_window_definition.callback_redraw_prepare = transact_list_window_redraw_prepare;
 	transact_list_window_definition.callback_redraw_handler = transact_list_window_redraw_handler;
-	transact_list_window_definition.callback_menu_prepare_handler = transact_list_window_menu_prepare_handler;
-	transact_list_window_definition.callback_menu_selection_handler = transact_list_window_menu_selection_handler;
-	transact_list_window_definition.callback_menu_warning_handler = transact_list_window_menu_warning_handler;
+//	transact_list_window_definition.callback_menu_prepare_handler = transact_list_window_menu_prepare_handler;
+//	transact_list_window_definition.callback_menu_selection_handler = transact_list_window_menu_selection_handler;
+//	transact_list_window_definition.callback_menu_warning_handler = transact_list_window_menu_warning_handler;
 	transact_list_window_definition.callback_sort_compare = transact_list_window_sort_compare;
 	transact_list_window_definition.callback_print_include = transact_list_window_print_include;
-	transact_list_window_definition.callback_print_field = transact_list_window_print_field;
+//	transact_list_window_definition.callback_print_field = transact_list_window_print_field;
 	transact_list_window_definition.callback_export_line = transact_list_window_export_delimited_line;
 
-	transact_list_window_block = list_window_create(&window_definition, sprites);
+	transact_list_window_block = list_window_create(&transact_list_window_definition, sprites);
 
 	transact_list_window_menu_account = templates_get_menu("MainAccountsSubmenu");
 	transact_list_window_menu_transact = templates_get_menu("MainTransactionsSubmenu");
 	transact_list_window_menu_analysis = templates_get_menu("MainAnalysisSubmenu");
-
-	transact_list_window_edit_callbacks.get_field = transact_list_window_edit_get_field;
-	transact_list_window_edit_callbacks.put_field = transact_list_window_edit_put_field;
-	transact_list_window_edit_callbacks.test_line = transact_list_window_edit_test_line;
-	transact_list_window_edit_callbacks.place_line = transact_list_window_edit_place_line;
-	transact_list_window_edit_callbacks.find_field = transact_list_window_edit_find_field;
-	transact_list_window_edit_callbacks.first_blank_line = transact_list_window_edit_first_blank_line;
-	transact_list_window_edit_callbacks.auto_sort = transact_list_window_edit_auto_sort;
-	transact_list_window_edit_callbacks.auto_complete = transact_list_window_edit_auto_complete;
-	transact_list_window_edit_callbacks.insert_preset = transact_list_window_edit_insert_preset;
 
 	transact_list_window_saveas_file = saveas_create_dialogue(FALSE, "file_1ca", transact_list_window_save_file);
 	transact_list_window_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", transact_list_window_save_csv);
@@ -623,51 +616,49 @@ void transact_list_window_open(struct transact_list_window *windat)
 
 
 
-	edit_add_field(windat->edit_line, EDIT_FIELD_DISPLAY,
-			TRANSACT_LIST_WINDOW_ROW, transact_buffer_row, TRANSACT_ROW_FIELD_LEN);
-	edit_add_field(windat->edit_line, EDIT_FIELD_DATE,
-			TRANSACT_LIST_WINDOW_DATE, transact_buffer_date, DATE_FIELD_LEN);
-	edit_add_field(windat->edit_line, EDIT_FIELD_ACCOUNT_IN,
-			TRANSACT_LIST_WINDOW_FROM, transact_buffer_from_ident, ACCOUNT_IDENT_LEN,
-			TRANSACT_LIST_WINDOW_FROM_REC, transact_buffer_from_rec, REC_FIELD_LEN,
-			TRANSACT_LIST_WINDOW_FROM_NAME, transact_buffer_from_name, ACCOUNT_NAME_LEN);
-	edit_add_field(windat->edit_line, EDIT_FIELD_ACCOUNT_OUT,
-			TRANSACT_LIST_WINDOW_TO, transact_buffer_to_ident, ACCOUNT_IDENT_LEN,
-			TRANSACT_LIST_WINDOW_TO_REC, transact_buffer_to_rec, REC_FIELD_LEN,
-			TRANSACT_LIST_WINDOW_TO_NAME, transact_buffer_to_name, ACCOUNT_NAME_LEN);
-	edit_add_field(windat->edit_line, EDIT_FIELD_TEXT,
-			TRANSACT_LIST_WINDOW_REFERENCE, transact_buffer_reference, TRANSACT_REF_FIELD_LEN);
-	edit_add_field(windat->edit_line, EDIT_FIELD_CURRENCY,
-			TRANSACT_LIST_WINDOW_AMOUNT, transact_buffer_amount, AMOUNT_FIELD_LEN);
-	edit_add_field(windat->edit_line, EDIT_FIELD_TEXT,
-			TRANSACT_LIST_WINDOW_DESCRIPTION, transact_buffer_description, TRANSACT_DESCRIPT_FIELD_LEN);
+//	edit_add_field(windat->edit_line, EDIT_FIELD_DISPLAY,
+//			TRANSACT_LIST_WINDOW_ROW, transact_buffer_row, TRANSACT_ROW_FIELD_LEN);
+//	edit_add_field(windat->edit_line, EDIT_FIELD_DATE,
+//			TRANSACT_LIST_WINDOW_DATE, transact_buffer_date, DATE_FIELD_LEN);
+//	edit_add_field(windat->edit_line, EDIT_FIELD_ACCOUNT_IN,
+//			TRANSACT_LIST_WINDOW_FROM, transact_buffer_from_ident, ACCOUNT_IDENT_LEN,
+//			TRANSACT_LIST_WINDOW_FROM_REC, transact_buffer_from_rec, REC_FIELD_LEN,
+//			TRANSACT_LIST_WINDOW_FROM_NAME, transact_buffer_from_name, ACCOUNT_NAME_LEN);
+//	edit_add_field(windat->edit_line, EDIT_FIELD_ACCOUNT_OUT,
+//			TRANSACT_LIST_WINDOW_TO, transact_buffer_to_ident, ACCOUNT_IDENT_LEN,
+//			TRANSACT_LIST_WINDOW_TO_REC, transact_buffer_to_rec, REC_FIELD_LEN,
+//			TRANSACT_LIST_WINDOW_TO_NAME, transact_buffer_to_name, ACCOUNT_NAME_LEN);
+//	edit_add_field(windat->edit_line, EDIT_FIELD_TEXT,
+//			TRANSACT_LIST_WINDOW_REFERENCE, transact_buffer_reference, TRANSACT_REF_FIELD_LEN);
+//	edit_add_field(windat->edit_line, EDIT_FIELD_CURRENCY,
+//			TRANSACT_LIST_WINDOW_AMOUNT, transact_buffer_amount, AMOUNT_FIELD_LEN);
+//	edit_add_field(windat->edit_line, EDIT_FIELD_TEXT,
+//			TRANSACT_LIST_WINDOW_DESCRIPTION, transact_buffer_description, TRANSACT_DESCRIPT_FIELD_LEN);
 
-	if (!edit_complete(windat->edit_line)) {
-		transact_list_window_delete(windat);
-		error_msgs_report_error("TransactNoMem");
-		return;
-	}
+//	if (!edit_complete(windat->edit_line)) {
+//		transact_list_window_delete(windat);
+//		error_msgs_report_error("TransactNoMem");
+//		return;
+//	}
 
 
 	/* Update the toolbar */
 
-	transact_update_toolbar(file);
+//	transact_update_toolbar(file);
 
 
 	/* Register event handlers for the two windows. */
 
-	event_add_window_open_event(windat->transaction_window, transact_list_window_open_handler);
-	event_add_window_lose_caret_event(windat->transaction_window, transact_list_window_lose_caret_handler);
-	event_add_window_key_event(windat->transaction_window, transact_list_window_keypress_handler);
+//	event_add_window_key_event(windat->transaction_window, transact_list_window_keypress_handler);
 
-	event_add_window_icon_popup(windat->transaction_pane, TRANSACT_LIST_WINDOW_PANE_VIEWACCT, transact_list_window_account_list_menu, -1, NULL);
+//	event_add_window_icon_popup(windat->transaction_pane, TRANSACT_LIST_WINDOW_PANE_VIEWACCT, transact_list_window_account_list_menu, -1, NULL);
 
-	dataxfer_set_drop_target(dataxfer_TYPE_CSV, windat->transaction_window, -1, NULL, transact_list_window_load_csv, file);
-	dataxfer_set_drop_target(dataxfer_TYPE_CSV, windat->transaction_pane, -1, NULL, transact_list_window_load_csv, file);
+//	dataxfer_set_drop_target(dataxfer_TYPE_CSV, windat->transaction_window, -1, NULL, transact_list_window_load_csv, file);
+//	dataxfer_set_drop_target(dataxfer_TYPE_CSV, windat->transaction_pane, -1, NULL, transact_list_window_load_csv, file);
 
 	/* Put the caret into the first empty line. */
 
-	transact_list_window_place_caret(windat, windat->display_lines, TRANSACT_FIELD_DATE);
+//	transact_list_window_place_caret(windat, windat->display_lines, TRANSACT_FIELD_DATE);
 }
 
 
@@ -688,31 +679,13 @@ static void transact_list_window_delete(struct transact_list_window *windat)
 		return;
 
 
-	if (windat->transaction_window != NULL) {
-		dataxfer_delete_drop_target(dataxfer_TYPE_CSV, windat->transaction_window, -1);
-	}
+//	if (windat->transaction_window != NULL) {
+//		dataxfer_delete_drop_target(dataxfer_TYPE_CSV, windat->transaction_window, -1);
+//	}
 
-	if (windat->transaction_pane != NULL) {
-		dataxfer_delete_drop_target(dataxfer_TYPE_CSV, windat->transaction_pane, -1);
-	}
-}
-
-
-/**
- * Handle Open events on Transaction List windows, to adjust the extent.
- *
- * \param *open			The Wimp Open data block.
- */
-
-static void transact_list_window_open_handler(wimp_open *open)
-{
-	struct transact_list_window *windat;
-
-	windat = event_get_window_user_data(open->w);
-	if (windat != NULL)
-		transact_list_window_minimise_extent(windat);
-
-	wimp_open_window(open);
+//	if (windat->transaction_pane != NULL) {
+//		dataxfer_delete_drop_target(dataxfer_TYPE_CSV, windat->transaction_pane, -1);
+//	}
 }
 
 
@@ -841,7 +814,7 @@ static void transact_list_window_click_handler(wimp_pointer *pointer)
 		if (line >= 0) {
 			xpos = (pointer->pos.x - window.visible.x0) + window.xscroll;
 
-			column = column_find_icon_from_xpos(windat->columns, xpos);
+//			column = column_find_icon_from_xpos(windat->columns, xpos);
 
 #ifdef DEBUG
 			debug_printf("Adjust transaction window click (line %d, column %d, xpos %d)", line, column, xpos);
@@ -849,65 +822,47 @@ static void transact_list_window_click_handler(wimp_pointer *pointer)
 
 			/* The first options can take place on any line in the window... */
 
-			if (column == TRANSACT_LIST_WINDOW_DATE) {
+//			if (column == TRANSACT_LIST_WINDOW_DATE) {
 				/* If the column is Date, open the date menu. */
-				preset_menu_open(file, line, pointer);
-			} else if (column == TRANSACT_LIST_WINDOW_FROM_NAME) {
+//				preset_menu_open(file, line, pointer);
+//			} else if (column == TRANSACT_LIST_WINDOW_FROM_NAME) {
 				/* If the column is the From name, open the from account menu. */
-				account_menu_open(file, ACCOUNT_MENU_FROM, line, pointer);
-			} else if (column == TRANSACT_LIST_WINDOW_TO_NAME) {
+//				account_menu_open(file, ACCOUNT_MENU_FROM, line, pointer);
+//			} else if (column == TRANSACT_LIST_WINDOW_TO_NAME) {
 				/* If the column is the To name, open the to account menu. */
-				account_menu_open(file, ACCOUNT_MENU_TO, line, pointer);
-			} else if (column == TRANSACT_LIST_WINDOW_REFERENCE) {
+//				account_menu_open(file, ACCOUNT_MENU_TO, line, pointer);
+//			} else if (column == TRANSACT_LIST_WINDOW_REFERENCE) {
 				/* If the column is the Reference, open the to reference menu. */
-				refdesc_menu_open(file, REFDESC_MENU_REFERENCE, line, pointer);
-			} else if (column == TRANSACT_LIST_WINDOW_DESCRIPTION) {
+//				refdesc_menu_open(file, REFDESC_MENU_REFERENCE, line, pointer);
+//			} else if (column == TRANSACT_LIST_WINDOW_DESCRIPTION) {
 				/* If the column is the Description, open the to description menu. */
-				refdesc_menu_open(file, REFDESC_MENU_DESCRIPTION, line, pointer);
-			} else if (line < windat->display_lines) {
+//				refdesc_menu_open(file, REFDESC_MENU_DESCRIPTION, line, pointer);
+//			} else if (line < windat->display_lines) {
 				/* ...while the rest have to occur over a transaction line. */
-				transaction = windat->line_data[line].transaction;
+//				transaction = windat->line_data[line].transaction;
 
-				if (column == TRANSACT_LIST_WINDOW_FROM_REC) {
+//				if (column == TRANSACT_LIST_WINDOW_FROM_REC) {
 					/* If the column is the from reconcile flag, toggle its status. */
-					transact_toggle_reconcile_flag(file, transaction, TRANS_REC_FROM);
-				} else if (column == TRANSACT_LIST_WINDOW_TO_REC) {
+//					transact_toggle_reconcile_flag(file, transaction, TRANS_REC_FROM);
+//				} else if (column == TRANSACT_LIST_WINDOW_TO_REC) {
 					/* If the column is the to reconcile flag, toggle its status. */
-					transact_toggle_reconcile_flag(file, transaction, TRANS_REC_TO);
-				}
-			}
+//					transact_toggle_reconcile_flag(file, transaction, TRANS_REC_TO);
+//				}
+//			}
 		}
 	} else if (pointer->buttons == wimp_DRAG_SELECT) {
 		if (config_opt_read("TransDragDrop")) {
-			window.w = pointer->w;
-			wimp_get_window_state(&window);
+//			window.w = pointer->w;
+//			wimp_get_window_state(&window);
 
-			line = window_calculate_click_row(&(pointer->pos), &window, TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT, -1);
-			xpos = (pointer->pos.x - window.visible.x0) + window.xscroll;
-			column = column_find_icon_from_xpos(windat->columns, xpos);
+//			line = window_calculate_click_row(&(pointer->pos), &window, TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT, -1);
+//			xpos = (pointer->pos.x - window.visible.x0) + window.xscroll;
+//			column = column_find_icon_from_xpos(windat->columns, xpos);
 
-			if (line >= 0 && column != wimp_ICON_WINDOW)
-				transact_list_window_start_drag(windat, &window, column, line);
+//			if (line >= 0 && column != wimp_ICON_WINDOW)
+//				transact_list_window_start_drag(windat, &window, column, line);
 		}
 	}
-}
-
-
-/**
- * Process lose caret events for the Transaction List window.
- *
- * \param *caret		The caret event block to handle.
- */
-
-static void transact_list_window_lose_caret_handler(wimp_caret *caret)
-{
-	struct transact_list_window	*windat;
-
-	windat = event_get_window_user_data(caret->w);
-	if (windat == NULL)
-		return;
-
-	edit_refresh_line_contents(windat->edit_line, wimp_ICON_WINDOW, wimp_ICON_WINDOW);
 }
 
 
@@ -973,7 +928,7 @@ static void transact_list_window_pane_click_handler(wimp_pointer *pointer, struc
 			break;
 
 		case TRANSACT_LIST_WINDOW_PANE_SORT:
-			transact_list_window_open_sort_window(windat, pointer);
+			list_window_open_sort_window(windat->window, pointer);
 			break;
 
 		case TRANSACT_LIST_WINDOW_PANE_RECONCILE:
@@ -1084,7 +1039,7 @@ static osbool transact_list_window_keypress_handler(wimp_key *key)
 		goto_open_window(file->go_to, &pointer, config_opt_read("RememberValues"));
 	} else if (key->c == wimp_KEY_F6) {
 		wimp_get_pointer_info(&pointer);
-		transact_list_window_open_sort_window(windat, &pointer);
+		list_window_open_sort_window(windat->window, &pointer);
 	} else if (key->c == wimp_KEY_F9) {
 		account_open_window(file, ACCOUNT_FULL);
 	} else if (key->c == wimp_KEY_F10) {
@@ -1096,13 +1051,13 @@ static osbool transact_list_window_keypress_handler(wimp_key *key)
 
 		/* Make up a Wimp_ScrollRequest block and pass it to the scroll request handler. */
 
-		scroll.w = windat->transaction_window;
-		wimp_get_window_state((wimp_window_state *) &scroll);
+//		scroll.w = windat->transaction_window;
+//		wimp_get_window_state((wimp_window_state *) &scroll);
 
-		scroll.xmin = wimp_SCROLL_NONE;
-		scroll.ymin = (key->c == wimp_KEY_PAGE_UP) ? wimp_SCROLL_PAGE_UP : wimp_SCROLL_PAGE_DOWN;
+//		scroll.xmin = wimp_SCROLL_NONE;
+//		scroll.ymin = (key->c == wimp_KEY_PAGE_UP) ? wimp_SCROLL_PAGE_UP : wimp_SCROLL_PAGE_DOWN;
 
-		transact_list_window_scroll_handler(&scroll);
+//		transact_list_window_scroll_handler(&scroll);
 	} else if ((key->c == wimp_KEY_CONTROL + wimp_KEY_UP) || key->c == wimp_KEY_HOME) {
 		transact_scroll_window_to_end(file, TRANSACT_SCROLL_HOME);
 	} else if ((key->c == wimp_KEY_CONTROL + wimp_KEY_DOWN) ||
@@ -1110,7 +1065,8 @@ static osbool transact_list_window_keypress_handler(wimp_key *key)
 		transact_scroll_window_to_end(file, TRANSACT_SCROLL_END);
 	} else {
 		/* Pass any keys that are left on to the edit line handler. */
-		return edit_process_keypress(windat->edit_line, key);
+//		return edit_process_keypress(windat->edit_line, key);
+		return FALSE;
 	}
 
 	return TRUE;
@@ -1160,42 +1116,42 @@ static void transact_list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu,
 	 */
 
 	if (pointer != NULL) {
-		transact_list_window_menu_line = NULL_TRANSACTION;
+//		transact_list_window_menu_line = NULL_TRANSACTION;
 
-		if (w == windat->transaction_window) {
-			window.w = w;
-			wimp_get_window_state(&window);
+//		if (w == windat->transaction_window) {
+//			window.w = w;
+//			wimp_get_window_state(&window);
 
-			line = window_calculate_click_row(&(pointer->pos), &window, TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT, -1);
+//			line = window_calculate_click_row(&(pointer->pos), &window, TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT, -1);
 
-			if (transact_list_window_line_valid(windat, line))
-				transact_list_window_menu_line = line;
-		}
+//			if (transact_list_window_line_valid(windat, line))
+//				transact_list_window_menu_line = line;
+//		}
 
-		transact_list_window_menu_account->entries[TRANSACT_LIST_WINDOW_MENU_ACCOUNTS_VIEW].sub_menu = account_list_menu_build(file);
-		transact_list_window_menu_analysis->entries[TRANSACT_LIST_WINDOW_MENU_ANALYSIS_SAVEDREP].sub_menu = analysis_template_menu_build(file, FALSE);
+//		transact_list_window_menu_account->entries[TRANSACT_LIST_WINDOW_MENU_ACCOUNTS_VIEW].sub_menu = account_list_menu_build(file);
+//		transact_list_window_menu_analysis->entries[TRANSACT_LIST_WINDOW_MENU_ANALYSIS_SAVEDREP].sub_menu = analysis_template_menu_build(file, FALSE);
 
 		/* If the submenus concerned are greyed out, give them a valid submenu pointer so that the arrow shows. */
 
-		if (account_get_count(file) == 0)
-			transact_list_window_menu_account->entries[TRANSACT_LIST_WINDOW_MENU_ACCOUNTS_VIEW].sub_menu = (wimp_menu *) 0x8000; /* \TODO -- Ugh! */
-		if (!analysis_template_menu_contains_entries())
-			transact_list_window_menu_analysis->entries[TRANSACT_LIST_WINDOW_MENU_ANALYSIS_SAVEDREP].sub_menu = (wimp_menu *) 0x8000; /* \TODO -- Ugh! */
+//		if (account_get_count(file) == 0)
+//			transact_list_window_menu_account->entries[TRANSACT_LIST_WINDOW_MENU_ACCOUNTS_VIEW].sub_menu = (wimp_menu *) 0x8000; /* \TODO -- Ugh! */
+//		if (!analysis_template_menu_contains_entries())
+//			transact_list_window_menu_analysis->entries[TRANSACT_LIST_WINDOW_MENU_ANALYSIS_SAVEDREP].sub_menu = (wimp_menu *) 0x8000; /* \TODO -- Ugh! */
 
-		if (file_check_for_filepath(file))
-			filename = file->filename;
-		else
-			filename = NULL;
+//		if (file_check_for_filepath(file))
+//			filename = file->filename;
+//		else
+//			filename = NULL;
 
-		saveas_initialise_dialogue(transact_list_window_saveas_file, filename, "DefTransFile", NULL, FALSE, FALSE, windat);
-		saveas_initialise_dialogue(transact_list_window_saveas_csv, NULL, "DefCSVFile", NULL, FALSE, FALSE, windat);
-		saveas_initialise_dialogue(transact_list_window_saveas_tsv, NULL, "DefTSVFile", NULL, FALSE, FALSE, windat);
+//		saveas_initialise_dialogue(transact_list_window_saveas_file, filename, "DefTransFile", NULL, FALSE, FALSE, windat);
+//		saveas_initialise_dialogue(transact_list_window_saveas_csv, NULL, "DefCSVFile", NULL, FALSE, FALSE, windat);
+//		saveas_initialise_dialogue(transact_list_window_saveas_tsv, NULL, "DefTSVFile", NULL, FALSE, FALSE, windat);
 	}
 
-	menus_tick_entry(transact_list_window_menu_transact, TRANSACT_LIST_WINDOW_MENU_TRANS_RECONCILE, windat->auto_reconcile);
-	menus_shade_entry(transact_list_window_menu_account, TRANSACT_LIST_WINDOW_MENU_ACCOUNTS_VIEW, account_count_type_in_file(file, ACCOUNT_FULL) == 0);
-	menus_shade_entry(transact_list_window_menu_analysis, TRANSACT_LIST_WINDOW_MENU_ANALYSIS_SAVEDREP, !analysis_template_menu_contains_entries());
-	account_list_menu_prepare();
+//	menus_tick_entry(transact_list_window_menu_transact, TRANSACT_LIST_WINDOW_MENU_TRANS_RECONCILE, windat->auto_reconcile);
+//	menus_shade_entry(transact_list_window_menu_account, TRANSACT_LIST_WINDOW_MENU_ACCOUNTS_VIEW, account_count_type_in_file(file, ACCOUNT_FULL) == 0);
+//	menus_shade_entry(transact_list_window_menu_analysis, TRANSACT_LIST_WINDOW_MENU_ANALYSIS_SAVEDREP, !analysis_template_menu_contains_entries());
+//	account_list_menu_prepare();
 }
 
 
@@ -1236,7 +1192,7 @@ static void transact_list_window_menu_selection_handler(wimp_w w, wimp_menu *men
 	 */
 
 	wimp_get_pointer_info(&pointer);
-
+/*
 	switch (selection->items[0]){
 	case TRANSACT_LIST_WINDOW_MENU_SUB_FILE:
 		switch (selection->items[1]) {
@@ -1357,7 +1313,7 @@ static void transact_list_window_menu_selection_handler(wimp_w w, wimp_menu *men
 			break;
 		}
 		break;
-	}
+	}*/
 }
 
 
@@ -1422,176 +1378,102 @@ static void transact_list_window_menu_warning_handler(wimp_w w, wimp_menu *menu,
 
 static void transact_list_window_menu_close_handler(wimp_w w, wimp_menu *menu)
 {
-	if (menu == transact_list_window_menu) {
-		transact_list_window_menu_line = -1;
-		analysis_template_menu_destroy();
-	} else if (menu == transact_list_window_account_list_menu) {
-		account_list_menu_destroy();
-		ihelp_remove_menu(transact_list_window_account_list_menu);
-		transact_list_window_account_list_menu = NULL;
-	}
+//	if (menu == transact_list_window_menu) {
+//		transact_list_window_menu_line = -1;
+//		analysis_template_menu_destroy();
+//	} else if (menu == transact_list_window_account_list_menu) {
+//		account_list_menu_destroy();
+//		ihelp_remove_menu(transact_list_window_account_list_menu);
+//		transact_list_window_account_list_menu = NULL;
+//	}
 }
 
 
 /**
- * Process scroll events in the Transaction List window.
+ * Prepare to handle redraw events for the Transaction List window.
  *
- * \param *scroll		The scroll event block to handle.
+ * \param *file			Pointer to the owning file instance.
+ * \param *data			Pointer to the Transaction List Window instance.
+ * \return			Pointer to the redraw data block, to be passed to all
+ *				redraw events.
  */
 
-static void transact_list_window_scroll_handler(wimp_scroll *scroll)
+static void *transact_list_window_redraw_prepare(struct file_block *file, void *data)
 {
-	int				line;
-	struct transact_list_window	*windat;
+	/* Identify the colour to use for plotting shaded lines. */
 
-	windat = event_get_window_user_data(scroll->w);
-	if (windat == NULL || windat->instance == NULL)
-		return;
+	if (config_opt_read("ShadeReconciled"))
+		transact_list_window_redraw_data_block.shade_rec_colour = config_int_read("ShadeReconciledColour");
+	else
+		transact_list_window_redraw_data_block.shade_rec_colour = wimp_COLOUR_BLACK;
 
-	window_process_scroll_event(scroll, TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT);
-
-	/* Extend the window downwards if necessary. */
-
-	if (scroll->ymin == wimp_SCROLL_LINE_DOWN) {
-		line = (-scroll->yscroll + (scroll->visible.y1 - scroll->visible.y0) - TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT) / WINDOW_ROW_HEIGHT;
-
-		if (line > windat->visible_lines) {
-			windat->visible_lines = line;
-			transact_list_window_set_extent(windat);
-		}
-	}
-
-	/* Re-open the window. It is assumed that the wimp will deal with out-of-bounds offsets for us. */
-
-	wimp_open_window((wimp_open *) scroll);
-
-	/* Try to reduce the window extent, if possible. */
-
-	transact_list_window_minimise_extent(windat);
+	return &transact_list_window_redraw_data_block;
 }
 
 
 /**
  * Process redraw events in the Transaction List window.
  *
- * \param *redraw		The draw event block to handle.
+ * \param *index		The index of the item in the line to be redrawn.
+ * \param *file			Pointer to the owning file instance.
+ * \param *data			Pointer to the Transaction List Window instance.
+ * \param *redraw		Pointer to the redraw instance data.
  */
 
-static void transact_list_window_redraw_handler(wimp_draw *redraw)
+static void transact_list_window_redraw_handler(int index, struct file_block *file, void *data, void *redraw)
 {
-	struct transact_list_window	*windat;
-	struct file_block		*file;
-	int				top, base, y, entry_line;
-	tran_t				transaction;
-	acct_t				account;
-	enum transact_flags		flags;
-	wimp_colour			shade_rec_col, icon_fg_col;
-	char				icon_buffer[TRANSACT_DESCRIPT_FIELD_LEN]; /* Assumes descript is longest. */
-	osbool				shade_rec, more;
-	wimp_window			*window_def;
+	struct transact_list_window_redraw_data	*redraw_data = redraw;
+	tran_t					transaction = index;
+	acct_t					account;
+	enum transact_flags			flags;
+	wimp_colour				icon_fg_col;
 
-	windat = event_get_window_user_data(redraw->w);
-	if (windat == NULL || windat->instance == NULL || windat->columns == NULL)
-		return;
+	flags =  transact_get_flags(file, transaction);
 
-	file = transact_get_file(windat->instance);
-	if (file == NULL)
-		return;
+	/* Work out the foreground colour for the line, based on whether
+		* the line is to be shaded or not.
+		*/
 
-	window_def = list_window_get_window_def(transact_list_window_block);
-	if (window_def == NULL)
-		return;
+	if ((flags & (TRANS_REC_FROM | TRANS_REC_TO)) == (TRANS_REC_FROM | TRANS_REC_TO))
+		icon_fg_col = redraw_data->shade_rec_colour;
+	else
+		icon_fg_col = wimp_COLOUR_BLACK;
 
-	more = wimp_redraw_window(redraw);
+	/* Row field. */
 
-	shade_rec = config_opt_read("ShadeReconciled");
-	shade_rec_col = config_int_read("ShadeReconciledColour");
+	window_plot_int_field(TRANSACT_LIST_WINDOW_ROW, transact_get_transaction_number(transaction), icon_fg_col);
 
-	/* Set the horizontal positions of the icons. */
+	/* Date field */
 
-	columns_place_table_icons_horizontally(windat->columns, window_def, icon_buffer, TRANSACT_DESCRIPT_FIELD_LEN);
-	entry_line = edit_get_line(windat->edit_line);
+	window_plot_date_field(TRANSACT_LIST_WINDOW_DATE, transact_get_date(file, transaction), icon_fg_col);
 
-	window_set_icon_templates(window_def);
+	/* From field */
 
-	/* Perform the redraw. */
+	account = transact_get_from(file, transaction);
 
-	while (more) {
-		window_plot_background(redraw, TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT, wimp_COLOUR_VERY_LIGHT_GREY, -1, &top, &base);
+	window_plot_text_field(TRANSACT_LIST_WINDOW_FROM, account_get_ident(file, account), icon_fg_col);
+	window_plot_reconciled_field(TRANSACT_LIST_WINDOW_FROM_REC, (flags & TRANS_REC_FROM), icon_fg_col);
+	window_plot_text_field(TRANSACT_LIST_WINDOW_FROM_NAME, account_get_name(file, account), icon_fg_col);
 
-		/* Redraw the data into the window. */
+	/* To field */
 
-		for (y = top; y <= base; y++) {
-			transaction = (y < windat->display_lines) ? windat->line_data[y].transaction : 0;
+	account = transact_get_to(file, transaction);
 
-			flags =  transact_get_flags(file, transaction);
+	window_plot_text_field(TRANSACT_LIST_WINDOW_TO, account_get_ident(file, account), icon_fg_col);
+	window_plot_reconciled_field(TRANSACT_LIST_WINDOW_TO_REC, (flags & TRANS_REC_TO), icon_fg_col);
+	window_plot_text_field(TRANSACT_LIST_WINDOW_TO_NAME, account_get_name(file, account), icon_fg_col);
 
-			/* Work out the foreground colour for the line, based on whether
-			 * the line is to be shaded or not.
-			 */
+	/* Reference field */
 
-			if (shade_rec && (y < windat->display_lines) &&
-					((flags & (TRANS_REC_FROM | TRANS_REC_TO)) == (TRANS_REC_FROM | TRANS_REC_TO)))
-				icon_fg_col = shade_rec_col;
-			else
-				icon_fg_col = wimp_COLOUR_BLACK;
+	window_plot_text_field(TRANSACT_LIST_WINDOW_REFERENCE, transact_get_reference(file, transaction, NULL, 0), icon_fg_col);
 
-			/* We don't need to plot the current edit line, as that has real icons in it. */
+	/* Amount field */
 
-			if (y == entry_line)
-				continue;
+	window_plot_currency_field(TRANSACT_LIST_WINDOW_AMOUNT, transact_get_amount(file, transaction), icon_fg_col);
 
-			/* Place the icons in the current row. */
+	/* Description field */
 
-			columns_place_table_icons_vertically(windat->columns, window_def,
-					WINDOW_ROW_Y0(TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT, y), WINDOW_ROW_Y1(TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT, y));
-
-			/* If we're off the end of the data, plot a blank line and continue. */
-
-			if (y >= windat->display_lines) {
-				columns_plot_empty_table_icons(windat->columns);
-				continue;
-			}
-
-			/* Row field. */
-
-			window_plot_int_field(TRANSACT_LIST_WINDOW_ROW, transact_get_transaction_number(transaction), icon_fg_col);
-
-			/* Date field */
-
-			window_plot_date_field(TRANSACT_LIST_WINDOW_DATE, transact_get_date(file, transaction), icon_fg_col);
-
-			/* From field */
-
-			account = transact_get_from(file, transaction);
-
-			window_plot_text_field(TRANSACT_LIST_WINDOW_FROM, account_get_ident(file, account), icon_fg_col);
-			window_plot_reconciled_field(TRANSACT_LIST_WINDOW_FROM_REC, (flags & TRANS_REC_FROM), icon_fg_col);
-			window_plot_text_field(TRANSACT_LIST_WINDOW_FROM_NAME, account_get_name(file, account), icon_fg_col);
-
-			/* To field */
-
-			account = transact_get_to(file, transaction);
-
-			window_plot_text_field(TRANSACT_LIST_WINDOW_TO, account_get_ident(file, account), icon_fg_col);
-			window_plot_reconciled_field(TRANSACT_LIST_WINDOW_TO_REC, (flags & TRANS_REC_TO), icon_fg_col);
-			window_plot_text_field(TRANSACT_LIST_WINDOW_TO_NAME, account_get_name(file, account), icon_fg_col);
-
-			/* Reference field */
-
-			window_plot_text_field(TRANSACT_LIST_WINDOW_REFERENCE, transact_get_reference(file, transaction, NULL, 0), icon_fg_col);
-
-			/* Amount field */
-
-			window_plot_currency_field(TRANSACT_LIST_WINDOW_AMOUNT, transact_get_amount(file, transaction), icon_fg_col);
-
-			/* Description field */
-
-			window_plot_text_field(TRANSACT_LIST_WINDOW_DESCRIPTION, transact_get_description(file, transaction, NULL, 0), icon_fg_col);
-		}
-
-		more = wimp_get_rectangle(redraw);
-	}
+	window_plot_text_field(TRANSACT_LIST_WINDOW_DESCRIPTION, transact_get_description(file, transaction, NULL, 0), icon_fg_col);
 }
 
 
@@ -1644,12 +1526,12 @@ char *transact_list_window_get_column_name(struct transact_list_window *windat, 
 	if (icon == wimp_ICON_WINDOW)
 		return buffer;
 
-	group = column_get_group_icon(windat->columns, icon);
+//	group = column_get_group_icon(windat->columns, icon);
 
 	if (icon == wimp_ICON_WINDOW)
 		return buffer;
 
-	icons_copy_text(windat->transaction_pane, group, buffer, len);
+//	icons_copy_text(windat->transaction_pane, group, buffer, len);
 
 	return buffer;
 }
@@ -1672,37 +1554,37 @@ void transact_list_window_place_caret(struct transact_list_window *windat, int l
 	if (windat == NULL)
 		return;
 
-	transact_list_window_place_edit_line(windat, line);
+//	transact_list_window_place_edit_line(windat, line);
 
-	switch (field) {
-	case TRANSACT_FIELD_NONE:
-		return;
-	case TRANSACT_FIELD_ROW:
-	case TRANSACT_FIELD_DATE:
-		icon = TRANSACT_LIST_WINDOW_DATE;
-		break;
-	case TRANSACT_FIELD_FROM:
-		icon = TRANSACT_LIST_WINDOW_FROM;
-		break;
-	case TRANSACT_FIELD_TO:
-		icon = TRANSACT_LIST_WINDOW_TO;
-		break;
-	case TRANSACT_FIELD_AMOUNT:
-		icon = TRANSACT_LIST_WINDOW_AMOUNT;
-		break;
-	case TRANSACT_FIELD_REF:
-		icon = TRANSACT_LIST_WINDOW_REFERENCE;
-		break;
-	case TRANSACT_FIELD_DESC:
-		icon = TRANSACT_LIST_WINDOW_DESCRIPTION;
-		break;
-	}
+//	switch (field) {
+//	case TRANSACT_FIELD_NONE:
+//		return;
+//	case TRANSACT_FIELD_ROW:
+//	case TRANSACT_FIELD_DATE:
+//		icon = TRANSACT_LIST_WINDOW_DATE;
+//		break;
+//	case TRANSACT_FIELD_FROM:
+//		icon = TRANSACT_LIST_WINDOW_FROM;
+//		break;
+//	case TRANSACT_FIELD_TO:
+//		icon = TRANSACT_LIST_WINDOW_TO;
+//		break;
+//	case TRANSACT_FIELD_AMOUNT:
+//		icon = TRANSACT_LIST_WINDOW_AMOUNT;
+//		break;
+//	case TRANSACT_FIELD_REF:
+//		icon = TRANSACT_LIST_WINDOW_REFERENCE;
+//		break;
+//	case TRANSACT_FIELD_DESC:
+//		icon = TRANSACT_LIST_WINDOW_DESCRIPTION;
+//		break;
+//	}
 
-	if (icon == wimp_ICON_WINDOW)
-		icon = TRANSACT_LIST_WINDOW_DATE;
+//	if (icon == wimp_ICON_WINDOW)
+//		icon = TRANSACT_LIST_WINDOW_DATE;
 
-	icons_put_caret_at_end(windat->transaction_window, icon);
-	transact_list_window_find_edit_line_vertically(windat);
+//	icons_put_caret_at_end(windat->transaction_window, icon);
+//	transact_list_window_find_edit_line_vertically(windat);
 }
 
 
@@ -1719,21 +1601,21 @@ void transact_list_window_reindex(struct transact_list_window *windat)
 	struct file_block	*file;
 	int			line, transaction;
 
-	file = transact_get_file(windat->instance);
-	if (file == NULL)
-		return;
+//	file = transact_get_file(windat->instance);
+//	if (file == NULL)
+//		return;
 
-	if (windat == NULL || windat->line_data == NULL || windat->transaction_window == NULL)
-		return;
+//	if (windat == NULL || windat->line_data == NULL || windat->transaction_window == NULL)
+//		return;
 
-	for (line = 0; line < windat->display_lines; line++) {
-		transaction = windat->line_data[line].transaction;
-		windat->line_data[line].transaction = transact_get_new_sort_index(file, transaction);
-	}
+//	for (line = 0; line < windat->display_lines; line++) {
+//		transaction = windat->line_data[line].transaction;
+//		windat->line_data[line].transaction = transact_get_new_sort_index(file, transaction);
+//	}
 
 	// \TODO - Does this require a full redraw?
 
-	transact_list_window_force_redraw(windat, 0, windat->display_lines - 1, TRANSACT_LIST_WINDOW_PANE_ROW);
+//	transact_list_window_force_redraw(windat, 0, windat->display_lines - 1, TRANSACT_LIST_WINDOW_PANE_ROW);
 }
 
 
@@ -1746,76 +1628,10 @@ void transact_list_window_reindex(struct transact_list_window *windat)
 
 void transact_list_window_redraw(struct transact_list_window *windat, tran_t transaction)
 {
-	int from, to;
-
 	if (windat == NULL)
 		return;
 
-	if (transaction != NULL_TRANSACTION) {
-		from = transact_list_window_get_line_from_transaction(windat, transaction);
-		to = from;
-	} else {
-		from = 0;
-		to = windat->display_lines - 1;
-	}
-
-	transact_list_window_force_redraw(windat, from, to, wimp_ICON_WINDOW);
-}
-
-
-/**
- * Force a redraw of the Transaction window, for the given range of lines.
- *
- * \param *windat		The window to be redrawn.
- * \param from			The first line to redraw, inclusive.
- * \param to			The last line to redraw, inclusive.
- * \param column		The column to be redrawn, or wimp_ICON_WINDOW for all.
- */
-
-static void transact_list_window_force_redraw(struct transact_list_window *windat, int from, int to, wimp_i column)
-{
-	int			line, icons = 0, i;
-	wimp_window_info	window;
-	wimp_i			columns[TRANSACT_LIST_WINDOW_COLUMNS];
-
-	if (windat == NULL || windat->transaction_window == NULL || transact_list_window_disable_redraw)
-		return;
-
-	/* If the edit line falls inside the redraw range, refresh it. */
-
-	line = edit_get_line(windat->edit_line);
-
-	if (line >= from && line <= to) {
-		if (column != wimp_ICON_WINDOW) {
-			icons = column_get_heading_icons(windat->columns, column, columns, TRANSACT_LIST_WINDOW_COLUMNS);
-		} else if (TRANSACT_LIST_WINDOW_COLUMNS > 0) {
-			icons = 1;
-			columns[0] = wimp_ICON_WINDOW;
-		}
-
-		for (i = 0; i < icons; i++)
-			edit_refresh_line_contents(windat->edit_line, columns[i], wimp_ICON_WINDOW);
-
-		edit_set_line_colour(windat->edit_line, transact_list_window_line_colour(windat, line));
-		icons_replace_caret_in_window(windat->transaction_window);
-	}
-
-	/* Now force a redraw of the whole window range. */
-
-	window.w = windat->transaction_window;
-	if (xwimp_get_window_info_header_only(&window) != NULL)
-		return;
-
-	if (column != wimp_ICON_WINDOW) {
-		window.extent.x0 = window.extent.x1;
-		window.extent.x1 = 0;
-		column_get_heading_xpos(windat->columns, column, &(window.extent.x0), &(window.extent.x1));
-	}
-
-	window.extent.y1 = WINDOW_ROW_TOP(TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT, from);
-	window.extent.y0 = WINDOW_ROW_BASE(TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT, to);
-
-	wimp_force_redraw(windat->transaction_window, window.extent.x0, window.extent.y0, window.extent.x1, window.extent.y1);
+	list_window_redraw(windat->window, transaction, 0);
 }
 
 
@@ -1836,28 +1652,28 @@ static void transact_list_window_start_drag(struct transact_list_window *windat,
 	if (windat == NULL || window == NULL)
 		return;
 
-	xmin = column_get_window_width(windat->columns);
-	xmax = 0;
+//	xmin = column_get_window_width(windat->columns);
+//	xmax = 0;
 
-	column_get_xpos(windat->columns, column, &xmin, &xmax);
+//	column_get_xpos(windat->columns, column, &xmin, &xmax);
 
-	ox = window->visible.x0 - window->xscroll;
-	oy = window->visible.y1 - window->yscroll;
+//	ox = window->visible.x0 - window->xscroll;
+//	oy = window->visible.y1 - window->yscroll;
 
 	/* Set up the drag parameters. */
 
-	drag.w = windat->transaction_window;
-	drag.type = wimp_DRAG_USER_FIXED;
+//	drag.w = windat->transaction_window;
+//	drag.type = wimp_DRAG_USER_FIXED;
 
-	drag.initial.x0 = ox + xmin;
-	drag.initial.y0 = oy + WINDOW_ROW_Y0(TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT, line);
-	drag.initial.x1 = ox + xmax;
-	drag.initial.y1 = oy + WINDOW_ROW_Y1(TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT, line);
+//	drag.initial.x0 = ox + xmin;
+//	drag.initial.y0 = oy + WINDOW_ROW_Y0(TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT, line);
+//	drag.initial.x1 = ox + xmax;
+//	drag.initial.y1 = oy + WINDOW_ROW_Y1(TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT, line);
 
-	drag.bbox.x0 = window->visible.x0;
-	drag.bbox.y0 = window->visible.y0;
-	drag.bbox.x1 = window->visible.x1;
-	drag.bbox.y1 = window->visible.y1;
+//	drag.bbox.x0 = window->visible.x0;
+//	drag.bbox.y0 = window->visible.y0;
+//	drag.bbox.x1 = window->visible.x1;
+//	drag.bbox.y1 = window->visible.y1;
 
 	/* Read CMOS RAM to see if solid drags are required.
 	 *
@@ -1865,36 +1681,36 @@ static void transact_list_window_start_drag(struct transact_list_window *windat,
 	 *          if a suitable sprite were to be created.
 	 */
 
-	transact_list_window_dragging_data.dragging_sprite = ((osbyte2(osbyte_READ_CMOS, osbyte_CONFIGURE_DRAG_ASPRITE, 0) &
-                       osbyte_CONFIGURE_DRAG_ASPRITE_MASK) != 0);
+//	transact_list_window_dragging_data.dragging_sprite = ((osbyte2(osbyte_READ_CMOS, osbyte_CONFIGURE_DRAG_ASPRITE, 0) &
+//			osbyte_CONFIGURE_DRAG_ASPRITE_MASK) != 0);
 
-	if (FALSE && transact_list_window_dragging_data.dragging_sprite) {
-		dragasprite_start(dragasprite_HPOS_CENTRE | dragasprite_VPOS_CENTRE | dragasprite_NO_BOUND |
-				dragasprite_BOUND_POINTER | dragasprite_DROP_SHADOW, wimpspriteop_AREA,
-				"", &(drag.initial), &(drag.bbox));
-	} else {
-		wimp_drag_box(&drag);
-	}
+//	if (FALSE && transact_list_window_dragging_data.dragging_sprite) {
+//		dragasprite_start(dragasprite_HPOS_CENTRE | dragasprite_VPOS_CENTRE | dragasprite_NO_BOUND |
+//				dragasprite_BOUND_POINTER | dragasprite_DROP_SHADOW, wimpspriteop_AREA,
+//				"", &(drag.initial), &(drag.bbox));
+//	} else {
+//		wimp_drag_box(&drag);
+//	}
 
 	/* Initialise the autoscroll. */
 
-	if (xos_swi_number_from_string("Wimp_AutoScroll", NULL) == NULL) {
-		auto_scroll.w = windat->transaction_window;
-		auto_scroll.pause_zone_sizes.x0 = AUTO_SCROLL_MARGIN;
-		auto_scroll.pause_zone_sizes.y0 = AUTO_SCROLL_MARGIN;
-		auto_scroll.pause_zone_sizes.x1 = AUTO_SCROLL_MARGIN;
-		auto_scroll.pause_zone_sizes.y1 = AUTO_SCROLL_MARGIN + TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT;
-		auto_scroll.pause_duration = 0;
-		auto_scroll.state_change = (void *) 1;
+//	if (xos_swi_number_from_string("Wimp_AutoScroll", NULL) == NULL) {
+//		auto_scroll.w = windat->transaction_window;
+//		auto_scroll.pause_zone_sizes.x0 = AUTO_SCROLL_MARGIN;
+//		auto_scroll.pause_zone_sizes.y0 = AUTO_SCROLL_MARGIN;
+//		auto_scroll.pause_zone_sizes.x1 = AUTO_SCROLL_MARGIN;
+//		auto_scroll.pause_zone_sizes.y1 = AUTO_SCROLL_MARGIN + TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT;
+//		auto_scroll.pause_duration = 0;
+//		auto_scroll.state_change = (void *) 1;
 
-		wimp_auto_scroll(wimp_AUTO_SCROLL_ENABLE_HORIZONTAL | wimp_AUTO_SCROLL_ENABLE_VERTICAL, &auto_scroll);
-	}
+//		wimp_auto_scroll(wimp_AUTO_SCROLL_ENABLE_HORIZONTAL | wimp_AUTO_SCROLL_ENABLE_VERTICAL, &auto_scroll);
+//	}
 
-	transact_list_window_dragging_data.owner = windat;
-	transact_list_window_dragging_data.start_line = line;
-	transact_list_window_dragging_data.start_column = column;
+//	transact_list_window_dragging_data.owner = windat;
+//	transact_list_window_dragging_data.start_line = line;
+//	transact_list_window_dragging_data.start_column = column;
 
-	event_set_drag_handler(transaction_list_window_terminate_drag, NULL, &transact_list_window_dragging_data);
+//	event_set_drag_handler(transaction_list_window_terminate_drag, NULL, &transact_list_window_dragging_data);
 }
 
 
@@ -1927,116 +1743,116 @@ static void transaction_list_window_terminate_drag(wimp_dragged *drag, void *dat
 
 	/* Terminate the drag and end the autoscroll. */
 
-	if (xos_swi_number_from_string("Wimp_AutoScroll", NULL) == NULL)
-		wimp_auto_scroll(0, NULL);
+//	if (xos_swi_number_from_string("Wimp_AutoScroll", NULL) == NULL)
+//		wimp_auto_scroll(0, NULL);
 
-	if (drag_data->dragging_sprite)
-		dragasprite_stop();
+//	if (drag_data->dragging_sprite)
+//		dragasprite_stop();
 
 	/* Check that the returned data is valid. */
 
-	windat = drag_data->owner;
-	if (windat == NULL || windat->instance == NULL)
-		return;
+//	windat = drag_data->owner;
+//	if (windat == NULL || windat->instance == NULL)
+//		return;
 
-	file = transact_get_file(windat->instance);
-	if (file == NULL)
-		return;
+//	file = transact_get_file(windat->instance);
+//	if (file == NULL)
+//		return;
 
 	/* Get the line at which the drag ended. */
 
-	wimp_get_pointer_info(&pointer);
+//	wimp_get_pointer_info(&pointer);
 
-	window.w = windat->transaction_window;
-	wimp_get_window_state(&window);
+//	window.w = windat->transaction_window;
+//	wimp_get_window_state(&window);
 
-	end_line = window_calculate_click_row(&(pointer.pos), &window, TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT, -1);
+//	end_line = window_calculate_click_row(&(pointer.pos), &window, TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT, -1);
 
-	xpos = (pointer.pos.x - window.visible.x0) + window.xscroll;
-	end_column = column_find_icon_from_xpos(windat->columns, xpos);
+//	xpos = (pointer.pos.x - window.visible.x0) + window.xscroll;
+//	end_column = column_find_icon_from_xpos(windat->columns, xpos);
 
-	if ((end_line < 0) || (end_column == wimp_ICON_WINDOW))
-		return;
+//	if ((end_line < 0) || (end_column == wimp_ICON_WINDOW))
+//		return;
 
-	#ifdef DEBUG
-	debug_printf("Drag data from line %d, column %d to line %d, column %d", drag_data->start_line, drag_data->start_column, end_line, end_column);
-	#endif
+//	#ifdef DEBUG
+//	debug_printf("Drag data from line %d, column %d to line %d, column %d", drag_data->start_line, drag_data->start_column, end_line, end_column);
+//	#endif
 
-	start_transaction = transact_get_transaction_from_line(file, drag_data->start_line);
-	if (start_transaction == NULL_TRANSACTION)
-		return;
+//	start_transaction = transact_get_transaction_from_line(file, drag_data->start_line);
+//	if (start_transaction == NULL_TRANSACTION)
+//		return;
 
-	start_field_type = edit_get_field_type(windat->edit_line, drag_data->start_column);
-	if (start_field_type == EDIT_FIELD_NONE)
-		return;
+//	start_field_type = edit_get_field_type(windat->edit_line, drag_data->start_column);
+//	if (start_field_type == EDIT_FIELD_NONE)
+//		return;
 
-	transact_list_window_place_edit_line(windat, end_line);
+//	transact_list_window_place_edit_line(windat, end_line);
 
-	transfer = edit_request_field_contents_update(windat->edit_line, end_column);
-	if (transfer == NULL)
-		return;
+//	transfer = edit_request_field_contents_update(windat->edit_line, end_column);
+//	if (transfer == NULL)
+//		return;
 
-	switch (transfer->type) {
-	case EDIT_FIELD_TEXT:
-		if (start_field_type == EDIT_FIELD_TEXT) {
-			switch (drag_data->start_column) {
-			case TRANSACT_LIST_WINDOW_REFERENCE:
-				transact_get_reference(file, start_transaction, transfer->text.text, transfer->text.length);
-				break;
-			case TRANSACT_LIST_WINDOW_DESCRIPTION:
-				transact_get_description(file, start_transaction, transfer->text.text, transfer->text.length);
-				break;
-			}
-			changed = TRUE;
-		}
-		break;
-	case EDIT_FIELD_CURRENCY:
-		if (start_field_type == EDIT_FIELD_CURRENCY) {
-			transfer->currency.amount = transact_get_amount(file, start_transaction);
-			changed = TRUE;
-		}
-		break;
-	case EDIT_FIELD_DATE:
-		if (start_field_type == EDIT_FIELD_DATE) {
-			transfer->date.date = transact_get_date(file, start_transaction);
-			changed = TRUE;
-		}
-		break;
-	case EDIT_FIELD_ACCOUNT_IN:
-	case EDIT_FIELD_ACCOUNT_OUT:
-		target_type = (transfer->type == EDIT_FIELD_ACCOUNT_IN) ? ACCOUNT_FULL_IN : ACCOUNT_FULL_OUT;
-	
-		if (start_field_type == EDIT_FIELD_ACCOUNT_IN || start_field_type == EDIT_FIELD_ACCOUNT_OUT) {
-			switch (drag_data->start_column) {
-			case TRANSACT_LIST_WINDOW_FROM:
-			case TRANSACT_LIST_WINDOW_FROM_REC:
-			case TRANSACT_LIST_WINDOW_FROM_NAME:
-				account = transact_get_from(file, start_transaction);
-				if (account_get_type(file, account) & target_type) {
-					transfer->account.account = account;
-					transfer->account.reconciled = (transact_get_flags(file, start_transaction) & TRANS_REC_FROM) ? TRUE : FALSE;
-					changed = TRUE;
-				}
-				break;
-			case TRANSACT_LIST_WINDOW_TO:
-			case TRANSACT_LIST_WINDOW_TO_REC:
-			case TRANSACT_LIST_WINDOW_TO_NAME:
-				account = transact_get_to(file, start_transaction);
-				if (account_get_type(file, account) & target_type) {
-					transfer->account.account = account;
-					transfer->account.reconciled = (transact_get_flags(file, start_transaction) & TRANS_REC_TO) ? TRUE : FALSE;
-					changed = TRUE;
-				}
-				break;
-			}
-		}
-		break;
-	case EDIT_FIELD_DISPLAY:
-	case EDIT_FIELD_NONE:
-		break;
-	}
+//	switch (transfer->type) {
+//	case EDIT_FIELD_TEXT:
+//		if (start_field_type == EDIT_FIELD_TEXT) {
+//			switch (drag_data->start_column) {
+//			case TRANSACT_LIST_WINDOW_REFERENCE:
+//				transact_get_reference(file, start_transaction, transfer->text.text, transfer->text.length);
+//				break;
+//			case TRANSACT_LIST_WINDOW_DESCRIPTION:
+//				transact_get_description(file, start_transaction, transfer->text.text, transfer->text.length);
+//				break;
+//			}
+//			changed = TRUE;
+//		}
+//		break;
+//	case EDIT_FIELD_CURRENCY:
+//		if (start_field_type == EDIT_FIELD_CURRENCY) {
+//			transfer->currency.amount = transact_get_amount(file, start_transaction);
+//			changed = TRUE;
+//		}
+//		break;
+//	case EDIT_FIELD_DATE:
+//		if (start_field_type == EDIT_FIELD_DATE) {
+//			transfer->date.date = transact_get_date(file, start_transaction);
+//			changed = TRUE;
+//		}
+//		break;
+//	case EDIT_FIELD_ACCOUNT_IN:
+//	case EDIT_FIELD_ACCOUNT_OUT:
+//		target_type = (transfer->type == EDIT_FIELD_ACCOUNT_IN) ? ACCOUNT_FULL_IN : ACCOUNT_FULL_OUT;
 
-	edit_submit_field_contents_update(windat->edit_line, transfer, changed);
+//		if (start_field_type == EDIT_FIELD_ACCOUNT_IN || start_field_type == EDIT_FIELD_ACCOUNT_OUT) {
+//			switch (drag_data->start_column) {
+//			case TRANSACT_LIST_WINDOW_FROM:
+//			case TRANSACT_LIST_WINDOW_FROM_REC:
+//			case TRANSACT_LIST_WINDOW_FROM_NAME:
+//				account = transact_get_from(file, start_transaction);
+//				if (account_get_type(file, account) & target_type) {
+//					transfer->account.account = account;
+//					transfer->account.reconciled = (transact_get_flags(file, start_transaction) & TRANS_REC_FROM) ? TRUE : FALSE;
+//					changed = TRUE;
+//				}
+//				break;
+//			case TRANSACT_LIST_WINDOW_TO:
+//			case TRANSACT_LIST_WINDOW_TO_REC:
+//			case TRANSACT_LIST_WINDOW_TO_NAME:
+//				account = transact_get_to(file, start_transaction);
+//				if (account_get_type(file, account) & target_type) {
+//					transfer->account.account = account;
+//					transfer->account.reconciled = (transact_get_flags(file, start_transaction) & TRANS_REC_TO) ? TRUE : FALSE;
+//					changed = TRUE;
+//				}
+//				break;
+//			}
+//		}
+//		break;
+//	case EDIT_FIELD_DISPLAY:
+//	case EDIT_FIELD_NONE:
+//		break;
+//	}
+
+//	edit_submit_field_contents_update(windat->edit_line, transfer, changed);
 }
 
 
@@ -2050,15 +1866,15 @@ void transact_list_window_update_toolbar(struct transact_list_window *windat)
 {
 	struct file_block *file;
 
-	if (windat == NULL || windat->instance == NULL || windat->transaction_pane == NULL)
-		return;
+//	if (windat == NULL || windat->instance == NULL || windat->transaction_pane == NULL)
+//		return;
 
-	file = transact_get_file(windat->instance);
-	if (file == NULL)
-		return;
+//	file = transact_get_file(windat->instance);
+//	if (file == NULL)
+//		return;
 
-	icons_set_shaded(windat->transaction_pane, TRANSACT_LIST_WINDOW_PANE_VIEWACCT,
-			account_count_type_in_file(file, ACCOUNT_FULL) == 0);
+//	icons_set_shaded(windat->transaction_pane, TRANSACT_LIST_WINDOW_PANE_VIEWACCT,
+//			account_count_type_in_file(file, ACCOUNT_FULL) == 0);
 }
 
 
@@ -2070,10 +1886,10 @@ void transact_list_window_update_toolbar(struct transact_list_window *windat)
 
 void transact_list_window_bring_to_top(struct transact_list_window *windat)
 {
-	if (windat == NULL || windat->transaction_window == NULL)
-		return;
+//	if (windat == NULL || windat->transaction_window == NULL)
+//		return;
 
-	windows_open(windat->transaction_window);
+//	windows_open(windat->transaction_window);
 }
 
 
@@ -2088,27 +1904,27 @@ void transact_list_window_scroll_to_end(struct transact_list_window *windat, enu
 {
 	wimp_window_info	window;
 
-	if (windat == NULL || windat->transaction_window == NULL || direction == TRANSACT_SCROLL_NONE)
-		return;
+//	if (windat == NULL || windat->transaction_window == NULL || direction == TRANSACT_SCROLL_NONE)
+//		return;
 
-	window.w = windat->transaction_window;
-	wimp_get_window_info_header_only(&window);
+//	window.w = windat->transaction_window;
+//	wimp_get_window_info_header_only(&window);
 
-	switch (direction) {
-	case TRANSACT_SCROLL_HOME:
-		window.yscroll = window.extent.y1;
-		break;
+//	switch (direction) {
+//	case TRANSACT_SCROLL_HOME:
+//		window.yscroll = window.extent.y1;
+//		break;
 
-	case TRANSACT_SCROLL_END:
-		window.yscroll = window.extent.y0 - (window.extent.y1 - window.extent.y0);
-		break;
+//	case TRANSACT_SCROLL_END:
+//		window.yscroll = window.extent.y0 - (window.extent.y1 - window.extent.y0);
+//		break;
 
-	case TRANSACT_SCROLL_NONE:
-		break;
-	}
+//	case TRANSACT_SCROLL_NONE:
+//		break;
+//	}
 
- 	transact_list_window_minimise_extent(windat);
- 	wimp_open_window((wimp_open *) &window);
+//	transact_list_window_minimise_extent(windat);
+//	wimp_open_window((wimp_open *) &window);
 }
 
 
@@ -2128,68 +1944,68 @@ int transact_list_window_find_nearest_centre(struct transact_list_window *windat
 	wimp_window_state	window;
 	int			height, i, centre, result;
 
-	if (windat == NULL || windat->instance == NULL || windat->line_data == NULL ||
-			windat->transaction_window == NULL || account == NULL_ACCOUNT)
-		return NULL_TRANSACTION;
+//	if (windat == NULL || windat->instance == NULL || windat->line_data == NULL ||
+//			windat->transaction_window == NULL || account == NULL_ACCOUNT)
+//		return NULL_TRANSACTION;
 
-	file = transact_get_file(windat->instance);
-	if (file == NULL)
-		return NULL_TRANSACTION;
+//	file = transact_get_file(windat->instance);
+//	if (file == NULL)
+//		return NULL_TRANSACTION;
 
-	window.w = windat->transaction_window;
-	wimp_get_window_state(&window);
+//	window.w = windat->transaction_window;
+//	wimp_get_window_state(&window);
 
 	/* Calculate the height of the useful visible window, leaving out
 	 * any OS units taken up by part lines.
 	 */
 
-	height = window.visible.y1 - window.visible.y0 - WINDOW_ROW_HEIGHT - TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT;
+//	height = window.visible.y1 - window.visible.y0 - WINDOW_ROW_HEIGHT - TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT;
 
 	/* Calculate the centre line in the window. If this is greater than
 	 * the number of actual tracsactions in the window, reduce it
 	 * accordingly.
 	 */
 
-	centre = ((-window.yscroll + WINDOW_ROW_ICON_HEIGHT) / WINDOW_ROW_HEIGHT) + ((height / 2) / WINDOW_ROW_HEIGHT);
+//	centre = ((-window.yscroll + WINDOW_ROW_ICON_HEIGHT) / WINDOW_ROW_HEIGHT) + ((height / 2) / WINDOW_ROW_HEIGHT);
 
-	if (centre >= windat->display_lines)
-		centre = windat->display_lines - 1;
+//	if (centre >= windat->display_lines)
+//		centre = windat->display_lines - 1;
 
 	/* If there are no transactions, we can't return one. */
 
-	if (centre < 0)
-		return NULL_TRANSACTION;
+//	if (centre < 0)
+//		return NULL_TRANSACTION;
 
 	/* If the centre transaction is a match, return it. */
 
-	if (transact_get_from(file, windat->line_data[centre].transaction) == account ||
-			transact_get_to(file, windat->line_data[centre].transaction) == account)
-		return windat->line_data[centre].transaction;
+//	if (transact_get_from(file, windat->line_data[centre].transaction) == account ||
+//			transact_get_to(file, windat->line_data[centre].transaction) == account)
+//		return windat->line_data[centre].transaction;
 
 	/* Start searching out from the centre until we find a match or hit
 	 * both the start and end of the file.
 	 */
 
 	result = NULL_TRANSACTION;
-	i = 1;
+//	i = 1;
 
-	while (centre + i < windat->display_lines || centre - i >= 0) {
-		if (centre + i < windat->display_lines &&
-				(transact_get_from(file, windat->line_data[centre + i].transaction) == account ||
-			transact_get_to(file, windat->line_data[centre + i].transaction) == account)) {
-			result = windat->line_data[centre + i].transaction;
-			break;
-		}
+//	while (centre + i < windat->display_lines || centre - i >= 0) {
+//		if (centre + i < windat->display_lines &&
+//				(transact_get_from(file, windat->line_data[centre + i].transaction) == account ||
+//			transact_get_to(file, windat->line_data[centre + i].transaction) == account)) {
+//			result = windat->line_data[centre + i].transaction;
+//			break;
+//		}
 
-		if (centre - i >= 0 &&
-				(transact_get_from(file, windat->line_data[centre - i].transaction) == account ||
-			transact_get_to(file, windat->line_data[centre - i].transaction) == account)) {
-			result = windat->line_data[centre - i].transaction;
-			break;
-		}
+//		if (centre - i >= 0 &&
+//				(transact_get_from(file, windat->line_data[centre - i].transaction) == account ||
+//			transact_get_to(file, windat->line_data[centre - i].transaction) == account)) {
+//			result = windat->line_data[centre - i].transaction;
+//			break;
+//		}
 
-		i++;
-	}
+//		i++;
+//	}
 
 	return result;
 }
@@ -2245,7 +2061,7 @@ int transact_list_window_get_caret_line(struct transact_list_window *windat)
 	if (windat == NULL)
 		return 0;
 
-	entry_line = edit_get_line(windat->edit_line);
+//	entry_line = edit_get_line(windat->edit_line);
 
 	return (entry_line >= 0) ? entry_line : 0;
 }
@@ -2286,47 +2102,47 @@ static void transact_list_window_find_edit_line_vertically(struct transact_list_
 	int			height, top, bottom, line;
 
 
-	if (windat == NULL || windat->transaction_window == NULL || !edit_get_active(windat->edit_line))
-		return;
+//	if (windat == NULL || windat->transaction_window == NULL || !edit_get_active(windat->edit_line))
+//		return;
 
-	window.w = windat->transaction_window;
-	wimp_get_window_state(&window);
+//	window.w = windat->transaction_window;
+//	wimp_get_window_state(&window);
 
 	/* Calculate the height of the useful visible window, leaving out any OS units taken up by part lines.
 	 * This will allow the edit line to be aligned with the top or bottom of the window.
 	 */
 
-	height = window.visible.y1 - window.visible.y0 - WINDOW_ROW_HEIGHT - TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT;
+//	height = window.visible.y1 - window.visible.y0 - WINDOW_ROW_HEIGHT - TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT;
 
 	/* Calculate the top full line and bottom full line that are showing in the window.  Part lines don't
 	 * count and are discarded.
 	 */
 
-	top = (-window.yscroll + WINDOW_ROW_ICON_HEIGHT) / WINDOW_ROW_HEIGHT;
-	bottom = (height / WINDOW_ROW_HEIGHT) + top;
+//	top = (-window.yscroll + WINDOW_ROW_ICON_HEIGHT) / WINDOW_ROW_HEIGHT;
+//	bottom = (height / WINDOW_ROW_HEIGHT) + top;
 
 	/* If the edit line is above or below the visible area, bring it into range. */
 
-	line = edit_get_line(windat->edit_line);
-	if (line < 0)
-		return;
+//	line = edit_get_line(windat->edit_line);
+//	if (line < 0)
+//		return;
 
 #ifdef DEBUG
 	debug_printf("\\BFind transaction edit line");
 	debug_printf("Top: %d, Bottom: %d, Entry line: %d", top, bottom, line);
 #endif
 
-	if (line < top) {
-		window.yscroll = -(line * WINDOW_ROW_HEIGHT);
-		wimp_open_window((wimp_open *) &window);
-		transact_list_window_minimise_extent(windat);
-	}
+//	if (line < top) {
+//		window.yscroll = -(line * WINDOW_ROW_HEIGHT);
+//		wimp_open_window((wimp_open *) &window);
+//		transact_list_window_minimise_extent(windat);
+//	}
 
-	if (line > bottom) {
-		window.yscroll = -(line * WINDOW_ROW_HEIGHT - height);
-		wimp_open_window((wimp_open *) &window);
-		transact_list_window_minimise_extent(windat);
-	}
+//	if (line > bottom) {
+//		window.yscroll = -(line * WINDOW_ROW_HEIGHT - height);
+//		wimp_open_window((wimp_open *) &window);
+//		transact_list_window_minimise_extent(windat);
+//	}
 }
 
 
@@ -2351,55 +2167,55 @@ static osbool transact_list_window_edit_find_field(int line, int xmin, int xmax,
 	if (windat == NULL)
 		return FALSE;
 
-	window.w = windat->transaction_window;
-	wimp_get_window_state(&window);
+//	window.w = windat->transaction_window;
+//	wimp_get_window_state(&window);
 
-	icon_width = xmax - xmin;
+//	icon_width = xmax - xmin;
 
 	/* Establish the window dimensions. */
 
-	window_width = window.visible.x1 - window.visible.x0;
-	window_xmin = window.xscroll;
-	window_xmax = window.xscroll + window_width;
+//	window_width = window.visible.x1 - window.visible.x0;
+//	window_xmin = window.xscroll;
+//	window_xmax = window.xscroll + window_width;
 
-	if (window_width > icon_width) {
+//	if (window_width > icon_width) {
 		/* If the icon group fits into the visible window, just pull the overlap into view. */
 
-		if (xmin < window_xmin) {
-			window.xscroll = xmin;
-			wimp_open_window((wimp_open *) &window);
-		} else if (xmax > window_xmax) {
-			window.xscroll = xmax - window_width;
-			wimp_open_window((wimp_open *) &window);
-		}
-	} else {
+//		if (xmin < window_xmin) {
+//			window.xscroll = xmin;
+//			wimp_open_window((wimp_open *) &window);
+//		} else if (xmax > window_xmax) {
+//			window.xscroll = xmax - window_width;
+//			wimp_open_window((wimp_open *) &window);
+//		}
+//	} else {
 		/* If the icon is bigger than the window, however, align the target with the edge of the window. */
 
-		switch (target) {
-		case EDIT_ALIGN_LEFT:
-		case EDIT_ALIGN_CENTRE:
-			if (xmin < window_xmin || xmin > window_xmax) {
-				window.xscroll = xmin;
-				wimp_open_window((wimp_open *) &window);
-			}
-			break;
-		case EDIT_ALIGN_RIGHT:
-			if (xmax < window_xmin || xmax > window_xmax) {
-				window.xscroll = xmax - window_width;
-				wimp_open_window((wimp_open *) &window);
-			}
-			break;
-		case EDIT_ALIGN_NONE:
-			break;
-		}
-	}
+//		switch (target) {
+//		case EDIT_ALIGN_LEFT:
+//		case EDIT_ALIGN_CENTRE:
+//			if (xmin < window_xmin || xmin > window_xmax) {
+//				window.xscroll = xmin;
+//				wimp_open_window((wimp_open *) &window);
+//			}
+//			break;
+//		case EDIT_ALIGN_RIGHT:
+//			if (xmax < window_xmin || xmax > window_xmax) {
+//				window.xscroll = xmax - window_width;
+//				wimp_open_window((wimp_open *) &window);
+//			}
+//			break;
+//		case EDIT_ALIGN_NONE:
+//			break;
+//		}
+//	}
 
 	/* Make sure that the line is visible vertically, as well.
 	 * NB: This currently ignores the line parameter, as transact_find_edit_line_vertically()
 	 * queries the edit line directly. At present, these both yield the same result.
 	 */
 
-	transact_list_window_find_edit_line_vertically(windat);
+//	transact_list_window_find_edit_line_vertically(windat);
 
 	return TRUE;
 }
@@ -2440,7 +2256,8 @@ static osbool transact_list_window_edit_test_line(int line, void *data)
 	if (windat == NULL)
 		return FALSE;
 
-	return (transact_list_window_line_valid(windat, line)) ? TRUE : FALSE;
+//	return (transact_list_window_line_valid(windat, line)) ? TRUE : FALSE;
+	return FALSE;
 }
 
 
@@ -2465,7 +2282,7 @@ static osbool transact_list_window_edit_get_field(struct edit_data *data)
 	file = transact_get_file(windat->instance);
 	if (file == NULL)
 		return FALSE;
-
+/*
 	if (!transact_list_window_line_valid(windat, data->line))
 		return FALSE;
 
@@ -2517,7 +2334,7 @@ static osbool transact_list_window_edit_get_field(struct edit_data *data)
 		transact_get_description(file, transaction, data->text.text, data->text.length);
 		break;
 	}
-
+*/
 	return TRUE;
 }
 
@@ -2560,7 +2377,7 @@ static osbool transact_list_window_edit_put_field(struct edit_data *data)
 	if (!transact_list_window_extend_display_lines(windat, data->line))
 		return FALSE;
 
-	transaction = windat->line_data[data->line].transaction;
+//	transaction = windat->line_data[data->line].transaction;
 
 	/* Process the supplied data.
 	 *
@@ -2568,7 +2385,7 @@ static osbool transact_list_window_edit_put_field(struct edit_data *data)
 	 * window, so that the changes made to the data don't force updates
 	 * which then trigger data refetches and further change the edit line.
 	 */
-
+/*
 	transact_list_window_disable_redraw = TRUE;
 
 	switch (data->icon) {
@@ -2597,16 +2414,16 @@ static osbool transact_list_window_edit_put_field(struct edit_data *data)
 	}
 
 	transact_list_window_disable_redraw = FALSE;
-
+*/
 	/* Finally, look for the next reconcile line if that is necessary.
 	 *
 	 * This is done last, as the only hold we have over the line being edited
 	 * is the edit line location.  Move that and we've lost everything.
 	 */
 
-	if ((data->icon == TRANSACT_LIST_WINDOW_FROM || data->icon == TRANSACT_LIST_WINDOW_TO) &&
-			(data->key == '+' || data->key == '=' || data->key == '-' || data->key == '_'))
-		transact_list_window_find_next_reconcile_line(windat, FALSE);
+//	if ((data->icon == TRANSACT_LIST_WINDOW_FROM || data->icon == TRANSACT_LIST_WINDOW_TO) &&
+//			(data->key == '+' || data->key == '=' || data->key == '-' || data->key == '_'))
+//		transact_list_window_find_next_reconcile_line(windat, FALSE);
 
 	return TRUE;
 }
@@ -2648,32 +2465,32 @@ static osbool transact_list_window_edit_auto_complete(struct edit_data *data)
 
 	/* Process the Reference or Descripton field as appropriate. */
 
-	switch (data->icon) {
-	case TRANSACT_LIST_WINDOW_REFERENCE:
+//	switch (data->icon) {
+//	case TRANSACT_LIST_WINDOW_REFERENCE:
 		/* To complete the reference, we need to be in a valid transaction which contains
 		 * at least one of the From or To fields.
 		 */
 
-		if (!transact_list_window_line_valid(windat, data->line))
-			return FALSE;
+//		if (!transact_list_window_line_valid(windat, data->line))
+//			return FALSE;
 
-		transaction = windat->line_data[data->line].transaction;
+//		transaction = windat->line_data[data->line].transaction;
 
-		account_get_next_cheque_number(file, transact_get_from(file, transaction), transact_get_to(file, transaction),
-				1, data->text.text, data->text.length);
-		break;
+//		account_get_next_cheque_number(file, transact_get_from(file, transaction), transact_get_to(file, transaction),
+//				1, data->text.text, data->text.length);
+//		break;
 
-	case TRANSACT_LIST_WINDOW_DESCRIPTION:
+//	case TRANSACT_LIST_WINDOW_DESCRIPTION:
 		/* The description field can be completed whether or not there's an underlying
 		 * transaction, as we just search back up from the last valid line.
 		 */
 
-		transact_list_window_complete_description(windat, data->line, data->text.text, data->text.length);
-		break;
+//		transact_list_window_complete_description(windat, data->line, data->text.text, data->text.length);
+//		break;
 
-	default:
-		return FALSE;
-	}
+//	default:
+//		return FALSE;
+//	}
 
 	return TRUE;
 }
@@ -2702,7 +2519,7 @@ static char *transact_list_window_complete_description(struct transact_list_wind
 	file = transact_get_file(windat->instance);
 	if (file == NULL)
 		return FALSE;
-
+/*
 	if (line >= windat->display_lines)
 		line = windat->display_lines - 1;
 	else
@@ -2717,7 +2534,7 @@ static char *transact_list_window_complete_description(struct transact_list_wind
 			break;
 		}
 	}
-
+*/
 	return buffer;
 }
 
@@ -2744,7 +2561,7 @@ static void transact_list_window_find_next_reconcile_line(struct transact_list_w
 	file = transact_get_file(windat->instance);
 	if (file == NULL)
 		return;
-
+/*
 	line = edit_get_line(windat->edit_line);
 	if (!transact_list_window_line_valid(windat, line))
 		return;
@@ -2778,7 +2595,7 @@ static void transact_list_window_find_next_reconcile_line(struct transact_list_w
 	}
 
 	if (found != TRANSACT_FIELD_NONE)
-		transact_list_window_place_caret(windat, line, found);
+		transact_list_window_place_caret(windat, line, found);*/
 }
 
 
@@ -2842,8 +2659,8 @@ osbool transact_list_window_insert_preset_into_line(struct transact_list_window 
 	enum sort_type		order;
 
 
-	if (windat == NULL || windat->instance == NULL || windat->edit_line == NULL)
-		return FALSE;
+//	if (windat == NULL || windat->instance == NULL || windat->edit_line == NULL)
+//		return FALSE;
 
 	file = transact_get_file(windat->instance);
 	if (file == NULL || !preset_test_index_valid(file, preset))
@@ -2854,7 +2671,7 @@ osbool transact_list_window_insert_preset_into_line(struct transact_list_window 
 	if (!transact_list_window_extend_display_lines(windat, line))
 		return FALSE;
 
-	transaction = windat->line_data[line].transaction;
+//	transaction = windat->line_data[line].transaction;
 
 	/* Update the transaction from the preset, piece by piece. */
 
@@ -2913,8 +2730,8 @@ osbool transact_list_window_insert_preset_into_line(struct transact_list_window 
 
 	/* Put the caret at the end of the preset destination field. */
 
-	icons_put_caret_at_end(windat->transaction_window,
-			transact_list_window_convert_preset_icon_number(preset_get_caret_destination(file, preset)));
+//	icons_put_caret_at_end(windat->transaction_window,
+//			transact_list_window_convert_preset_icon_number(preset_get_caret_destination(file, preset)));
 
 	/* If nothing changed, there's no more to do. */
 
@@ -2932,22 +2749,22 @@ osbool transact_list_window_insert_preset_into_line(struct transact_list_window 
 	 * a preset key is analagous to hitting Return.
 	 */
 
-	order = sort_get_order(windat->sort);
+//	order = sort_get_order(windat->sort);
 
-	if (config_opt_read("AutoSort") && (
-			((order & SORT_MASK) == SORT_DATE) ||
-			((changed & TRANSACT_FIELD_FROM) && ((order & SORT_MASK) == SORT_FROM)) ||
-			((changed & TRANSACT_FIELD_TO) && ((order & SORT_MASK) == SORT_TO)) ||
-			((changed & TRANSACT_FIELD_REF) && ((order & SORT_MASK) == SORT_REFERENCE)) ||
-			((changed & TRANSACT_FIELD_AMOUNT) && ((order & SORT_MASK) == SORT_AMOUNT)) ||
-			((changed & TRANSACT_FIELD_DESC) && ((order & SORT_MASK) == SORT_DESCRIPTION)))) {
-		transact_list_window_sort(windat);
+//	if (config_opt_read("AutoSort") && (
+//			((order & SORT_MASK) == SORT_DATE) ||
+//			((changed & TRANSACT_FIELD_FROM) && ((order & SORT_MASK) == SORT_FROM)) ||
+//			((changed & TRANSACT_FIELD_TO) && ((order & SORT_MASK) == SORT_TO)) ||
+//			((changed & TRANSACT_FIELD_REF) && ((order & SORT_MASK) == SORT_REFERENCE)) ||
+//			((changed & TRANSACT_FIELD_AMOUNT) && ((order & SORT_MASK) == SORT_AMOUNT)) ||
+//			((changed & TRANSACT_FIELD_DESC) && ((order & SORT_MASK) == SORT_DESCRIPTION)))) {
+//		transact_list_window_sort(windat);
 
-		if (transact_list_window_line_valid(windat, line)) {
-			accview_sort(file, transact_get_from(file, windat->line_data[line].transaction));
-			accview_sort(file, transact_get_to(file, windat->line_data[line].transaction));
-		}
-	}
+//		if (transact_list_window_line_valid(windat, line)) {
+//			accview_sort(file, transact_get_from(file, windat->line_data[line].transaction));
+//			accview_sort(file, transact_get_to(file, windat->line_data[line].transaction));
+//		}
+//	}
 
 	return TRUE;
 }
@@ -3034,28 +2851,28 @@ static int transact_list_window_edit_auto_sort(wimp_i icon, void *data)
 	 * will be changing otherwise.
 	 */
 
-	order = sort_get_order(windat->sort);
+//	order = sort_get_order(windat->sort);
 
-	if ((icon == TRANSACT_LIST_WINDOW_DATE && (order & SORT_MASK) != SORT_DATE) ||
-			(icon == TRANSACT_LIST_WINDOW_FROM && (order & SORT_MASK) != SORT_FROM) ||
-			(icon == TRANSACT_LIST_WINDOW_TO && (order & SORT_MASK) != SORT_TO) ||
-			(icon == TRANSACT_LIST_WINDOW_REFERENCE && (order & SORT_MASK) != SORT_REFERENCE) ||
-			(icon == TRANSACT_LIST_WINDOW_AMOUNT && (order & SORT_MASK) != SORT_AMOUNT) ||
-			(icon == TRANSACT_LIST_WINDOW_DESCRIPTION && (order & SORT_MASK) != SORT_DESCRIPTION))
-		return TRUE;
+//	if ((icon == TRANSACT_LIST_WINDOW_DATE && (order & SORT_MASK) != SORT_DATE) ||
+//			(icon == TRANSACT_LIST_WINDOW_FROM && (order & SORT_MASK) != SORT_FROM) ||
+//			(icon == TRANSACT_LIST_WINDOW_TO && (order & SORT_MASK) != SORT_TO) ||
+//			(icon == TRANSACT_LIST_WINDOW_REFERENCE && (order & SORT_MASK) != SORT_REFERENCE) ||
+//			(icon == TRANSACT_LIST_WINDOW_AMOUNT && (order & SORT_MASK) != SORT_AMOUNT) ||
+//			(icon == TRANSACT_LIST_WINDOW_DESCRIPTION && (order & SORT_MASK) != SORT_DESCRIPTION))
+//		return TRUE;
 
 	/* Sort the transactions. */
 
-	transact_list_window_sort(windat);
+//	transact_list_window_sort(windat);
 
 	/* Re-sort any affected account views. */
 
-	entry_line = edit_get_line(windat->edit_line);
+//	entry_line = edit_get_line(windat->edit_line);
 
-	if (transact_list_window_line_valid(windat, entry_line)) {
-		accview_sort(file, transact_get_from(file, windat->line_data[entry_line].transaction));
-		accview_sort(file, transact_get_to(file, windat->line_data[entry_line].transaction));
-	}
+//	if (transact_list_window_line_valid(windat, entry_line)) {
+//		accview_sort(file, transact_get_from(file, windat->line_data[entry_line].transaction));
+//		accview_sort(file, transact_get_to(file, windat->line_data[entry_line].transaction));
+//	}
 
 	return TRUE;
 }
@@ -3094,8 +2911,8 @@ static osbool transact_list_window_extend_display_lines(struct transact_list_win
 	struct file_block	*file;
 	int			start, i;
 
-	if (windat == NULL || windat->instance == NULL || windat->edit_line == NULL)
-		return FALSE;
+//	if (windat == NULL || windat->instance == NULL || windat->edit_line == NULL)
+//		return FALSE;
 
 	file = transact_get_file(windat->instance);
 	if (file == NULL)
@@ -3108,22 +2925,23 @@ static osbool transact_list_window_extend_display_lines(struct transact_list_win
 	 * After the raw transactions are added, the Row column is redrawn only.
 	 */
 
-	if (line >= windat->display_lines) {
-		start = windat->display_lines;
+//	if (line >= windat->display_lines) {
+//		start = windat->display_lines;
 
-		transact_list_window_disable_redraw = TRUE;
+//		transact_list_window_disable_redraw = TRUE;
 
-		for (i = windat->display_lines; i <= line; i++)
-			transact_add_raw_entry(file, NULL_DATE, NULL_ACCOUNT, NULL_ACCOUNT, TRANS_FLAGS_NONE, NULL_CURRENCY, "", "");
+//		for (i = windat->display_lines; i <= line; i++)
+//			transact_add_raw_entry(file, NULL_DATE, NULL_ACCOUNT, NULL_ACCOUNT, TRANS_FLAGS_NONE, NULL_CURRENCY, "", "");
 
-		transact_list_window_disable_redraw = FALSE;
+//		transact_list_window_disable_redraw = FALSE;
 
-		transact_list_window_force_redraw(windat, start, windat->display_lines - 1, TRANSACT_LIST_WINDOW_PANE_ROW);
-	}
+//		transact_list_window_force_redraw(windat, start, windat->display_lines - 1, TRANSACT_LIST_WINDOW_PANE_ROW);
+//	}
 
 	/* If the line is less than the display line count, we succeeded. */
 
-	return (line < windat->display_lines) ? TRUE : FALSE;
+//	return (line < windat->display_lines) ? TRUE : FALSE;
+return FALSE;
 }
 
 
@@ -3140,8 +2958,8 @@ int transact_list_window_find_first_blank_line(struct transact_list_window *wind
 	struct file_block	*file;
 	int			line;
 
-	if (windat == NULL || windat->instance == NULL || windat->line_data == NULL)
-		return 0;
+//	if (windat == NULL || windat->instance == NULL || windat->line_data == NULL)
+//		return 0;
 
 	file = transact_get_file(windat->instance);
 	if (file == NULL)
@@ -3151,15 +2969,15 @@ int transact_list_window_find_first_blank_line(struct transact_list_window *wind
 	debug_printf("\\DFinding first blank line");
 	#endif
 
-	line = windat->display_lines;
+//	line = windat->display_lines;
 
-	while (line > 0 && transact_is_blank(file, windat->line_data[line - 1].transaction)) {
-		line--;
+//	while (line > 0 && transact_is_blank(file, windat->line_data[line - 1].transaction)) {
+//		line--;
 
 		#ifdef DEBUG
 		debug_printf("Stepping back up...");
 		#endif
-	}
+//	}
 
 	return line;
 }
@@ -3209,7 +3027,7 @@ enum transact_field transact_list_window_search(struct transact_list_window *win
 
 	from_rec = flags & TRANS_REC_FROM;
 	to_rec = flags & TRANS_REC_TO;
-
+#if 0
 	while (*line < windat->display_lines && *line >= 0 && !match) {
 		/* Initialise the test result variable.  The tests all have a bit allocated.  For OR tests, these start unset and
 		 * are set if a test passes; a non-zero value at the end indicates a match.  For AND tests, all the required bits
@@ -3289,7 +3107,7 @@ enum transact_field transact_list_window_search(struct transact_list_window *win
 				(*line)++;
 		}
 	}
-
+#endif
 	if (!match)
 		return TRANSACT_FIELD_NONE;
 

@@ -69,7 +69,7 @@
 #include "edit.h"
 #include "file.h"
 #include "flexutils.h"
-#inclide "list_window.h"
+#include "list_window.h"
 #include "print_dialogue.h"
 #include "report.h"
 #include "sort.h"

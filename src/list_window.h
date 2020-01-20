@@ -214,7 +214,11 @@ struct list_window_definition {
 
 	void		(*callback_pane_click_handler)(wimp_pointer *pointer, struct file_block *file, void *data);
 
-	void		(*callback_redraw_handler)(int index, struct file_block *file, void *data);
+	void*		(*callback_redraw_prepare)(struct file_block *file, void *data);
+
+	void		(*callback_redraw_finalise)(struct file_block *file, void *data, void *redraw);
+
+	void		(*callback_redraw_handler)(int index, struct file_block *file, void *data, void *redraw);
 
 	void		(*callback_scroll_handler)(wimp_scroll *scroll);
 

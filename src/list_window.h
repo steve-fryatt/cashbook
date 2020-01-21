@@ -239,6 +239,8 @@ struct list_window_definition {
 	void		(*callback_export_line)(FILE *out, enum filing_delimit_type format, struct file_block *file, int index);
 
 	wimp_colour	(*callback_get_colour)(int index, struct file_block *file, void *data);
+
+	osbool		(*callback_is_blank)(int index, struct file_block *file, void *data);
 };
 
 
@@ -341,6 +343,16 @@ void list_window_redraw(struct list_window *instance, int index, int columns, ..
 
 
 /**
+ * Find the display line number of the current entry line.
+ *
+ * \param *instance		The list window instance to interrogate.
+ * \return			The display line number of the line with the caret.
+ */
+
+int list_window_get_caret_line(struct list_window *instance);
+
+
+/**
  * Initialise the contents of the list window, creating an entry for
  * each of the required entries.
  *
@@ -375,6 +387,17 @@ osbool list_window_add_entry(struct list_window *instance, int entry, osbool sor
  */
 
 osbool list_window_delete_entry(struct list_window *instance, int entry, osbool sort);
+
+
+/**
+ * Find and return the line number of the first blank line in a list window,
+ * based on display order and the client's interpretation of 'blank'.
+ *
+ * \param *instance		The list window instance to search.
+ * \return			The first blank display line.
+ */
+
+int list_window_find_first_blank_line(struct list_window *instance);
 
 
 /**

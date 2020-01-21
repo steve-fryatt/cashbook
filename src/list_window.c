@@ -283,6 +283,8 @@ static void list_window_place_edit_line(struct list_window *instance, int line);
 
 static osbool list_window_edit_place_line(int line, void *data);
 static osbool list_window_edit_test_line(int line, void *data);
+static osbool list_window_edit_find_field(int line, int xmin, int xmax, enum edit_align target, void *data);
+static int list_window_edit_first_blank_line(void *data);
 
 static osbool list_window_process_sort_window(enum sort_type order, void *data);
 static int list_window_sort_compare(enum sort_type type, int index1, int index2, void *data);
@@ -303,8 +305,8 @@ void list_window_initialise(void)
 	list_window_edit_callbacks.put_field = NULL; //transact_list_window_edit_put_field;
 	list_window_edit_callbacks.test_line = list_window_edit_test_line;
 	list_window_edit_callbacks.place_line = list_window_edit_place_line;
-	list_window_edit_callbacks.find_field = NULL; //transact_list_window_edit_find_field;
-	list_window_edit_callbacks.first_blank_line = NULL; //transact_list_window_edit_first_blank_line;
+	list_window_edit_callbacks.find_field = list_window_edit_find_field;
+	list_window_edit_callbacks.first_blank_line = list_window_edit_first_blank_line;
 	list_window_edit_callbacks.auto_sort = NULL; //transact_list_window_edit_auto_sort;
 	list_window_edit_callbacks.auto_complete = NULL; //transact_list_window_edit_auto_complete;
 	list_window_edit_callbacks.insert_preset = NULL; //transact_list_window_edit_insert_preset;
@@ -1796,6 +1798,100 @@ static osbool list_window_edit_test_line(int line, void *data)
 
 
 /**
+ * Handle requests from the edit line to bring a given line and field into
+ * view in the visible area of the window.
+ *
+ * \param line			The line in the window to be brought into view.
+ * \param xmin			The minimum X coordinate to be shown.
+ * \param xmax			The maximum X coordinate to be shown.
+ * \param target		The target requirement: left edge, right edge or centred.
+ * \param *data			Our client data, holding the window instance.
+ * \return			TRUE if handled successfully; FALSE if not.
+ */
+
+static osbool list_window_edit_find_field(int line, int xmin, int xmax, enum edit_align target, void *data)
+{
+	struct list_window	*instance = data;
+	wimp_window_state	window;
+	int			icon_width, window_width, window_xmin, window_xmax;
+
+	if (instance == NULL)
+		return FALSE;
+
+	window.w = instance->window;
+	wimp_get_window_state(&window);
+
+	icon_width = xmax - xmin;
+
+	/* Establish the window dimensions. */
+
+	window_width = window.visible.x1 - window.visible.x0;
+	window_xmin = window.xscroll;
+	window_xmax = window.xscroll + window_width;
+
+	if (window_width > icon_width) {
+		/* If the icon group fits into the visible window, just pull the overlap into view. */
+
+		if (xmin < window_xmin) {
+			window.xscroll = xmin;
+			wimp_open_window((wimp_open *) &window);
+		} else if (xmax > window_xmax) {
+			window.xscroll = xmax - window_width;
+			wimp_open_window((wimp_open *) &window);
+		}
+	} else {
+		/* If the icon is bigger than the window, however, align the target with the edge of the window. */
+
+		switch (target) {
+		case EDIT_ALIGN_LEFT:
+		case EDIT_ALIGN_CENTRE:
+			if (xmin < window_xmin || xmin > window_xmax) {
+				window.xscroll = xmin;
+				wimp_open_window((wimp_open *) &window);
+			}
+			break;
+		case EDIT_ALIGN_RIGHT:
+			if (xmax < window_xmin || xmax > window_xmax) {
+				window.xscroll = xmax - window_width;
+				wimp_open_window((wimp_open *) &window);
+			}
+			break;
+		case EDIT_ALIGN_NONE:
+			break;
+		}
+	}
+
+	/* Make sure that the line is visible vertically, as well.
+	 * NB: This currently ignores the line parameter, as transact_find_edit_line_vertically()
+	 * queries the edit line directly. At present, these both yield the same result.
+	 */
+
+	list_window_find_edit_line_vertically(instance);
+
+	return TRUE;
+}
+
+
+/**
+ * Inform the edit line about the location of the first blank transaction
+ * line in our window.
+ *
+ * \param *data			Our client data, holding the window instance.
+ * \return			The line number of the first blank line, or -1.
+ */
+
+static int list_window_edit_first_blank_line(void *data)
+{
+	struct list_window *instance = data;
+
+	if (instance == NULL)
+		return -1;
+
+	return list_window_find_first_blank_line(instance);
+}
+
+
+/**
  * Initialise the contents of the list window, creating an entry for
  * each of the required entries.
  *
@@ -1910,6 +2006,43 @@ osbool list_window_delete_entry(struct list_window *instance, int entry, osbool 
 		list_window_force_redraw(instance, delete, instance->display_lines, wimp_ICON_WINDOW);
 
 	return TRUE;
+}
+
+
+/**
+ * Find and return the line number of the first blank line in a list window,
+ * based on display order and the client's interpretation of 'blank'.
+ *
+ * \param *instance		The list window instance to search.
+ * \return			The first blank display line.
+ */
+
+int list_window_find_first_blank_line(struct list_window *instance)
+{
+	int line;
+
+	if (instance == NULL || instance->file == NULL || instance->line_data == NULL)
+		return 0;
+
+	if (instance->parent->definition->callback_is_blank == NULL)
+		return 0;
+
+	#ifdef DEBUG
+	debug_printf("\\DFinding first blank line");
+	#endif
+
+	line = instance->display_lines;
+
+	while (line > 0 && instance->parent->definition->callback_is_blank(instance->line_data[line - 1].index,
+			instance->file, instance->client_data)) {
+		line--;
+
+		#ifdef DEBUG
+		debug_printf("Stepping back up...");
+		#endif
+	}
+
+	return line;
 }
 
 

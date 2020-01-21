@@ -240,6 +240,7 @@ static struct list_window_definition preset_list_window_definition = {
 	NULL,
 	NULL,
 	NULL,
+	NULL,
 	NULL
 };
 

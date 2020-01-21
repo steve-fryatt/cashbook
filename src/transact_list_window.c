@@ -314,6 +314,7 @@ static struct list_window_definition transact_list_window_definition = {
 	NULL,
 	NULL,
 	NULL,
+	NULL,
 	NULL
 };
 
@@ -483,8 +484,6 @@ static void transaction_list_window_terminate_drag(wimp_dragged *drag, void *dat
 
 
 static void transact_list_window_place_edit_line(struct transact_list_window *windat, int line);
-static osbool transact_list_window_edit_find_field(int line, int xmin, int xmax, enum edit_align target, void *data);
-static int transact_list_window_edit_first_blank_line(void *data);
 static osbool transact_list_window_edit_get_field(struct edit_data *data);
 static osbool transact_list_window_edit_put_field(struct edit_data *data);
 static osbool transact_list_window_edit_auto_complete(struct edit_data *data);
@@ -495,6 +494,7 @@ static wimp_i transact_list_window_convert_preset_icon_number(enum preset_caret 
 static int transact_list_window_edit_auto_sort(wimp_i icon, void *data);
 static wimp_colour transact_list_window_line_colour(tran_t transaction, struct file_block *file, void *data);
 static osbool transact_list_window_extend_display_lines(struct transact_list_window *windat, int line);
+static osbool transact_list_window_test_blank(tran_t transaction, struct file_block *file, void *data);
 
 
 static void transact_list_window_open_print_window(struct transact_list_window *windat, wimp_pointer *ptr, osbool restore);
@@ -534,6 +534,7 @@ void transact_list_window_initialise(osspriteop_area *sprites)
 	transact_list_window_definition.callback_print_include = transact_list_window_print_include;
 //	transact_list_window_definition.callback_print_field = transact_list_window_print_field;
 	transact_list_window_definition.callback_export_line = transact_list_window_export_delimited_line;
+	transact_list_window_definition.callback_is_blank = transact_list_window_test_blank;
 
 	transact_list_window_block = list_window_create(&transact_list_window_definition, sprites);
 
@@ -2062,100 +2063,6 @@ int transact_list_window_get_caret_line(struct transact_list_window *windat)
 
 
 /**
- * Handle requests from the edit line to bring a given line and field into
- * view in the visible area of the window.
- *
- * \param line			The line in the window to be brought into view.
- * \param xmin			The minimum X coordinate to be shown.
- * \param xmax			The maximum X coordinate to be shown.
- * \param target		The target requirement: left edge, right edge or centred.
- * \param *data			Our client data, holding the window instance.
- * \return			TRUE if handled successfully; FALSE if not.
- */
-
-static osbool transact_list_window_edit_find_field(int line, int xmin, int xmax, enum edit_align target, void *data)
-{
-	struct transact_list_window	*windat = data;
-	wimp_window_state		window;
-	int				icon_width, window_width, window_xmin, window_xmax;
-
-	if (windat == NULL)
-		return FALSE;
-
-//	window.w = windat->transaction_window;
-//	wimp_get_window_state(&window);
-
-//	icon_width = xmax - xmin;
-
-	/* Establish the window dimensions. */
-
-//	window_width = window.visible.x1 - window.visible.x0;
-//	window_xmin = window.xscroll;
-//	window_xmax = window.xscroll + window_width;
-
-//	if (window_width > icon_width) {
-		/* If the icon group fits into the visible window, just pull the overlap into view. */
-
-//		if (xmin < window_xmin) {
-//			window.xscroll = xmin;
-//			wimp_open_window((wimp_open *) &window);
-//		} else if (xmax > window_xmax) {
-//			window.xscroll = xmax - window_width;
-//			wimp_open_window((wimp_open *) &window);
-//		}
-//	} else {
-		/* If the icon is bigger than the window, however, align the target with the edge of the window. */
-
-//		switch (target) {
-//		case EDIT_ALIGN_LEFT:
-//		case EDIT_ALIGN_CENTRE:
-//			if (xmin < window_xmin || xmin > window_xmax) {
-//				window.xscroll = xmin;
-//				wimp_open_window((wimp_open *) &window);
-//			}
-//			break;
-//		case EDIT_ALIGN_RIGHT:
-//			if (xmax < window_xmin || xmax > window_xmax) {
-//				window.xscroll = xmax - window_width;
-//				wimp_open_window((wimp_open *) &window);
-//			}
-//			break;
-//		case EDIT_ALIGN_NONE:
-//			break;
-//		}
-//	}
-
-	/* Make sure that the line is visible vertically, as well.
-	 * NB: This currently ignores the line parameter, as transact_find_edit_line_vertically()
-	 * queries the edit line directly. At present, these both yield the same result.
-	 */
-
-//	transact_list_window_find_edit_line_vertically(windat);
-
-	return TRUE;
-}
-
-
-/**
- * Inform the edit line about the location of the first blank transaction
- * line in our window.
- *
- * \param *data			Our client data, holding the window instance.
- * \return			The line number of the first blank line, or -1.
- */
-
-static int transact_list_window_edit_first_blank_line(void *data)
-{
-	struct transact_list_window *windat = data;
-
-	if (windat == NULL)
-		return -1;
-
-	return transact_list_window_find_first_blank_line(windat);
-}
-
-
-/**
  * Handle requests for field data from the edit line.
  *
  * \param *data			The block to hold the requested data.
@@ -2849,31 +2756,25 @@ return FALSE;
 
 int transact_list_window_find_first_blank_line(struct transact_list_window *windat)
 {
-	struct file_block	*file;
-	int			line;
+	if (windat == NULL || windat->window == NULL)
+		return 0;
 
-//	if (windat == NULL || windat->instance == NULL || windat->line_data == NULL)
-//		return 0;
+	return list_window_find_first_blank_line(windat->window);
+}
 
-	file = transact_get_file(windat->instance);
-	if (file == NULL)
-		return FALSE;
 
-	#ifdef DEBUG
-	debug_printf("\\DFinding first blank line");
-	#endif
+/**
+ * Test a transaction to see if it is blank.
+ *
+ * \param transaction		The transaction index to test.
+ * \param *file			The file containing the transaction.
+ * \param *data			The transaction list window instance.
+ * \return			TRUE if the line is considered blank; else FALSE.
+ */
 
-//	line = windat->display_lines;
-
-//	while (line > 0 && transact_is_blank(file, windat->line_data[line - 1].transaction)) {
-//		line--;
-
-		#ifdef DEBUG
-		debug_printf("Stepping back up...");
-		#endif
-//	}
-
-	return line;
+static osbool transact_list_window_test_blank(tran_t transaction, struct file_block *file, void *data)
+{
+	return transact_is_blank(file, transaction);
 }
 
 

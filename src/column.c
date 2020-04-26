@@ -1241,6 +1241,30 @@ wimp_i column_get_group_icon(struct column_block *instance, wimp_i field)
 }
 
 
+/**
+ * Return the parent field column icon handle for the column containing a given
+ * field icon.
+ *
+ * \param *instance		The column set instance to search.
+ * \param field			The field icon handle to look up.
+ * \return			The parent field icon handle, or wimp_ICON_WINDOW.
+ */
+
+wimp_i column_get_parent_field_icon(struct column_block *instance, wimp_i field)
+{
+	int	column;
+
+	if (instance == NULL)
+		return wimp_ICON_WINDOW;
+
+	column = column_get_from_field(instance, field);
+	if (column == -1)
+		return wimp_ICON_WINDOW;
+
+	return instance->map[column].parent;
+}
+
+
 
 /**
  * Return the minimum width that a group of columns can be dragged to.  This is

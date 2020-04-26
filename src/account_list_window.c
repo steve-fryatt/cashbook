@@ -195,12 +195,12 @@
 /* The Account List Window column map. */
 
 static struct column_map account_list_window_columns[ACCOUNT_LIST_WINDOW_COLUMNS] = {
-	{ACCOUNT_LIST_WINDOW_IDENT, ACCOUNT_LIST_WINDOW_PANE_NAME, ACCOUNT_LIST_WINDOW_FOOT_NAME, SORT_NONE},
-	{ACCOUNT_LIST_WINDOW_NAME, ACCOUNT_LIST_WINDOW_PANE_NAME, ACCOUNT_LIST_WINDOW_FOOT_NAME, SORT_NONE},
-	{ACCOUNT_LIST_WINDOW_STATEMENT, ACCOUNT_LIST_WINDOW_PANE_STATEMENT, ACCOUNT_LIST_WINDOW_FOOT_STATEMENT, SORT_NONE},
-	{ACCOUNT_LIST_WINDOW_CURRENT, ACCOUNT_LIST_WINDOW_PANE_CURRENT, ACCOUNT_LIST_WINDOW_FOOT_CURRENT, SORT_NONE},
-	{ACCOUNT_LIST_WINDOW_FINAL, ACCOUNT_LIST_WINDOW_PANE_FINAL, ACCOUNT_LIST_WINDOW_FOOT_FINAL, SORT_NONE},
-	{ACCOUNT_LIST_WINDOW_BUDGET, ACCOUNT_LIST_WINDOW_PANE_BUDGET, ACCOUNT_LIST_WINDOW_FOOT_BUDGET, SORT_NONE}
+	{ACCOUNT_LIST_WINDOW_IDENT, wimp_ICON_WINDOW, ACCOUNT_LIST_WINDOW_PANE_NAME, ACCOUNT_LIST_WINDOW_FOOT_NAME, SORT_NONE},
+	{ACCOUNT_LIST_WINDOW_NAME, ACCOUNT_LIST_WINDOW_IDENT, ACCOUNT_LIST_WINDOW_PANE_NAME, ACCOUNT_LIST_WINDOW_FOOT_NAME, SORT_NONE},
+	{ACCOUNT_LIST_WINDOW_STATEMENT, wimp_ICON_WINDOW, ACCOUNT_LIST_WINDOW_PANE_STATEMENT, ACCOUNT_LIST_WINDOW_FOOT_STATEMENT, SORT_NONE},
+	{ACCOUNT_LIST_WINDOW_CURRENT, wimp_ICON_WINDOW, ACCOUNT_LIST_WINDOW_PANE_CURRENT, ACCOUNT_LIST_WINDOW_FOOT_CURRENT, SORT_NONE},
+	{ACCOUNT_LIST_WINDOW_FINAL, wimp_ICON_WINDOW, ACCOUNT_LIST_WINDOW_PANE_FINAL, ACCOUNT_LIST_WINDOW_FOOT_FINAL, SORT_NONE},
+	{ACCOUNT_LIST_WINDOW_BUDGET, wimp_ICON_WINDOW, ACCOUNT_LIST_WINDOW_PANE_BUDGET, ACCOUNT_LIST_WINDOW_FOOT_BUDGET, SORT_NONE}
 };
 
 /* The Account List Window additional column map. */
@@ -726,7 +726,7 @@ static void account_list_window_click_handler(wimp_pointer *pointer)
 {
 	struct account_list_window	*windat;
 	struct file_block		*file;
-	int				line;
+	int				ypos, line;
 	wimp_window_state		window;
 
 	windat = event_get_window_user_data(pointer->w);
@@ -740,7 +740,9 @@ static void account_list_window_click_handler(wimp_pointer *pointer)
 	window.w = pointer->w;
 	wimp_get_window_state(&window);
 
-	line = window_calculate_click_row(&(pointer->pos), &window, ACCOUNT_LIST_WINDOW_TOOLBAR_HEIGHT, windat->display_lines);
+	ypos = (pointer->pos.y - window.visible.y1) + window.yscroll;
+
+	line = window_calculate_click_row(ypos, ACCOUNT_LIST_WINDOW_TOOLBAR_HEIGHT, windat->display_lines);
 
 	/* Handle double-clicks, which will open a statement view or an edit accout window. */
 
@@ -827,9 +829,9 @@ static void account_list_window_pane_click_handler(wimp_pointer *pointer)
 static void account_list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer)
 {
 	struct account_list_window	*windat;
-	int			line;
-	wimp_window_state	window;
-	enum account_line_type	data;
+	int				ypos, line;
+	wimp_window_state		window;
+	enum account_line_type		data;
 
 	windat = event_get_window_user_data(w);
 	if (windat == NULL)
@@ -842,7 +844,8 @@ static void account_list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, 
 			window.w = w;
 			wimp_get_window_state(&window);
 
-			line = window_calculate_click_row(&(pointer->pos), &window, ACCOUNT_LIST_WINDOW_TOOLBAR_HEIGHT, windat->display_lines);
+			ypos = (pointer->pos.y - window.visible.y1) + window.yscroll;
+			line = window_calculate_click_row(ypos, ACCOUNT_LIST_WINDOW_TOOLBAR_HEIGHT, windat->display_lines);
 
 			if (line != -1)
 				account_list_window_menu_line = line;

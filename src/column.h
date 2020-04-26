@@ -56,6 +56,7 @@
 
 struct column_map {
 	wimp_i			field;		/**< The icon relating to the column in the main data table window.	*/
+	wimp_i			parent;		/**< The parent icon for the column in a multi-column field.		*/
 	wimp_i			heading;	/**< The icon relating to the column heading in the table heading pane.	*/
 	wimp_i			footer;		/**< The icon relating to the column footer in the table footer pane.	*/
 	enum sort_type		sort;		/**< The sort order relating to the column.				*/
@@ -430,6 +431,18 @@ wimp_i column_get_heading_from_sort_type(struct column_block *instance, enum sor
  */
 
 wimp_i column_get_group_icon(struct column_block *instance, wimp_i field);
+
+
+/**
+ * Return the parent field column icon handle for the column containing a given
+ * field icon.
+ *
+ * \param *instance		The column set instance to search.
+ * \param field			The field icon handle to look up.
+ * \return			The parent field icon handle, or wimp_ICON_WINDOW.
+ */
+
+wimp_i column_get_parent_field_icon(struct column_block *instance, wimp_i field);
 
 #endif
 

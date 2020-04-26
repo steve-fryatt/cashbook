@@ -1,4 +1,4 @@
-/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2020, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -173,14 +173,13 @@ void window_set_extent(wimp_w window, int lines, int pane_height, int width);
 /**
  * Calculate the row that the mouse was clicked over in the list window.
  *
- * \param *pointer		The relevant Wimp pointer data.
- * \param *state		The relevant Wimp window state.
+ * \param y_pos			The vertical position of the pointer in the window.
  * \param toolbar_height	The height of the window's toolbar, in OS units.
  * \param max_lines		The maximum number of lines in the window, or -1 for no constraint.
  * \return			The row (from 0) or -1 if none.
  */
 
-int window_calculate_click_row(os_coord *pos, wimp_window_state *state, int toolbar_height, int max_lines);
+int window_calculate_click_row(int y_pos, int toolbar_height, int max_lines);
 
 
 /**

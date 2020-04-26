@@ -148,16 +148,16 @@
 /* Account View window column mapping. */
 
 static struct column_map accview_columns[ACCVIEW_COLUMNS] = {
-	{ACCVIEW_ICON_ROW, ACCVIEW_PANE_ROW, wimp_ICON_WINDOW, SORT_ROW},
-	{ACCVIEW_ICON_DATE, ACCVIEW_PANE_DATE, wimp_ICON_WINDOW, SORT_DATE},
-	{ACCVIEW_ICON_IDENT, ACCVIEW_PANE_FROMTO, wimp_ICON_WINDOW, SORT_FROMTO},
-	{ACCVIEW_ICON_REC, ACCVIEW_PANE_FROMTO, wimp_ICON_WINDOW, SORT_FROMTO},
-	{ACCVIEW_ICON_FROMTO, ACCVIEW_PANE_FROMTO, wimp_ICON_WINDOW, SORT_FROMTO},
-	{ACCVIEW_ICON_REFERENCE, ACCVIEW_PANE_REFERENCE, wimp_ICON_WINDOW, SORT_REFERENCE},
-	{ACCVIEW_ICON_PAYMENTS, ACCVIEW_PANE_PAYMENTS, wimp_ICON_WINDOW, SORT_PAYMENTS},
-	{ACCVIEW_ICON_RECEIPTS, ACCVIEW_PANE_RECEIPTS, wimp_ICON_WINDOW, SORT_RECEIPTS},
-	{ACCVIEW_ICON_BALANCE, ACCVIEW_PANE_BALANCE, wimp_ICON_WINDOW, SORT_BALANCE},
-	{ACCVIEW_ICON_DESCRIPTION, ACCVIEW_PANE_DESCRIPTION, wimp_ICON_WINDOW, SORT_DESCRIPTION}
+	{ACCVIEW_ICON_ROW, wimp_ICON_WINDOW, ACCVIEW_PANE_ROW, wimp_ICON_WINDOW, SORT_ROW},
+	{ACCVIEW_ICON_DATE, wimp_ICON_WINDOW, ACCVIEW_PANE_DATE, wimp_ICON_WINDOW, SORT_DATE},
+	{ACCVIEW_ICON_IDENT, wimp_ICON_WINDOW, ACCVIEW_PANE_FROMTO, wimp_ICON_WINDOW, SORT_FROMTO},
+	{ACCVIEW_ICON_REC, ACCVIEW_ICON_IDENT, ACCVIEW_PANE_FROMTO, wimp_ICON_WINDOW, SORT_FROMTO},
+	{ACCVIEW_ICON_FROMTO, ACCVIEW_ICON_IDENT, ACCVIEW_PANE_FROMTO, wimp_ICON_WINDOW, SORT_FROMTO},
+	{ACCVIEW_ICON_REFERENCE, wimp_ICON_WINDOW, ACCVIEW_PANE_REFERENCE, wimp_ICON_WINDOW, SORT_REFERENCE},
+	{ACCVIEW_ICON_PAYMENTS, wimp_ICON_WINDOW, ACCVIEW_PANE_PAYMENTS, wimp_ICON_WINDOW, SORT_PAYMENTS},
+	{ACCVIEW_ICON_RECEIPTS, wimp_ICON_WINDOW, ACCVIEW_PANE_RECEIPTS, wimp_ICON_WINDOW, SORT_RECEIPTS},
+	{ACCVIEW_ICON_BALANCE, wimp_ICON_WINDOW, ACCVIEW_PANE_BALANCE, wimp_ICON_WINDOW, SORT_BALANCE},
+	{ACCVIEW_ICON_DESCRIPTION, wimp_ICON_WINDOW, ACCVIEW_PANE_DESCRIPTION, wimp_ICON_WINDOW, SORT_DESCRIPTION}
 };
 
 struct accview_block {
@@ -656,7 +656,7 @@ static void accview_close_window_handler(wimp_close *close)
 static void accview_window_click_handler(wimp_pointer *pointer)
 {
 	struct file_block	*file;
-	int			line, xpos;
+	int			line, xpos, ypos;
 	tran_t			transaction;
 	wimp_i			column;
 	enum transact_field 	trans_col_from[] = {
@@ -705,7 +705,8 @@ static void accview_window_click_handler(wimp_pointer *pointer)
 	window.w = pointer->w;
 	wimp_get_window_state(&window);
 
-	line = window_calculate_click_row(&(pointer->pos), &window, ACCVIEW_TOOLBAR_HEIGHT, windat->display_lines);
+	ypos = (pointer->pos.y - window.visible.y1) + window.yscroll;
+	line = window_calculate_click_row(ypos, ACCVIEW_TOOLBAR_HEIGHT, windat->display_lines);
 
 	/* If the line is a transaction, handle mouse clicks over it.  Menu clicks are ignored and dealt with in the
 	 * else clause.
@@ -848,7 +849,7 @@ static void accview_pane_click_handler(wimp_pointer *pointer)
 static void accview_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer)
 {
 	struct accview_window	*windat;
-	int			line;
+	int			ypos, line;
 	wimp_window_state	window;
 
 
@@ -866,7 +867,8 @@ static void accview_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_
 			window.w = w;
 			wimp_get_window_state(&window);
 
-			line = window_calculate_click_row(&(pointer->pos), &window, ACCVIEW_TOOLBAR_HEIGHT, windat->display_lines);
+			ypos = (pointer->pos.y - window.visible.y1) + window.yscroll;
+			line = window_calculate_click_row(ypos, ACCVIEW_TOOLBAR_HEIGHT, windat->display_lines);
 
 			if (line != -1)
 				accview_window_menu_line = line;

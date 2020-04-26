@@ -1,4 +1,4 @@
-/* Copyright 2003-2019, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2020, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -36,11 +36,14 @@
 
 /* OSLib header files */
 
-#include "oslib/wimp.h"
-#include "oslib/os.h"
-#include "oslib/osfile.h"
+#include "oslib/dragasprite.h"
 #include "oslib/hourglass.h"
+#include "oslib/os.h"
+#include "oslib/osbyte.h"
+#include "oslib/osfile.h"
 #include "oslib/osspriteop.h"
+#include "oslib/wimp.h"
+#include "oslib/wimpspriteop.h"
 
 /* SF-Lib header files. */
 
@@ -250,6 +253,38 @@ static int			list_window_new_offset = 0;
 
 static osbool			list_window_disable_redraw = FALSE;
 
+/**
+ * Data relating to field dragging.
+ */
+
+struct list_window_drag_data {
+	/**
+	 * The list window instance currently owning the line drag.
+	 */
+	struct list_window	*instance;
+
+	/**
+	 * The line of the window over which the drag started.
+	 */
+	int			start_line;
+
+	/**
+	 * The column of the window over which the drag started.
+	 */
+	wimp_i			start_column;
+
+	/**
+	 * TRUE if the field drag is using a sprite.
+	 */
+	osbool			dragging_sprite;
+};
+
+/**
+ * Instance of the window drag data, held statically to survive across Wimp_Poll.
+ */
+
+static struct list_window_drag_data list_window_dragging_data;
+
 /* Static Function Prototypes. */
 
 static void list_window_delete(struct list_window *instance);
@@ -262,6 +297,8 @@ static void list_window_scroll_handler(wimp_scroll *scroll);
 static void list_window_redraw_handler(wimp_draw *redraw);
 static void list_window_force_redraw(struct list_window *instance, int from, int to, wimp_i column);
 static wimp_colour list_window_line_colour(struct list_window *instance, int line);
+static void list_window_start_drag(struct list_window *instance, wimp_window_state *window, wimp_i column, int line);
+static void list_window_terminate_drag(wimp_dragged *drag, void *data);
 static void list_window_decode_help(char *buffer, wimp_w w, wimp_i i, os_coord pos, wimp_mouse_state buttons);
 
 static void list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer);
@@ -862,22 +899,69 @@ static void list_window_close_handler(wimp_close *close)
 static void list_window_click_handler(wimp_pointer *pointer)
 {
 	struct list_window	*instance;
-	int			line, index;
+	int			line, index, xpos, ypos;
 	wimp_window_state	window;
+	wimp_i			column, parent_column;
 
 	instance = event_get_window_user_data(pointer->w);
 	if (instance == NULL || instance->parent == NULL)
 		return;
 
-	/* Find the window type and get the line clicked on. */
+	/* Force a refresh of the current edit line, if there is one.  We avoid refreshing
+	 * the icon where the mouse was clicked. This applies across all windows, so as to
+	 * refresh a line in another window before focus moves into the current window.
+	 */
+
+	if (instance->edit_line != NULL)
+		edit_refresh_line_contents(NULL, wimp_ICON_WINDOW, pointer->i);
+
+	/* Get the line and column clicked in. */
 
 	window.w = pointer->w;
 	wimp_get_window_state(&window);
 
-	line = window_calculate_click_row(&(pointer->pos), &window, instance->parent->definition->toolbar_height, instance->display_lines);
+	xpos = (pointer->pos.x - window.visible.x0) + window.xscroll;
+	ypos = (pointer->pos.y - window.visible.y1) + window.yscroll;
+
+	line = window_calculate_click_row(ypos, instance->parent->definition->toolbar_height,
+			instance->display_lines);
 
 	if (line == -1)
 		return;
+
+	column = column_find_icon_from_xpos(instance->columns, xpos);
+	parent_column = column_get_parent_field_icon(instance->columns, column);
+
+	/* If this is an editable window, Select clicks place the caret. */
+
+	if (instance->edit_line != NULL && pointer->buttons == wimp_CLICK_SELECT) {
+
+		if (pointer->i == wimp_ICON_WINDOW) {
+			list_window_place_edit_line(instance, line);
+
+			/* Find the correct point for the caret and insert it. */
+
+			if (parent_column == wimp_ICON_WINDOW)
+				wimp_set_caret_position(pointer->w, column, xpos - 4, ypos - 4, -1, -1);
+			else
+				icons_put_caret_at_end(pointer->w, parent_column);
+		} else if (parent_column != wimp_ICON_WINDOW) {
+			icons_put_caret_at_end(pointer->w, parent_column);
+		}
+
+		return;
+	}
+
+	/* If this is a drag, start a data drag. */
+
+	if (pointer->buttons == wimp_DRAG_SELECT) {
+		if (config_opt_read("TransDragDrop") && line >= 0 && column != wimp_ICON_WINDOW)
+			list_window_start_drag(instance, &window, column, line);
+
+		return;
+	}
+
+	/* Otherwise, defer to the client. */
 
 	index = instance->line_data[line].index;
 
@@ -1210,6 +1294,228 @@ static wimp_colour list_window_line_colour(struct list_window *instance, int lin
 
 
 /**
+ * Start a list window drag, to copy data within the window instance.
+ *
+ * \param *instance		The list window instance being dragged.
+ * \param *window		The window state of the list window.
+ * \param column		The column of the list window being dragged.
+ * \param line			The line of the line of the list window being dragged.
+ */
+
+static void list_window_start_drag(struct list_window *instance, wimp_window_state *window, wimp_i column, int line)
+{
+	wimp_auto_scroll_info	auto_scroll;
+	wimp_drag		drag;
+	int			ox, oy, xmin, xmax;
+
+	if (instance == NULL || window == NULL)
+		return;
+
+	xmin = column_get_window_width(instance->columns);
+	xmax = 0;
+
+	column_get_xpos(instance->columns, column, &xmin, &xmax);
+
+	ox = window->visible.x0 - window->xscroll;
+	oy = window->visible.y1 - window->yscroll;
+
+	/* Set up the drag parameters. */
+
+	drag.w = instance->window;
+	drag.type = wimp_DRAG_USER_FIXED;
+
+	drag.initial.x0 = ox + xmin;
+	drag.initial.y0 = oy + WINDOW_ROW_Y0(instance->parent->definition->toolbar_height, line);
+	drag.initial.x1 = ox + xmax;
+	drag.initial.y1 = oy + WINDOW_ROW_Y1(instance->parent->definition->toolbar_height, line);
+
+	drag.bbox.x0 = window->visible.x0;
+	drag.bbox.y0 = window->visible.y0;
+	drag.bbox.x1 = window->visible.x1;
+	drag.bbox.y1 = window->visible.y1;
+
+	/* Read CMOS RAM to see if solid drags are required.
+	 *
+	 * \TODO -- Solid drags are never actually used, although they could be
+	 *          if a suitable sprite were to be created.
+	 */
+
+	list_window_dragging_data.dragging_sprite = ((osbyte2(osbyte_READ_CMOS, osbyte_CONFIGURE_DRAG_ASPRITE, 0) &
+			osbyte_CONFIGURE_DRAG_ASPRITE_MASK) != 0);
+
+	if (FALSE && list_window_dragging_data.dragging_sprite) {
+		dragasprite_start(dragasprite_HPOS_CENTRE | dragasprite_VPOS_CENTRE | dragasprite_NO_BOUND |
+				dragasprite_BOUND_POINTER | dragasprite_DROP_SHADOW, wimpspriteop_AREA,
+				"", &(drag.initial), &(drag.bbox));
+	} else {
+		wimp_drag_box(&drag);
+	}
+
+	/* Initialise the autoscroll. */
+
+	if (xos_swi_number_from_string("Wimp_AutoScroll", NULL) == NULL) {
+		auto_scroll.w = instance->window;
+		auto_scroll.pause_zone_sizes.x0 = AUTO_SCROLL_MARGIN;
+		auto_scroll.pause_zone_sizes.y0 = AUTO_SCROLL_MARGIN;
+		auto_scroll.pause_zone_sizes.x1 = AUTO_SCROLL_MARGIN;
+		auto_scroll.pause_zone_sizes.y1 = AUTO_SCROLL_MARGIN + instance->parent->definition->toolbar_height;
+		auto_scroll.pause_duration = 0;
+		auto_scroll.state_change = (void *) 1;
+
+		wimp_auto_scroll(wimp_AUTO_SCROLL_ENABLE_HORIZONTAL | wimp_AUTO_SCROLL_ENABLE_VERTICAL, &auto_scroll);
+	}
+
+	list_window_dragging_data.instance = instance;
+	list_window_dragging_data.start_line = line;
+	list_window_dragging_data.start_column = column;
+
+	event_set_drag_handler(list_window_terminate_drag, NULL, &list_window_dragging_data);
+}
+
+
+/**
+ * Handle drag-end events relating to dragging rows of a List Window instance.
+ *
+ * \param *drag			The Wimp drag end data.
+ * \param *data			Unused client data sent via Event Lib.
+ */
+
+static void list_window_terminate_drag(wimp_dragged *drag, void *data)
+{
+	wimp_pointer			pointer;
+	wimp_window_state		window;
+	int				end_line, xpos, ypos;
+	wimp_i				end_column;
+	tran_t				start_transaction;
+	acct_t				account;
+	osbool				changed = FALSE;
+	struct file_block		*file;
+	struct list_window_drag_data	*drag_data = data;
+	struct list_window		*instance;
+	enum edit_field_type		start_field_type;
+	struct edit_data		*transfer;
+	enum account_type		target_type;
+
+	if (drag_data == NULL)
+		return;
+
+	/* Terminate the drag and end the autoscroll. */
+
+	if (xos_swi_number_from_string("Wimp_AutoScroll", NULL) == NULL)
+		wimp_auto_scroll(0, NULL);
+
+	if (drag_data->dragging_sprite)
+		dragasprite_stop();
+
+	/* Check that the returned data is valid. */
+
+	instance = drag_data->instance;
+	if (instance == NULL)
+		return;
+
+	file = instance->file;
+	if (file == NULL)
+		return;
+
+	/* Get the line at which the drag ended. */
+
+	wimp_get_pointer_info(&pointer);
+
+	window.w = instance->window;
+	wimp_get_window_state(&window);
+
+	xpos = (pointer.pos.x - window.visible.x0) + window.xscroll;
+	ypos = (pointer.pos.y - window.visible.y1) + window.yscroll;
+
+	end_line = window_calculate_click_row(ypos, instance->parent->definition->toolbar_height, -1);
+	end_column = column_find_icon_from_xpos(instance->columns, xpos);
+
+	if ((end_line < 0) || (end_column == wimp_ICON_WINDOW))
+		return;
+
+	#ifdef DEBUG
+	debug_printf("Drag data from line %d, column %d to line %d, column %d", drag_data->start_line, drag_data->start_column, end_line, end_column);
+	#endif
+
+//	start_transaction = transact_get_transaction_from_line(file, drag_data->start_line);
+//	if (start_transaction == NULL_TRANSACTION)
+//		return;
+
+//	start_field_type = edit_get_field_type(windat->edit_line, drag_data->start_column);
+//	if (start_field_type == EDIT_FIELD_NONE)
+//		return;
+
+//	transact_list_window_place_edit_line(windat, end_line);
+
+//	transfer = edit_request_field_contents_update(windat->edit_line, end_column);
+//	if (transfer == NULL)
+//		return;
+
+//	switch (transfer->type) {
+//	case EDIT_FIELD_TEXT:
+//		if (start_field_type == EDIT_FIELD_TEXT) {
+//			switch (drag_data->start_column) {
+//			case TRANSACT_LIST_WINDOW_REFERENCE:
+//				transact_get_reference(file, start_transaction, transfer->text.text, transfer->text.length);
+//				break;
+//			case TRANSACT_LIST_WINDOW_DESCRIPTION:
+//				transact_get_description(file, start_transaction, transfer->text.text, transfer->text.length);
+//				break;
+//			}
+//			changed = TRUE;
+//		}
+//		break;
+//	case EDIT_FIELD_CURRENCY:
+//		if (start_field_type == EDIT_FIELD_CURRENCY) {
+//			transfer->currency.amount = transact_get_amount(file, start_transaction);
+//			changed = TRUE;
+//		}
+//		break;
+//	case EDIT_FIELD_DATE:
+//		if (start_field_type == EDIT_FIELD_DATE) {
+//			transfer->date.date = transact_get_date(file, start_transaction);
+//			changed = TRUE;
+//		}
+//		break;
+//	case EDIT_FIELD_ACCOUNT_IN:
+//	case EDIT_FIELD_ACCOUNT_OUT:
+//		target_type = (transfer->type == EDIT_FIELD_ACCOUNT_IN) ? ACCOUNT_FULL_IN : ACCOUNT_FULL_OUT;
+
+//		if (start_field_type == EDIT_FIELD_ACCOUNT_IN || start_field_type == EDIT_FIELD_ACCOUNT_OUT) {
+//			switch (drag_data->start_column) {
+//			case TRANSACT_LIST_WINDOW_FROM:
+//			case TRANSACT_LIST_WINDOW_FROM_REC:
+//			case TRANSACT_LIST_WINDOW_FROM_NAME:
+//				account = transact_get_from(file, start_transaction);
+//				if (account_get_type(file, account) & target_type) {
+//					transfer->account.account = account;
+//					transfer->account.reconciled = (transact_get_flags(file, start_transaction) & TRANS_REC_FROM) ? TRUE : FALSE;
+//					changed = TRUE;
+//				}
+//				break;
+//			case TRANSACT_LIST_WINDOW_TO:
+//			case TRANSACT_LIST_WINDOW_TO_REC:
+//			case TRANSACT_LIST_WINDOW_TO_NAME:
+//				account = transact_get_to(file, start_transaction);
+//				if (account_get_type(file, account) & target_type) {
+//					transfer->account.account = account;
+//					transfer->account.reconciled = (transact_get_flags(file, start_transaction) & TRANS_REC_TO) ? TRUE : FALSE;
+//					changed = TRUE;
+//				}
+//				break;
+//			}
+//		}
+//		break;
+//	case EDIT_FIELD_DISPLAY:
+//	case EDIT_FIELD_NONE:
+//		break;
+//	}
+
+//	edit_submit_field_contents_update(windat->edit_line, transfer, changed);
+}
+
+
+/**
  * Turn a mouse position over the a list window into an interactive help
  * token.
  *
@@ -1263,7 +1569,7 @@ static void list_window_decode_help(char *buffer, wimp_w w, wimp_i i, os_coord p
 static void list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_pointer *pointer)
 {
 	struct list_window	*instance;
-	int			line, index = LIST_WINDOW_NULL_INDEX;
+	int			ypos, line, index = LIST_WINDOW_NULL_INDEX;
 	wimp_window_state	window;
 
 	instance = event_get_window_user_data(w);
@@ -1277,8 +1583,9 @@ static void list_window_menu_prepare_handler(wimp_w w, wimp_menu *menu, wimp_poi
 			window.w = w;
 			wimp_get_window_state(&window);
 
-			line = window_calculate_click_row(&(pointer->pos), &window,
-					instance->parent->definition->toolbar_height, instance->display_lines);
+			ypos = (pointer->pos.y - window.visible.y1) + window.yscroll;
+			line = window_calculate_click_row(ypos, instance->parent->definition->toolbar_height,
+					instance->display_lines);
 
 			if (line != -1) {
 				instance->menu_line = line;

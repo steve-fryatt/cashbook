@@ -1,4 +1,4 @@
-/* Copyright 2003-2019, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2020, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -226,17 +226,17 @@
 /* The Transaction List Window column map. */
 
 static struct column_map transact_list_window_columns[TRANSACT_LIST_WINDOW_COLUMNS] = {
-	{TRANSACT_LIST_WINDOW_ROW, TRANSACT_LIST_WINDOW_PANE_ROW, wimp_ICON_WINDOW, SORT_ROW},
-	{TRANSACT_LIST_WINDOW_DATE, TRANSACT_LIST_WINDOW_PANE_DATE, wimp_ICON_WINDOW, SORT_DATE},
-	{TRANSACT_LIST_WINDOW_FROM, TRANSACT_LIST_WINDOW_PANE_FROM, wimp_ICON_WINDOW, SORT_FROM},
-	{TRANSACT_LIST_WINDOW_FROM_REC, TRANSACT_LIST_WINDOW_PANE_FROM, wimp_ICON_WINDOW, SORT_FROM},
-	{TRANSACT_LIST_WINDOW_FROM_NAME, TRANSACT_LIST_WINDOW_PANE_FROM, wimp_ICON_WINDOW, SORT_FROM},
-	{TRANSACT_LIST_WINDOW_TO, TRANSACT_LIST_WINDOW_PANE_TO, wimp_ICON_WINDOW, SORT_TO},
-	{TRANSACT_LIST_WINDOW_TO_REC, TRANSACT_LIST_WINDOW_PANE_TO, wimp_ICON_WINDOW, SORT_TO},
-	{TRANSACT_LIST_WINDOW_TO_NAME, TRANSACT_LIST_WINDOW_PANE_TO, wimp_ICON_WINDOW, SORT_TO},
-	{TRANSACT_LIST_WINDOW_REFERENCE, TRANSACT_LIST_WINDOW_PANE_REFERENCE, wimp_ICON_WINDOW, SORT_REFERENCE},
-	{TRANSACT_LIST_WINDOW_AMOUNT, TRANSACT_LIST_WINDOW_PANE_AMOUNT, wimp_ICON_WINDOW, SORT_AMOUNT},
-	{TRANSACT_LIST_WINDOW_DESCRIPTION, TRANSACT_LIST_WINDOW_PANE_DESCRIPTION, wimp_ICON_WINDOW, SORT_DESCRIPTION}
+	{TRANSACT_LIST_WINDOW_ROW, wimp_ICON_WINDOW, TRANSACT_LIST_WINDOW_PANE_ROW, wimp_ICON_WINDOW, SORT_ROW},
+	{TRANSACT_LIST_WINDOW_DATE, wimp_ICON_WINDOW, TRANSACT_LIST_WINDOW_PANE_DATE, wimp_ICON_WINDOW, SORT_DATE},
+	{TRANSACT_LIST_WINDOW_FROM, wimp_ICON_WINDOW, TRANSACT_LIST_WINDOW_PANE_FROM, wimp_ICON_WINDOW, SORT_FROM},
+	{TRANSACT_LIST_WINDOW_FROM_REC, TRANSACT_LIST_WINDOW_FROM, TRANSACT_LIST_WINDOW_PANE_FROM, wimp_ICON_WINDOW, SORT_FROM},
+	{TRANSACT_LIST_WINDOW_FROM_NAME, TRANSACT_LIST_WINDOW_FROM, TRANSACT_LIST_WINDOW_PANE_FROM, wimp_ICON_WINDOW, SORT_FROM},
+	{TRANSACT_LIST_WINDOW_TO, wimp_ICON_WINDOW, TRANSACT_LIST_WINDOW_PANE_TO, wimp_ICON_WINDOW, SORT_TO},
+	{TRANSACT_LIST_WINDOW_TO_REC, TRANSACT_LIST_WINDOW_TO, TRANSACT_LIST_WINDOW_PANE_TO, wimp_ICON_WINDOW, SORT_TO},
+	{TRANSACT_LIST_WINDOW_TO_NAME, TRANSACT_LIST_WINDOW_TO, TRANSACT_LIST_WINDOW_PANE_TO, wimp_ICON_WINDOW, SORT_TO},
+	{TRANSACT_LIST_WINDOW_REFERENCE, wimp_ICON_WINDOW, TRANSACT_LIST_WINDOW_PANE_REFERENCE, wimp_ICON_WINDOW, SORT_REFERENCE},
+	{TRANSACT_LIST_WINDOW_AMOUNT, wimp_ICON_WINDOW, TRANSACT_LIST_WINDOW_PANE_AMOUNT, wimp_ICON_WINDOW, SORT_AMOUNT},
+	{TRANSACT_LIST_WINDOW_DESCRIPTION, wimp_ICON_WINDOW, TRANSACT_LIST_WINDOW_PANE_DESCRIPTION, wimp_ICON_WINDOW, SORT_DESCRIPTION}
 };
 
 /**
@@ -405,38 +405,6 @@ static struct saveas_block		*transact_list_window_saveas_csv = NULL;
 static struct saveas_block		*transact_list_window_saveas_tsv = NULL;
 
 /**
- * Data relating to field dragging.
- */
-
-struct transact_list_window_drag_data {
-	/**
-	 * The Transaction List Window instance currently owning the line drag.
-	 */
-	struct transact_list_window	*owner; // \TODO -- Make this transact_list_window
-
-	/**
-	 * The line of the window over which the drag started.
-	 */
-	int				start_line;
-
-	/**
-	 * The column of the window over which the drag started.
-	 */
-	wimp_i				start_column;
-
-	/**
-	 * TRUE if the field drag is using a sprite.
-	 */
-	osbool				dragging_sprite;
-};
-
-/**
- * Instance of the window drag data, held statically to survive across Wimp_Poll.
- */
-
-static struct transact_list_window_drag_data transact_list_window_dragging_data;
-
-/**
  * Data relating to window redrawing.
  */
 
@@ -466,8 +434,6 @@ static char	transact_buffer_description[TRANSACT_DESCRIPT_FIELD_LEN];
 
 /* Static Function Prototypes. */
 
-static void transact_list_window_delete(struct transact_list_window *windat);
-static void transact_list_window_close_handler(wimp_close *close);
 static void transact_list_window_click_handler(wimp_pointer *pointer);
 static void transact_list_window_pane_click_handler(wimp_pointer *pointer, struct file_block *file, void *data);
 static osbool transact_list_window_keypress_handler(wimp_key *key);
@@ -477,10 +443,6 @@ static void transact_list_window_menu_warning_handler(wimp_w w, wimp_menu *menu,
 static void transact_list_window_menu_close_handler(wimp_w w, wimp_menu *menu);
 static void *transact_list_window_redraw_prepare(struct file_block *file, void *data);
 static void transact_list_window_redraw_handler(int index, struct file_block *file, void *data, void *redraw);
-
-
-static void transact_list_window_start_drag(struct transact_list_window *windat, wimp_window_state *window, wimp_i column, int line);
-static void transaction_list_window_terminate_drag(wimp_dragged *drag, void *data);
 
 
 static void transact_list_window_place_edit_line(struct transact_list_window *windat, int line);
@@ -591,8 +553,6 @@ void transact_list_window_delete_instance(struct transact_list_window *windat)
 	if (windat == NULL)
 		return;
 
-	transact_list_window_delete(windat); // TODO -- No longer required?
-
 	list_window_delete_instance(windat->window);
 
 	heap_free(windat);
@@ -664,6 +624,8 @@ void transact_list_window_open(struct transact_list_window *windat)
 /**
  * Close and delete the Transaction List Window associated with the
  * given instance.
+ * 
+ * THIS IS NOT CALLED BY ANY CODE ANY MORE!!!
  *
  * \param *windat		The window to delete.
  */
@@ -749,62 +711,9 @@ static void transact_list_window_click_handler(wimp_pointer *pointer)
 	wimp_window_state		window;
 	wimp_pointer			ptr;
 
-	windat = event_get_window_user_data(pointer->w);
-	if (windat == NULL || windat->instance == NULL)
-		return;
 
-	file = transact_get_file(windat->instance);
-	if (file == NULL)
-		return;
-
-	/* Force a refresh of the current edit line, if there is one.  We avoid refreshing the icon where the mouse
-	 * was clicked. This applies across all windows, so as to refresh a line in another window before it gets
-	 * moved into the current window.
-	 */
-
-	edit_refresh_line_contents(NULL, wimp_ICON_WINDOW, pointer->i);
-
-	if (pointer->buttons == wimp_CLICK_SELECT) {
-		if (pointer->i == wimp_ICON_WINDOW) {
-			window.w = pointer->w;
-			wimp_get_window_state(&window);
-
-			line = window_calculate_click_row(&(pointer->pos), &window, TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT, -1);
-
-			if (line >= 0) {
-				transact_list_window_place_edit_line(windat, line);
-
-				/* Find the correct point for the caret and insert it. */
-
-				wimp_get_pointer_info(&ptr);
-				window.w = ptr.w;
-				wimp_get_window_state(&window);
-
-				if (ptr.i == TRANSACT_LIST_WINDOW_DATE || ptr.i == TRANSACT_LIST_WINDOW_FROM || ptr.i == TRANSACT_LIST_WINDOW_TO ||
-						ptr.i == TRANSACT_LIST_WINDOW_REFERENCE || ptr.i == TRANSACT_LIST_WINDOW_AMOUNT || ptr.i == TRANSACT_LIST_WINDOW_DESCRIPTION) {
-					int xo, yo;
-
-					xo = ptr.pos.x - window.visible.x0 + window.xscroll - 4;
-					yo = ptr.pos.y - window.visible.y1 + window.yscroll - 4;
-					wimp_set_caret_position(ptr.w, ptr.i, xo, yo, -1, -1);
-				} else if (ptr.i == TRANSACT_LIST_WINDOW_FROM_REC || ptr.i == TRANSACT_LIST_WINDOW_FROM_NAME) {
-					icons_put_caret_at_end(ptr.w, TRANSACT_LIST_WINDOW_FROM);
-				} else if (ptr.i == TRANSACT_LIST_WINDOW_TO_REC || ptr.i == TRANSACT_LIST_WINDOW_TO_NAME) {
-					icons_put_caret_at_end(ptr.w, TRANSACT_LIST_WINDOW_TO);
-				}
-			}
-		} else if (pointer->i == TRANSACT_LIST_WINDOW_FROM_REC || pointer->i == TRANSACT_LIST_WINDOW_FROM_NAME) {
-			icons_put_caret_at_end(pointer->w, TRANSACT_LIST_WINDOW_FROM);
-		} else if (pointer->i == TRANSACT_LIST_WINDOW_TO_REC || pointer->i == TRANSACT_LIST_WINDOW_TO_NAME) {
-			icons_put_caret_at_end(pointer->w, TRANSACT_LIST_WINDOW_TO);
-		}
-	} else if (pointer->buttons == wimp_CLICK_ADJUST) {
+	if (pointer->buttons == wimp_CLICK_ADJUST) {
 		/* Adjust clicks don't care about icons, as we only need to know which line and column we're in. */
-
-		window.w = pointer->w;
-		wimp_get_window_state(&window);
-
-		line = window_calculate_click_row(&(pointer->pos), &window, TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT, -1);
 
 		/* If the line was in range, find the column that the click occurred in by scanning through the column
 		 * positions.
@@ -848,18 +757,6 @@ static void transact_list_window_click_handler(wimp_pointer *pointer)
 //					transact_toggle_reconcile_flag(file, transaction, TRANS_REC_TO);
 //				}
 //			}
-		}
-	} else if (pointer->buttons == wimp_DRAG_SELECT) {
-		if (config_opt_read("TransDragDrop")) {
-//			window.w = pointer->w;
-//			wimp_get_window_state(&window);
-
-//			line = window_calculate_click_row(&(pointer->pos), &window, TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT, -1);
-//			xpos = (pointer->pos.x - window.visible.x0) + window.xscroll;
-//			column = column_find_icon_from_xpos(windat->columns, xpos);
-
-//			if (line >= 0 && column != wimp_ICON_WINDOW)
-//				transact_list_window_start_drag(windat, &window, column, line);
 		}
 	}
 }
@@ -1631,227 +1528,6 @@ void transact_list_window_redraw(struct transact_list_window *windat, tran_t tra
 		return;
 
 	list_window_redraw(windat->window, transaction, 0);
-}
-
-
-/**
- * Start a transaction window drag, to copy data within the window.
- *
- * \param *windat		The Transaction Window being dragged.
- * \param *window		The window state of the transaction window.
- * \param line			The line of the Transaction Window being dragged.
- */
-
-static void transact_list_window_start_drag(struct transact_list_window *windat, wimp_window_state *window, wimp_i column, int line)
-{
-	wimp_auto_scroll_info	auto_scroll;
-	wimp_drag		drag;
-	int			ox, oy, xmin, xmax;
-
-	if (windat == NULL || window == NULL)
-		return;
-
-//	xmin = column_get_window_width(windat->columns);
-//	xmax = 0;
-
-//	column_get_xpos(windat->columns, column, &xmin, &xmax);
-
-//	ox = window->visible.x0 - window->xscroll;
-//	oy = window->visible.y1 - window->yscroll;
-
-	/* Set up the drag parameters. */
-
-//	drag.w = windat->transaction_window;
-//	drag.type = wimp_DRAG_USER_FIXED;
-
-//	drag.initial.x0 = ox + xmin;
-//	drag.initial.y0 = oy + WINDOW_ROW_Y0(TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT, line);
-//	drag.initial.x1 = ox + xmax;
-//	drag.initial.y1 = oy + WINDOW_ROW_Y1(TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT, line);
-
-//	drag.bbox.x0 = window->visible.x0;
-//	drag.bbox.y0 = window->visible.y0;
-//	drag.bbox.x1 = window->visible.x1;
-//	drag.bbox.y1 = window->visible.y1;
-
-	/* Read CMOS RAM to see if solid drags are required.
-	 *
-	 * \TODO -- Solid drags are never actually used, although they could be
-	 *          if a suitable sprite were to be created.
-	 */
-
-//	transact_list_window_dragging_data.dragging_sprite = ((osbyte2(osbyte_READ_CMOS, osbyte_CONFIGURE_DRAG_ASPRITE, 0) &
-//			osbyte_CONFIGURE_DRAG_ASPRITE_MASK) != 0);
-
-//	if (FALSE && transact_list_window_dragging_data.dragging_sprite) {
-//		dragasprite_start(dragasprite_HPOS_CENTRE | dragasprite_VPOS_CENTRE | dragasprite_NO_BOUND |
-//				dragasprite_BOUND_POINTER | dragasprite_DROP_SHADOW, wimpspriteop_AREA,
-//				"", &(drag.initial), &(drag.bbox));
-//	} else {
-//		wimp_drag_box(&drag);
-//	}
-
-	/* Initialise the autoscroll. */
-
-//	if (xos_swi_number_from_string("Wimp_AutoScroll", NULL) == NULL) {
-//		auto_scroll.w = windat->transaction_window;
-//		auto_scroll.pause_zone_sizes.x0 = AUTO_SCROLL_MARGIN;
-//		auto_scroll.pause_zone_sizes.y0 = AUTO_SCROLL_MARGIN;
-//		auto_scroll.pause_zone_sizes.x1 = AUTO_SCROLL_MARGIN;
-//		auto_scroll.pause_zone_sizes.y1 = AUTO_SCROLL_MARGIN + TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT;
-//		auto_scroll.pause_duration = 0;
-//		auto_scroll.state_change = (void *) 1;
-
-//		wimp_auto_scroll(wimp_AUTO_SCROLL_ENABLE_HORIZONTAL | wimp_AUTO_SCROLL_ENABLE_VERTICAL, &auto_scroll);
-//	}
-
-//	transact_list_window_dragging_data.owner = windat;
-//	transact_list_window_dragging_data.start_line = line;
-//	transact_list_window_dragging_data.start_column = column;
-
-//	event_set_drag_handler(transaction_list_window_terminate_drag, NULL, &transact_list_window_dragging_data);
-}
-
-
-/**
- * Handle drag-end events relating to dragging rows of an Transaction
- * Window instance.
- *
- * \param *drag			The Wimp drag end data.
- * \param *data			Unused client data sent via Event Lib.
- */
-
-static void transaction_list_window_terminate_drag(wimp_dragged *drag, void *data)
-{
-	wimp_pointer				pointer;
-	wimp_window_state			window;
-	int					end_line, xpos;
-	wimp_i					end_column;
-	tran_t					start_transaction;
-	acct_t					account;
-	osbool					changed = FALSE;
-	struct file_block			*file;
-	struct transact_list_window_drag_data	*drag_data = data;
-	struct transact_list_window		*windat;
-	enum edit_field_type			start_field_type;
-	struct edit_data			*transfer;
-	enum account_type			target_type;
-
-	if (drag_data == NULL)
-		return;
-
-	/* Terminate the drag and end the autoscroll. */
-
-//	if (xos_swi_number_from_string("Wimp_AutoScroll", NULL) == NULL)
-//		wimp_auto_scroll(0, NULL);
-
-//	if (drag_data->dragging_sprite)
-//		dragasprite_stop();
-
-	/* Check that the returned data is valid. */
-
-//	windat = drag_data->owner;
-//	if (windat == NULL || windat->instance == NULL)
-//		return;
-
-//	file = transact_get_file(windat->instance);
-//	if (file == NULL)
-//		return;
-
-	/* Get the line at which the drag ended. */
-
-//	wimp_get_pointer_info(&pointer);
-
-//	window.w = windat->transaction_window;
-//	wimp_get_window_state(&window);
-
-//	end_line = window_calculate_click_row(&(pointer.pos), &window, TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT, -1);
-
-//	xpos = (pointer.pos.x - window.visible.x0) + window.xscroll;
-//	end_column = column_find_icon_from_xpos(windat->columns, xpos);
-
-//	if ((end_line < 0) || (end_column == wimp_ICON_WINDOW))
-//		return;
-
-//	#ifdef DEBUG
-//	debug_printf("Drag data from line %d, column %d to line %d, column %d", drag_data->start_line, drag_data->start_column, end_line, end_column);
-//	#endif
-
-//	start_transaction = transact_get_transaction_from_line(file, drag_data->start_line);
-//	if (start_transaction == NULL_TRANSACTION)
-//		return;
-
-//	start_field_type = edit_get_field_type(windat->edit_line, drag_data->start_column);
-//	if (start_field_type == EDIT_FIELD_NONE)
-//		return;
-
-//	transact_list_window_place_edit_line(windat, end_line);
-
-//	transfer = edit_request_field_contents_update(windat->edit_line, end_column);
-//	if (transfer == NULL)
-//		return;
-
-//	switch (transfer->type) {
-//	case EDIT_FIELD_TEXT:
-//		if (start_field_type == EDIT_FIELD_TEXT) {
-//			switch (drag_data->start_column) {
-//			case TRANSACT_LIST_WINDOW_REFERENCE:
-//				transact_get_reference(file, start_transaction, transfer->text.text, transfer->text.length);
-//				break;
-//			case TRANSACT_LIST_WINDOW_DESCRIPTION:
-//				transact_get_description(file, start_transaction, transfer->text.text, transfer->text.length);
-//				break;
-//			}
-//			changed = TRUE;
-//		}
-//		break;
-//	case EDIT_FIELD_CURRENCY:
-//		if (start_field_type == EDIT_FIELD_CURRENCY) {
-//			transfer->currency.amount = transact_get_amount(file, start_transaction);
-//			changed = TRUE;
-//		}
-//		break;
-//	case EDIT_FIELD_DATE:
-//		if (start_field_type == EDIT_FIELD_DATE) {
-//			transfer->date.date = transact_get_date(file, start_transaction);
-//			changed = TRUE;
-//		}
-//		break;
-//	case EDIT_FIELD_ACCOUNT_IN:
-//	case EDIT_FIELD_ACCOUNT_OUT:
-//		target_type = (transfer->type == EDIT_FIELD_ACCOUNT_IN) ? ACCOUNT_FULL_IN : ACCOUNT_FULL_OUT;
-
-//		if (start_field_type == EDIT_FIELD_ACCOUNT_IN || start_field_type == EDIT_FIELD_ACCOUNT_OUT) {
-//			switch (drag_data->start_column) {
-//			case TRANSACT_LIST_WINDOW_FROM:
-//			case TRANSACT_LIST_WINDOW_FROM_REC:
-//			case TRANSACT_LIST_WINDOW_FROM_NAME:
-//				account = transact_get_from(file, start_transaction);
-//				if (account_get_type(file, account) & target_type) {
-//					transfer->account.account = account;
-//					transfer->account.reconciled = (transact_get_flags(file, start_transaction) & TRANS_REC_FROM) ? TRUE : FALSE;
-//					changed = TRUE;
-//				}
-//				break;
-//			case TRANSACT_LIST_WINDOW_TO:
-//			case TRANSACT_LIST_WINDOW_TO_REC:
-//			case TRANSACT_LIST_WINDOW_TO_NAME:
-//				account = transact_get_to(file, start_transaction);
-//				if (account_get_type(file, account) & target_type) {
-//					transfer->account.account = account;
-//					transfer->account.reconciled = (transact_get_flags(file, start_transaction) & TRANS_REC_TO) ? TRUE : FALSE;
-//					changed = TRUE;
-//				}
-//				break;
-//			}
-//		}
-//		break;
-//	case EDIT_FIELD_DISPLAY:
-//	case EDIT_FIELD_NONE:
-//		break;
-//	}
-
-//	edit_submit_field_contents_update(windat->edit_line, transfer, changed);
 }
 
 

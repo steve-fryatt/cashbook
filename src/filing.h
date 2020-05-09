@@ -31,12 +31,13 @@
 #define CASHBOOK_FILING
 
 #include <stdio.h>
+#include "sflib/config.h"
 
 /**
  * The maximum length of a line in a CashBook file.
  */
 
-#define FILING_MAX_FILE_LINE_LEN 1024
+#define FILING_MAX_FILE_LINE_LEN (sf_MAX_CONFIG_FILE_BUFFER)
 
 /**
  * The length of a field in a delimited file export.

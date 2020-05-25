@@ -185,6 +185,10 @@ static void main_poll_loop(void)
 				wimp_close_window(blk.close.w);
 				break;
 
+			case wimp_KEY_PRESSED:
+				wimp_process_key(blk.key.c);
+				break;
+
 			case wimp_MENU_SELECTION:
 				amenu_selection_handler(&(blk.selection));
 				break;

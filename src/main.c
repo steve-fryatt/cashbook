@@ -1,4 +1,4 @@
-/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2020, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -42,6 +42,7 @@
 #include "oslib/hourglass.h"
 #include "oslib/os.h"
 #include "oslib/osbyte.h"
+#include "oslib/osfile.h"
 #include "oslib/pdriver.h"
 #include "oslib/uri.h"
 #include "oslib/wimp.h"
@@ -170,7 +171,7 @@ static void main_poll_loop(void)
 		 * inline handlers shown here.
 		 */
 
-		if (!event_process_event(reason, &blk, 0)) {
+		if (!event_process_event(reason, &blk, 0, NULL)) {
 			switch (reason) {
 			case wimp_NULL_REASON_CODE:
 				poll_time += 6000; /* Wait for a minute for the next Null poll */
@@ -212,12 +213,17 @@ static void main_initialise(void)
 
 	hourglass_on();
 
+	/* Initialise the resources. */
+
 	string_copy(resources, "<CashBook$Dir>.Resources", MAIN_FILENAME_BUFFER_LEN);
-	resources_find_path(resources, MAIN_FILENAME_BUFFER_LEN);
+	if (!resources_initialise_paths(resources, MAIN_FILENAME_BUFFER_LEN, "CashBook$Language", "UK"))
+		error_report_fatal("Failed to initialise resources.");
 
 	/* Load the messages file. */
 
-	string_printf(res_temp, MAIN_FILENAME_BUFFER_LEN, "%s.Messages", resources);
+	if (!resources_find_file(resources, res_temp, MAIN_FILENAME_BUFFER_LEN, "Messages", osfile_TYPE_TEXT))
+		error_report_fatal("Failed to locate suitable Messages file.");
+
 	msgs_initialise(res_temp);
 
 	/* Initialise the error message system. */
@@ -334,16 +340,22 @@ static void main_initialise(void)
 	main_memory_handlers.realloc = heap_extend;
 	main_memory_handlers.free = heap_free;
 
+	/* Load the menu structure. */
+
+	if (!resources_find_file(resources, res_temp, MAIN_FILENAME_BUFFER_LEN, "Menus", osfile_TYPE_DATA))
+		error_msgs_param_report_fatal("BadResource", "Menus", NULL, NULL, NULL);
+
+	templates_load_menus(res_temp);
+
 	/* Load the window templates. */
 
-	sprites = resources_load_user_sprite_area("<CashBook$Dir>.Sprites");
+	sprites = resources_load_user_sprite_area("<CashBook$Sprites>.Sprites");
 	if (sprites == NULL)
 		error_msgs_report_fatal("NoSprites");
 
-	string_printf(res_temp, MAIN_FILENAME_BUFFER_LEN, "%s.Menus", resources);
-	templates_load_menus(res_temp);
+	if (!resources_find_file(resources, res_temp, MAIN_FILENAME_BUFFER_LEN, "Templates", osfile_TYPE_TEMPLATE))
+		error_msgs_param_report_fatal("BadResource", "Templates", NULL, NULL, NULL);
 
-	string_printf(res_temp, MAIN_FILENAME_BUFFER_LEN, "%s.Templates", resources);
 	templates_open(res_temp);
 
 	saveas_initialise("SaveAs", NULL);

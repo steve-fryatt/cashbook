@@ -11,8 +11,8 @@ CashBook
 #SpriteFile Sprites
 #Sprite 8,0 Logo
 #Align Right
-{f*/:Home Accounts Manager†}
-Version $$version$$ ($$date$$)†
+{f*/:Home Accounts ManagerÔøΩ}
+Version $$version$$ ($$date$$)ÔøΩ
 #Below
 #Line
 #Align Centre
@@ -20,26 +20,26 @@ Version $$version$$ ($$date$$)†
 
 #Indent 2
 #Table Columns 2
-è <Introduction & Installation=>Intro>
-è <Beginnersë Tutorial=>Tutorial>
+ÔøΩ <Introduction & Installation=>Intro>
+ÔøΩ <BeginnersÔøΩ Tutorial=>Tutorial>
 
-è <Accounts & Analysis Headings=>Accounts>
-è <Transactions=>Transact>
-è <Standing Orders & Repeating Transactions=>SOrders>
+ÔøΩ <Accounts & Analysis Headings=>Accounts>
+ÔøΩ <Transactions=>Transact>
+ÔøΩ <Standing Orders & Repeating Transactions=>SOrders>
 
-è <Budgeting=>Budget>
-è <Reporting and Analysis=>Report>
-è <Printing>
-è <Saving and Loading=>Files>
-è <Import and Export=>Foreign>
+ÔøΩ <Budgeting=>Budget>
+ÔøΩ <Reporting and Analysis=>Report>
+ÔøΩ <Printing>
+ÔøΩ <Saving and Loading=>Files>
+ÔøΩ <Import and Export=>Foreign>
 
-è <Finding transactions=>Find>
-è <Purging Data=>Purge>
+ÔøΩ <Finding transactions=>Find>
+ÔøΩ <Purging Data=>Purge>
 
-è <Configuration=>Config>
+ÔøΩ <Configuration=>Config>
 
-è <Version History=>History>
-è <Future Plans=>Future>
+ÔøΩ <Version History=>History>
+ÔøΩ <Future Plans=>Future>
 #Endtable
 #Indent
 #Line
@@ -49,7 +49,7 @@ If you have any comments about {f/:CashBook}, or would like to report any bugs t
 Updates to {f/:CashBook} and more programs for RISC OS computers can be found on my website at <http://www.stevefryatt.org.uk/software/=>#url>.
 
 #Align Centre
-© Stephen Fryatt, 2003-2018 (<steve@stevefryatt.org.uk=>#url mailto:steve@stevefryatt.org.uk>)
+ÔøΩ Stephen Fryatt, 2003-2019 (<steve@stevefryatt.org.uk=>#url mailto:steve@stevefryatt.org.uk>)
 
 A plain text version of this manual is available <here=>*Filer_Run <CashBook$HelpText\>>.
 #Align Left
@@ -64,7 +64,7 @@ A plain text version of this manual is available <here=>*Filer_Run <CashBook$Hel
 =============================================================================
 CashBook - Home Accounts Manager                                 Version $$version$$
 
-(C) Stephen Fryatt, 2003-2018                  $$date$$
+(C) Stephen Fryatt, 2003-2019                  $$date$$
 =============================================================================
 </literal>
 
@@ -98,7 +98,7 @@ CashBook - Home Accounts Manager                                 Version $$versi
 
 <img src="images/cashbook.gif" alt="" width=34 height=34 class="list-image">
 
-<p><b>Home Accounts Manager</b> &ndash; &copy; Stephen Fryatt, 2003-2018<br>
+<p><b>Home Accounts Manager</b> &ndash; &copy; Stephen Fryatt, 2003-2019<br>
 Version $$version$$ ($$date$$)</p>
 
 </literal>
@@ -236,11 +236,11 @@ As noted above, each account requires a name and an ident. Since this is the cur
 
 In contrast, the ident is used for data entry: it pays to try and make them as memorable as possible for regularly used accounts. Since this is the only current account in the file, enter <entry>Cur</entry> into the <icon>Ident</icon> field. The capitalisation is not important, although it will be remembered and used when displaying the entry.
 
-The account has an overdraft limit of £500, so enter <entry>500</entry> into the <icon>Credit limit</icon> field. At the present moment in time it is in credit to the sum of £250, so <entry>250</entry> should be entered into the <icon>Opening balance</icon> field. The first unused cheque in the cheque book is number 100031, so enter <entry>100031</entry> for <icon>Next cheque</icon>; the account has no paying in book, so leave the <icon>Next pay-in slip</icon> field blank.
+The account has an overdraft limit of ÔøΩ500, so enter <entry>500</entry> into the <icon>Credit limit</icon> field. At the present moment in time it is in credit to the sum of ÔøΩ250, so <entry>250</entry> should be entered into the <icon>Opening balance</icon> field. The first unused cheque in the cheque book is number 100031, so enter <entry>100031</entry> for <icon>Next cheque</icon>; the account has no paying in book, so leave the <icon>Next pay-in slip</icon> field blank.
 
 In the <icon>Bank details</icon> section, the account number, sort code and branch address can be recorded. This information is not used by <cite>CashBook</cite>, but provides a convenient place to store the details if required. Once the necessary information has been entered, click on <icon>Create</icon> to set up the account.
 
-At this point, it will not appear that much has changed. To see the new account we have created, select <menu>Accounts &msep; List accounts</menu> from the main menu. The <window>accounts list</window> window will open, showing an entry for the current account: notice that the statement and current balances are shown as £250, reflecting the opening balance, while the final balance is £750, reflecting the opening balance plus the overdraft limit.
+At this point, it will not appear that much has changed. To see the new account we have created, select <menu>Accounts &msep; List accounts</menu> from the main menu. The <window>accounts list</window> window will open, showing an entry for the current account: notice that the statement and current balances are shown as ÔøΩ250, reflecting the opening balance, while the final balance is ÔøΩ750, reflecting the opening balance plus the overdraft limit.
 
 We also have a savings account, so click <mouse>menu</mouse> over the <window>accounts list</window> window and select <menu>New account...</menu>; this has the same effect as the entry in the main menu. Enter an account name of <entry>Savings Account</entry> and an ident of <entry>Sav</entry>.
 
@@ -251,17 +251,17 @@ There is no overdraft facility, cheque book or paying in book, so <icon>Credit l
 
 In order to be able to acquire or spend money, some analysis headings will be needed in addition to the accounts. These are added in a similar way, so select <menu>Headings &msep; New heading...</menu> from the main menu to open the <window>create new heading</window> window.
 
-First we will require a heading to represent our salary, so enter <entry>Salary</entry> in the <icon>Name</icon> field and <entry>Sal</entry> in the <icon>Ident</icon> field. The salary is money coming in, so select <icon>Incoming</icon>. Unless we receive a pay rise, we expect to receive about £12,000 after tax this year, so enter <entry>12000</entry> into the <icon>Budget limit</icon>.  Click on <icon>Create</icon> to add the heading.
+First we will require a heading to represent our salary, so enter <entry>Salary</entry> in the <icon>Name</icon> field and <entry>Sal</entry> in the <icon>Ident</icon> field. The salary is money coming in, so select <icon>Incoming</icon>. Unless we receive a pay rise, we expect to receive about ÔøΩ12,000 after tax this year, so enter <entry>12000</entry> into the <icon>Budget limit</icon>.  Click on <icon>Create</icon> to add the heading.
 
-As with the accounts, there will be no visible sign that anything has changed. Select <menu>Headings &msep; List incoming</menu> from the main menu, and the <window>incoming headings list</window> window will be displayed. This contains an entry for our salary, showing a total of £0 received so far.
+As with the accounts, there will be no visible sign that anything has changed. Select <menu>Headings &msep; List incoming</menu> from the main menu, and the <window>incoming headings list</window> window will be displayed. This contains an entry for our salary, showing a total of ÔøΩ0 received so far.
 
-We will also need somewhere to spend our hard-earned cash, so go back to the main menu and select <menu>Headings &msep; New heading...</menu> again. There is a supermarket receipt in our wallet, so we will need an entry for Food: enter <entry>Food</entry> as both the <icon>Name</icon> and <icon>Ident</icon>. As an expense, the <icon>Outgoing</icon> option should be selected. We reckon that we can afford to spend about £600 on food this year, so enter <entry>600</entry> into the <icon>Budget limit</icon> field.   Click on <icon>Create</icon> to add the heading.
+We will also need somewhere to spend our hard-earned cash, so go back to the main menu and select <menu>Headings &msep; New heading...</menu> again. There is a supermarket receipt in our wallet, so we will need an entry for Food: enter <entry>Food</entry> as both the <icon>Name</icon> and <icon>Ident</icon>. As an expense, the <icon>Outgoing</icon> option should be selected. We reckon that we can afford to spend about ÔøΩ600 on food this year, so enter <entry>600</entry> into the <icon>Budget limit</icon> field.   Click on <icon>Create</icon> to add the heading.
 
 As the food was an outgoing heading, it will not appear in the incoming headings list. From the main menu, select <menu>Headings &msep; List outgoing</menu> and the <window>outgoing headings list</window> window should open; this looks very similar to the incoming list. The first line should be an entry for food.
 
 The council have just sent next year&rsquo;s council tax statement, so we will need another heading to cover this. Click <mouse>menu</mouse> over the <window>outgoing headings list</window> window and select <menu>New heading...</menu>; as with the accounts list, this has a similar effect to the main menu entry.
 
-Enter the <icon>Name</icon> and <icon>Ident</icon> as <entry>Council Tax</entry> and <entry>CTax</entry> respectively. Since the dialogue was opened from the outgoing headings list, <icon>Outgoing</icon> is already selected (though there is no reason why this could not be changed to <icon>Incoming</icon> if we wanted that type of heading). The council want £512.40 from us this year, so enter <entry>512.40</entry> into the <icon>Budget limit</icon> and click on <icon>Create</icon>. A new entry should appear in the outgoing headings list.
+Enter the <icon>Name</icon> and <icon>Ident</icon> as <entry>Council Tax</entry> and <entry>CTax</entry> respectively. Since the dialogue was opened from the outgoing headings list, <icon>Outgoing</icon> is already selected (though there is no reason why this could not be changed to <icon>Incoming</icon> if we wanted that type of heading). The council want ÔøΩ512.40 from us this year, so enter <entry>512.40</entry> into the <icon>Budget limit</icon> and click on <icon>Create</icon>. A new entry should appear in the outgoing headings list.
 
 
 <subhead title="Entering the first transaction">
@@ -289,27 +289,27 @@ The <icon>To</icon> column shows the account or heading to which the transaction
 
 Pressing <key>return</key> will move to the <icon>Reference</icon> column. We paid by cheque, so recording the cheque number here would be useful; since we have already told <cite>CashBook</cite> that the next cheque number is 100031, pressing <key>f1</key> (the &lsquo;quick entry key&rsquo;) will enter that here and update the next number to 100032.
 
-Press <key>return</key> again to move to the <icon>Amount</icon> column. The receipt shows a total of £18.49, so enter <entry>18.49</entry> here. Press <key>return</key> to move into the final <icon>Description</icon> column: this is a free-text field that can be used to record more information about the transaction. For food purchases, we would like to record the supermarket name, so enter <entry>Morrisons</entry> and press <key>return</key> one final time to place the caret at the start of the next line.
+Press <key>return</key> again to move to the <icon>Amount</icon> column. The receipt shows a total of ÔøΩ18.49, so enter <entry>18.49</entry> here. Press <key>return</key> to move into the final <icon>Description</icon> column: this is a free-text field that can be used to record more information about the transaction. For food purchases, we would like to record the supermarket name, so enter <entry>Morrisons</entry> and press <key>return</key> one final time to place the caret at the start of the next line.
 
 
 <subhead title="Updated balances">
 
 Having entered the transaction for the food receipt, a quick look at the <window>accounts list</window> and <window>outgoing headings list</window> windows will show that things have changed.
 
-In the accounts list, the current and final balances will have decreased by £18.49 each (to £231.51 and £731.51 respectively), reflecting the fact that the money has gone from the account. The statement balance has not changed, because the current account side of the transaction was not reconciled. This means that the transaction has not been seen and &lsquo;ticked off&rsquo; on a statement from our bank, so the statement balance remains at the original value.  The budget figure has gone to £&minus;18.49, showing that overall the balance of the current account has changed by £&minus;18.49.
+In the accounts list, the current and final balances will have decreased by ÔøΩ18.49 each (to ÔøΩ231.51 and ÔøΩ731.51 respectively), reflecting the fact that the money has gone from the account. The statement balance has not changed, because the current account side of the transaction was not reconciled. This means that the transaction has not been seen and &lsquo;ticked off&rsquo; on a statement from our bank, so the statement balance remains at the original value.  The budget figure has gone to ÔøΩ&minus;18.49, showing that overall the balance of the current account has changed by ÔøΩ&minus;18.49.
 
-In the outgoing headings list, the total and actual balances for food have increased to £18.49 to indicate that this amount has been spent. Since the budgeted amount was £600, the budget balance has decreased to £600&minus;£18.49, or £581.51.
+In the outgoing headings list, the total and actual balances for food have increased to ÔøΩ18.49 to indicate that this amount has been spent. Since the budgeted amount was ÔøΩ600, the budget balance has decreased to ÔøΩ600&minus;ÔøΩ18.49, or ÔøΩ581.51.
 
 
 <subhead title="Adding some more transactions">
 
 Now that we have seen that the food transaction has been recorded correctly, the other transactions need to be added. Return to the <window>transactions</window> window, and place the caret into the <icon>Date</icon> column of the first blank line; if the caret was still in the <icon>Description</icon> column from the food purchase, then pressing <key>return</key> will do this automatically.
 
-When we opened that savings account, on 2 June 2005, we paid in £500 by cheque.  Enter the <icon>Date</icon> as <entry>2-6-2005</entry>, and the <entry>Cur</entry> account in the <icon>From</icon> column, pressing <key>return</key> to move from column to column. Again, <cite>CashBook</cite> will allocate a transaction number for us. The money will be moving to the savings account, so <entry>Sav</entry> could be entered into the <icon>To</icon> column as we did before.
+When we opened that savings account, on 2 June 2005, we paid in ÔøΩ500 by cheque.  Enter the <icon>Date</icon> as <entry>2-6-2005</entry>, and the <entry>Cur</entry> account in the <icon>From</icon> column, pressing <key>return</key> to move from column to column. Again, <cite>CashBook</cite> will allocate a transaction number for us. The money will be moving to the savings account, so <entry>Sav</entry> could be entered into the <icon>To</icon> column as we did before.
 
 However, there is another way to select accounts and analysis headings when the ident is hard to remember. Click <mouse>adjust</mouse> over the row with the caret, in the right-hand part of the <icon>To</icon> column, and a menu will appear listing the accounts and outgoing analysis headings that can be entered: select <menu>Accounts &msep; Savings Account</menu>, and the account name will be entered as if the ident had been typed. Press <key>return</key> until the caret is in the <icon>Reference</icon> column, then press <key>f1</key> again to enter 100032 as the cheque number. Finally, enter <entry>500</entry> in the <icon>Amount</icon> column.
 
-A quick check of the current account&rsquo;s balance in the <window>accounts list</window> will show that we are now overdrawn by £268.49. Since our overdraft limit is £500, the final balance still shows as £231.51. In fact, we were paid at the end of May, so this is not a problem at all.
+A quick check of the current account&rsquo;s balance in the <window>accounts list</window> will show that we are now overdrawn by ÔøΩ268.49. Since our overdraft limit is ÔøΩ500, the final balance still shows as ÔøΩ231.51. In fact, we were paid at the end of May, so this is not a problem at all.
 
 Back in the <window>transactions</window> window, place the caret in the next blank <icon>Date</icon> field and enter <entry>31-5-05</entry> for the last day of May. Pressing <key>return</key> will move the caret to the next column, and also sort the transaction rows so that they appear in chronological order; using <key>tab</key> to move between columns prevents this sorting from taking place. Complete the remainder of the transaction: from <entry>Sal</entry>, to <entry>Cur</entry>, amount <entry>1000</entry>.
 
@@ -322,7 +322,7 @@ The only thing left to deal with is the council tax bill. We pay this by direct 
 
 Regular payments, whatever their nature, are referred to as &lsquo;standing orders&rsquo; in <cite>CashBook</cite>. From the main menu, select <menu>Transactions &msep; New Standing Order...</menu> and the <window>create new standing order</window> dialogue will open. There are two sections to this: the first deals with <em>when</em> the transaction will take place, while the second specifies <em>what</em> the transaction contains.
 
-The council have informed us that we will make ten payments, on the last day of the month, starting on 30 April 2005 and finishing on 31 January 2006. The total bill is £512.40, so the first payment will be £53.40 and the remaining nine will each be £51.00.
+The council have informed us that we will make ten payments, on the last day of the month, starting on 30 April 2005 and finishing on 31 January 2006. The total bill is ÔøΩ512.40, so the first payment will be ÔøΩ53.40 and the remaining nine will each be ÔøΩ51.00.
 
 Filling in the easy fields of the dialogue box first, there are 10 payments so enter <entry>10</entry> into the <icon>Number</icon> field. The payments are to be made monthly, so enter <entry>1</entry> into the <icon>Every</icon> field and set the period to <icon>Months</icon>.
 
@@ -336,9 +336,9 @@ Finally, the council&rsquo;s bank do not take money at weekends, but defer the p
 
 Having got the dates sorted out, we can now enter the transaction details. In the <icon>From</icon> field, enter <entry>Cur</entry> as the payment will be coming from our current account; in the <icon>To</icon> field, enter <entry>CTax</entry> to indicate the council tax analysis heading. The council have given us a payment reference of &lsquo;CT2005147&rsquo;, so enter <entry>CT2005147</entry> into the <icon>Reference field</icon>.
 
-The amount to be paid will depend on which payment we are on: most are £51.00, but the first will be £53.40. Enter <entry>51</entry> in the <icon>Amount</icon> field, then tick <icon>First payment</icon> and enter <entry>53.40</entry> in the field next to it. Finally, additional information (if there is any) can be entered into the <icon>Description</icon> field, then click on <icon>Create</icon> to add the standing order.
+The amount to be paid will depend on which payment we are on: most are ÔøΩ51.00, but the first will be ÔøΩ53.40. Enter <entry>51</entry> in the <icon>Amount</icon> field, then tick <icon>First payment</icon> and enter <entry>53.40</entry> in the field next to it. Finally, additional information (if there is any) can be entered into the <icon>Description</icon> field, then click on <icon>Create</icon> to add the standing order.
 
-Depending upon the date on which you follow this tutorial, a number of transactions will be added to the <window>transactions</window> window. The first will be for £53.40 on 2 May 2005, then there will be further transactions for £51 on 31 May, 30 June, 1 August and so on. If the current date is after 31 January 2006, all ten transactions will be added and the standing order will end up &lsquo;stopped&rsquo;.
+Depending upon the date on which you follow this tutorial, a number of transactions will be added to the <window>transactions</window> window. The first will be for ÔøΩ53.40 on 2 May 2005, then there will be further transactions for ÔøΩ51 on 31 May, 30 June, 1 August and so on. If the current date is after 31 January 2006, all ten transactions will be added and the standing order will end up &lsquo;stopped&rsquo;.
 
 Selecting <menu>Transactions &msep; List standing orders</menu> from the main menu will open the <window>standing orders list</window> window. This should contain an entry for the council tax payments, showing the accounts and headings concerned, the standard amount to be transferred and the description. The <icon>Next date</icon> column shows the actual date of the next transaction, or &ldquo;Stopped&rdquo;, and <icon>Left</icon> shows how many transactions are still to be carried out.
 
@@ -938,7 +938,7 @@ Once the report parameters have been set, click on <icon>Generate</icon> to crea
 
 A balance report shows the balances of a set of accounts or analysis headings at the end of a given period. By grouping the report, it can show how the balances vary over time. At the end of each period, the balances of every account and analysis heading in the report are summed to give an overall total.
 
-As with cashflow reports, the double-entry nature of transactions in <cite>CashBook</cite> can cause all the totals to be zero if every account and analysis heading in a file is included: if a transaction moves £10 from a heading to an account in isolation, the heading&rsquo;s balance will be £&minus;10 and the account&rsquo;s balance will be £+10 afterwards. Summing these balances gives a total balance of £0.
+As with cashflow reports, the double-entry nature of transactions in <cite>CashBook</cite> can cause all the totals to be zero if every account and analysis heading in a file is included: if a transaction moves ÔøΩ10 from a heading to an account in isolation, the heading&rsquo;s balance will be ÔøΩ&minus;10 and the account&rsquo;s balance will be ÔøΩ+10 afterwards. Summing these balances gives a total balance of ÔøΩ0.
 
 However, unlike a cashflow report, this will not hold true if any accounts have opening balances specified. In this case, the total shown in each report will be the total of the opening balances of all the accounts included in the report.
 
@@ -1085,7 +1085,7 @@ For more detailed information about the import, click on <icon>View log...</icon
 As noted in the preceding section, the CSV import facilities of <cite>CashBook</cite> are mainly intended for importing data from Apricote&rsquo;s <cite>Personal Accounts</cite>.  The following process should be followed to import transaction data into <cite>CashBook</cite>.
 
 <list type="num" spacing="1">
-<li>In <cite>Personal Accounts</cite>, ensure that the <icon>Reconciliation</icon> options show a <icon>User typed character</icon> of <entry>#</entry>, a <icon>Display reconciled character</icon> of <entry>è</entry> and a <icon>Display un-reconciled character</icon> of a single space.
+<li>In <cite>Personal Accounts</cite>, ensure that the <icon>Reconciliation</icon> options show a <icon>User typed character</icon> of <entry>#</entry>, a <icon>Display reconciled character</icon> of <entry>ÔøΩ</entry> and a <icon>Display un-reconciled character</icon> of a single space.
 
 <li>Go to the <window>Reports 1</window> dialogue.  Under <icon>Columns to include in report</icon>, tick <icon>Date</icon>, <icon>From</icon>, <icon>To</icon>, <icon>Ref</icon>, <icon>Total</icon>, <icon>Balance</icon> and <icon>Description</icon>.  Make sure that <icon>Include summary of income &amp; payment headings used in report</icon> is not ticked.  Clear all the fields under <icon>Entries to include in report</icon>, and untick <icon>Auto-Monthly</icon>.  Save the report as a CSV file, using the centre file icon under <icon>Save/export Report</icon>.
 
@@ -1589,6 +1589,25 @@ Update to fifth stable release.
 
 <list>
 <li>Fix problems inserting paying in slip numbers, introduced in 1.40 (ticket&nbsp;#689).
+</list>
+
+
+<subhead title="1.43 (28 July 2020)">
+
+Update to fifth stable release.
+
+<list>
+<li>Use ResConf-style system variables to identify resources.
+</list>
+
+
+<subhead title="Test Build">
+ 
+Alpha release for feedback and comment.
+ 
+<list>
+<li>Restructure dialogue box and list window support, to reduce code duplication (work in progress).
+<li>Start to add support for entering interest rate data (incomplete and non-functional).
 </list>
 
 </chapter>

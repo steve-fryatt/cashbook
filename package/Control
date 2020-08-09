@@ -1,0 +1,17 @@
+Package: CashBook
+Version: 1.43-1
+Section: Spreadsheet
+Priority: Optional
+Maintainer: Stephen Fryatt <info@stevefryatt.org.uk>
+Standards-Version: 0.6.0
+Environment: arm
+Licence: Free
+Description: Personal Accounts Software
+ CashBook is a personal accounts manager, which can be used to keep track of
+ home or club accounts. The system is based around transactions, which
+ correspond to those on bank, building society and credit card statements.
+ Transactions move money between accounts and analysis headings, and can be
+ reconciled against statements. Budgeting over arbitrary periods of time is
+ possible, and various analysis and report options are available.
+Homepage: http://www.stevefryatt.org.uk/software/cashbook/
+Components: Apps.Spreadsheet.!CashBook (Movable)

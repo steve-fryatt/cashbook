@@ -30,6 +30,9 @@ APP := !CashBook
 SHHELP := CashBook,3d6
 HTMLHELP := manual.html
 
+PACKAGE := CashBook
+PACKAGELOC := Spreadsheet
+
 # CCFLAGS := -DDEBUG
 
 OBJS = account.o			\

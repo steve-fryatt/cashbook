@@ -31,6 +31,8 @@ SHHELP := CashBook,3d6
 HTMLHELP := manual.html
 
 ADDITIONS := Upgrade140,fff
+PACKAGE := CashBook
+PACKAGELOC := Spreadsheet
 
 # CCFLAGS := -DDEBUG
 

@@ -15,3 +15,4 @@ Description: Personal Accounts Software
  possible, and various analysis and report options are available.
 Homepage: http://www.stevefryatt.org.uk/software/cashbook/
 Components: Apps.Spreadsheet.!CashBook (Movable)
+Recommends: StrongHelp

@@ -1601,6 +1601,17 @@ Update to fifth stable release.
 </list>
 
 
+<subhead title="1.44 (10 January 2021)">
+
+Update to fifth stable release.
+
+<list>
+<li>Fix "out by one" error when copying text from dialogue boxes (tickets&nbsp;#731, #735 and #736).
+<li>Update website and contact information.
+<li>Re-licence under EUPL v1.2.
+</list>
+
+
 <subhead title="Test Build">
 
 Alpha release for feedback and comment.

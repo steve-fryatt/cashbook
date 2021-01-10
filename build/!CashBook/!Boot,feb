@@ -4,7 +4,7 @@
 |
 | This file is part of CashBook:
 |
-|   http://www.stevefryatt.org.uk/software/
+|   http://www.stevefryatt.org.uk/risc-os/
 |
 | Licensed under the EUPL, Version 1.2 only (the "Licence");
 | You may not use this work except in compliance with the
@@ -30,7 +30,7 @@ If "<CashBook$Dir>"="" Then Set CashBook$Dir <Obey$Dir>
 
 Set CashBook$Help <CashBook$Dir>.!Help
 Set CashBook$Version "0.98a"
-Set CashBook$Web "http://www.stevefryatt.org.uk/software/cashbook/"
+Set CashBook$Web "http://www.stevefryatt.org.uk/risc-os/cashbook/"
 Set CashBook$Title "CashBook"
 Set CashBook$Publisher "Stephen Fryatt"
 Set CashBook$Description "Home accounts package"

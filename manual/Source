@@ -1611,16 +1611,6 @@ Update to fifth stable release.
 <li>Re-licence under EUPL v1.2.
 </list>
 
-
-<subhead title="Test Build">
-
-Alpha release for feedback and comment.
-
-<list>
-<li>Restructure dialogue box and list window support, to reduce code duplication (work in progress).
-<li>Start to add support for entering interest rate data (incomplete and non-functional).
-</list>
-
 </chapter>
 
 

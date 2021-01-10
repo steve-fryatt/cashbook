@@ -1,0 +1,3081 @@
+=============================================================================
+CashBook - Home Accounts Manager                                 Version ----
+
+(C) Stephen Fryatt, 2003-2020                                 10 January 2021
+=============================================================================
+
+Licence
+-------
+
+  CashBook is licensed under the EUPL, Version 1.2 only (the "Licence"); you
+  may not use this work except in compliance with the Licence.
+
+  You may obtain a copy of the Licence at
+  http://joinup.ec.europa.eu/software/page/eupl
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the Licence is distributed on an "AS IS" basis, WITHOUT
+  WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+
+  See the Licence for the specific language governing permissions and
+  limitations under the Licence.
+
+  The source for CashBook can be found alongside this binary download, at
+  http://www.stevefryatt.org.uk/software
+
+  The necessary libraries and build tools can be found at
+  http://www.stevefryatt.org.uk/risc-os/build
+
+
+
+Introduction & Installation
+---------------------------
+
+  CashBook is a home accounts manager, which can be used to keep track of
+  home or club accounts.  The system is based around transactions, which
+  correspond to those on bank, building society and credit card statements.
+  These transactions transfer money between accounts, or to and from analysis
+  headings.
+
+  Transactions into and out of accounts can be reconciled against statements,
+  making it quick and easy to spot discrepancies and errors.  Budgets can be
+  set for transactions into and out of analysis headings, so that income and
+  expenditure over time can be monitored and recorded.  Various reporting
+  options allow detailed information to be produced on many aspects of the
+  accounts and transactions.
+
+  Entering transactions can be done in two ways.  In addition to manual
+  entry, regular payments such as standing orders, direct debits or salary
+  payments can be automated.  Pending transactions up to a specified date can
+  be included in any future balance figures for accounts.
+
+
+  Installation
+  ------------
+
+  CashBook is designed to work with RISC OS 4 or later; it can be used on
+  RISC OS 3, but a copy of the Nested Wimp must be installed.  It is
+  26/32-bit neutral, and should therefore run on all hardware systems as long
+  as the 32-bit Shared C Library is installed.  If required, this can be
+  found in the System Resources on RISC OS Open Ltd's website at
+  https://www.riscosopen.org/content/downloads/common.
+
+  To install, copy the !CashBook application from the archive into a suitable
+  place on your hard disc.  It can be run from a floppy disc, but this is not
+  recommended.  Once installed, double-click on the !CashBook application in
+  the Filer window to load it on to the iconbar.
+
+
+  Getting started
+  ---------------
+
+  CashBook is a multi-file editor which behaves in a similar way to many
+  other RISC OS applications.  Double-clicking on its icon in a filer window
+  will load it on to the iconbar, ready for files to be loaded or created.
+  Several different sets of accounts can be worked on at the same time: the
+  only limitations on the number of files loaded, and on the number of
+  transactions, accounts, headings or standing orders in a file, are imposed
+  by memory and processing speed.
+
+  In addition to this manual, CashBook fully supports interactive help.  To
+  get information on any aspect of the application, simply load a help client
+  and point to the relevant part of a window or dialogue box.
+
+  To create a new file, click Select on CashBook's iconbar icon; this opens a
+  new transaction window.  The transaction window is the central part of a
+  cashbook file: all the other windows associated with that file can be
+  opened from here, and clicking Menu over it will bring up the main menu.
+  If the transaction window is closed, the file is removed from memory along
+  with any associated windows.
+
+  Before transactions can be entered into the window, accounts and analysis
+  headings must be set up.  Details of these can be accessed from the main
+  menu, and also from the transaction window toolbar.  Standing orders, which
+  are in fact any pre-defined transactions that occur on a regular basis
+  (such as salary payments, direct debits and -- of course -- standing
+  orders), can also be accessed in this way.
+
+  Many other operations that can be carried out on a cashbook file can be
+  accessed through the main menu or the transaction window toolbar.  Other
+  windows in CashBook have their own menus and toolbars which allow access to
+  a subset of functions available from the main menu, as well as additional
+  options which are not applicable elsewhere.
+
+
+  Saving and loading files
+  ------------------------
+
+  CashBook files can be saved by following 'File -- Save' from the main menu.
+  From this dialogue box, the file icon can be dragged to a filer window in
+  the standard manner.  If a full filename is already present in the
+  transaction window's titlebar, clicking on the menu entry will save the
+  file immediately.
+
+  Information on the current file can be found by following 'File -- Info'
+  from the main menu.  This gives details of the file's location on disc (as
+  shown in the transaction window's titlebar), the date the file was last
+  saved and whether the file has been modified since then.  If the file has
+  been modified since the last save, an asterisk will also be shown at the
+  end of the filename in the transaction window's titlebar.  The file
+  information window also shows details of the number of transactions,
+  accounts, analysis headings, standing orders and transaction presets in the
+  file.
+
+  If CashBook is loaded on the iconbar, or has at least been seen by the
+  filer, double-clicking on a cashbook file will load it in the usual way.
+  Alternatively, files can also be dragged to the application's iconbar icon.
+
+
+  Displaying and entering monetary values
+  ---------------------------------------
+
+  Throughout CashBook, a standard format is used to display and enter
+  monetary values.  Plain numbers are used, without any currency symbols, to
+  allow the application to be used in different countries.  The number of
+  decimal places used is read from the computer's territory settings,
+  although these can be overridden in the CashBook configuration if
+  necessary.
+
+  As standard, zero values will not be displayed (the location being left
+  blank instead); this can be changed if required.  The decimal point and
+  method of displaying negative values (a minus sign or brackets around the
+  value) can also be set to override the current territory defaults.
+
+  When entering numbers, trailing zeros will be added after the decimal point
+  if any are missing.  Thus, assuming sterling or a similar currency,
+  entering "236.76" would result in 236.76 being accepted, while "236.7"
+  would produce 236.70 and "236" would give 236.00.
+
+  Negative values can be entered using the method for displaying negative
+  numbers that is currently in force.  If a minus sign is selected, they
+  should be entered in this way: "-12.34".  If parentheses are in use, values
+  should be enclosed thus: "(12.34)".
+
+
+  Displaying and entering dates
+  -----------------------------
+
+  Date entry and display is also handled in a uniform way, using one of
+  either "DD-MM-YYYY", "YYYY-MM-DD" or "MM-DD-YYYY" format.  The format,
+  along with the separator used for display is set in the configuration, and
+  can be changed as required.  Multiple separators can be specified for
+  entering dates.
+
+  When entering dates, it is possible to use two-digit years.  These will be
+  expanded into four-digit years such that 80 to 99 become 1980 to 1999,
+  while 00 to 79 become 2000 to 2079.  Years must fall in the range 100 to
+  9999.
+
+  Either the year, or the month and year, can be omitted, in which case the
+  current year (and month) will usually be substituted.  The exception is
+  when entering transaction dates, when the year and month are taken from the
+  previous line if these are present -- allowing several transactions in the
+  same month to be entered quickly.
+
+
+  Working with windows and dialogue boxes
+  ---------------------------------------
+
+  The column widths in the various windows in CashBook can be adjusted by
+  dragging the right-hand end of the column title with the mouse.  The widths
+  used in individual windows are saved in the cashbook file, with the
+  exception of statement views where all the windows share the same width
+  settings, which are updated whenever a column is adjusted in any window.
+
+  The transaction window, standing order list window and statement view
+  windows can all have their contents sorted on any of the columns of data.
+  Clicking Select on a column heading (away from the drag target at the
+  right-hand end) will sort that column into ascending order, while clicking
+  Adjust will sort into descending order; this can also be achieved through
+  the window's sort dialogue.  The column currently being sorted is shown by
+  a small arrow pointing up or down in the selected column's heading.
+
+  The left-most button on every CashBook toolbar (except for the transaction
+  window toolbar) is an upwards-pointing black arrow: the 'parent window'
+  button.  Clicking on this will bring the transaction window belonging to
+  the window in question to the front, which can be useful if there are a lot
+  of other windows on the screen.
+
+  The transaction window contains the main menu in CashBook, which allows
+  access to almost all of the application's features.  Most of the other
+  windows have their own local menus with options relating to the contents:
+  invariably these contain export and print options.  If entries in a menu
+  relate to the line of the window over which the mouse was clicked, the line
+  will be highlighted whilst the menu is open.
+
+  All of the dialogue boxes in CashBook comply with the RISC OS Style Guide,
+  and should be familiar in use.  It may be worth remembering that while
+  Select clicks on the default 'action button' (usually at the bottom right,
+  with a label like 'Create', 'Update' or similar) will act on the settings
+  in the dialogue and close it, Adjust clicks will use the settings while
+  leaving the dialogue open.
+
+  In a similar way, Select clicks on the adjacent 'Cancel' button will close
+  the dialogue and forget any changes to the contents, while Adjust clicks
+  will simply restore the contents of the dialogue to the values that were
+  there when it opened.
+
+  When opening dialogue boxes, the previous contents will be remembered by
+  default.  To open an empty dialogue from a toolbar, use an Adjust-click
+  instead.  This behaviour can be reversed from the 'General' section of the
+  choices window.
+
+
+
+Beginners' Tutorial
+-------------------
+
+  Before starting to look at the features of CashBook in detail, it may be
+  helpful to work through an example of setting up accounts and analysis
+  headings.  This should make it clearer how the various components fit
+  together.  All of the concepts introduced here are described in more detail
+  elsewhere in this manual.
+
+  If it is not already on the iconbar, load a copy of CashBook by
+  double-clicking on it in a filer window.  Click on CashBook's iconbar icon
+  to open a new file, ready for data to be entered.
+
+
+  Accounts and analysis headings
+  ------------------------------
+
+  Before any transactions can be entered, some accounts and analysis headings
+  must be set up.  These are used to collect transactions together and keep
+  track of money.  While the two are very similar in a number of ways, how
+  they are used differs significantly.
+
+  Accounts usually correspond to bank or building society accounts in the
+  real world, as well as credit and store cards.  They can accept both
+  credits and debits, and maintain a running balance which can be either
+  positive (in credit) or negative (overdrawn or in debt).  Transactions in
+  accounts will usually end up being matched against entries in real-world
+  statements.
+
+  Analysis headings, on the other hand, do not necessarily correspond to
+  anything in the real world: they are simply labels that can be attached to
+  groups of income or expenditure, such as 'Salary', 'Groceries', 'Car
+  servicing', 'Pub meals' and so on.  Headings are divided into groups for
+  incoming and outgoing money, and can only be used for one or the other.
+
+  Accounts and headings are identified by both a full name and an ident: the
+  latter is a short, unique name made up of up to four letters or numbers.
+  The name is used by CashBook for display purposes, but for speed, entry is
+  always done using the ident.  Although the idents must be unique, because
+  headings can only apply to either income or expenditure, the same ident can
+  be used twice.
+
+
+  Adding accounts
+  ---------------
+
+  To be able to keep track of our monthly expenditure, CashBook will need to
+  know about our current account.  To create the necessary account entry,
+  select 'Accounts -- New account...' from the menu to open the create new
+  account window.
+
+  As noted above, each account requires a name and an ident.  Since this is
+  the current account, enter "Current Account" into the 'Name' field.  The
+  name is for human use only, and can be as descriptive as required.
+
+  In contrast, the ident is used for data entry: it pays to try and make them
+  as memorable as possible for regularly used accounts.  Since this is the
+  only current account in the file, enter "Cur" into the 'Ident' field.  The
+  capitalisation is not important, although it will be remembered and used
+  when displaying the entry.
+
+  The account has an overdraft limit of �500, so enter "500" into the
+  'Credit limit' field.  At the present moment in time it is in credit to the
+  sum of �250, so "250" should be entered into the 'Opening balance' field.
+  The first unused cheque in the cheque book is number 100031, so enter
+  "100031" for 'Next cheque'; the account has no paying in book, so leave the
+  'Next pay-in slip' field blank.
+
+  In the 'Bank details' section, the account number, sort code and branch
+  address can be recorded.  This information is not used by CashBook, but
+  provides a convenient place to store the details if required.  Once the
+  necessary information has been entered, click on 'Create' to set up the
+  account.
+
+  At this point, it will not appear that much has changed.  To see the new
+  account we have created, select 'Accounts -- List accounts' from the main
+  menu.  The accounts list window will open, showing an entry for the current
+  account: notice that the statement and current balances are shown as
+  �250, reflecting the opening balance, while the final balance is �750,
+  reflecting the opening balance plus the overdraft limit.
+
+  We also have a savings account, so click Menu over the accounts list window
+  and select 'New account...'; this has the same effect as the entry in the
+  main menu.  Enter an account name of "Savings Account" and an ident of
+  "Sav".
+
+  There is no overdraft facility, cheque book or paying in book, so 'Credit
+  limit', 'Next cheque' and 'Next pay-in slip' can all be left blank;
+  'Opening balance' can also be left blank as the account is brand new and
+  there is no money in it yet.  Click on 'Create', and a new line should
+  appear in the accounts list: all the balances are zero, and should remain
+  blank.
+
+
+  New analysis headings
+  ---------------------
+
+  In order to be able to acquire or spend money, some analysis headings will
+  be needed in addition to the accounts.  These are added in a similar way,
+  so select 'Headings -- New heading...' from the main menu to open the
+  create new heading window.
+
+  First we will require a heading to represent our salary, so enter "Salary"
+  in the 'Name' field and "Sal" in the 'Ident' field.  The salary is money
+  coming in, so select 'Incoming'.  Unless we receive a pay rise, we expect
+  to receive about �12,000 after tax this year, so enter "12000" into the
+  'Budget limit'.  Click on 'Create' to add the heading.
+
+  As with the accounts, there will be no visible sign that anything has
+  changed.  Select 'Headings -- List incoming' from the main menu, and the
+  incoming headings list window will be displayed.  This contains an entry
+  for our salary, showing a total of �0 received so far.
+
+  We will also need somewhere to spend our hard-earned cash, so go back to
+  the main menu and select 'Headings -- New heading...' again.  There is a
+  supermarket receipt in our wallet, so we will need an entry for Food: enter
+  "Food" as both the 'Name' and 'Ident'.  As an expense, the 'Outgoing'
+  option should be selected.  We reckon that we can afford to spend about
+  �600 on food this year, so enter "600" into the 'Budget limit' field.
+  Click on 'Create' to add the heading.
+
+  As the food was an outgoing heading, it will not appear in the incoming
+  headings list.  From the main menu, select 'Headings -- List outgoing' and
+  the outgoing headings list window should open; this looks very similar to
+  the incoming list.  The first line should be an entry for food.
+
+  The council have just sent next year's council tax statement, so we will
+  need another heading to cover this.  Click Menu over the outgoing headings
+  list window and select 'New heading...'; as with the accounts list, this
+  has a similar effect to the main menu entry.
+
+  Enter the 'Name' and 'Ident' as "Council Tax" and "CTax" respectively.
+  Since the dialogue was opened from the outgoing headings list, 'Outgoing'
+  is already selected (though there is no reason why this could not be
+  changed to 'Incoming' if we wanted that type of heading).  The council want
+  �512.40 from us this year, so enter "512.40" into the 'Budget limit' and
+  click on 'Create'.  A new entry should appear in the outgoing headings
+  list.
+
+
+  Entering the first transaction
+  ------------------------------
+
+  Now that we have some accounts and headings to use, we can begin to enter
+  transactions.  All transactions are entered into the main transactions
+  window, which was the one that opened when the file was created.
+
+  Transactions have four main pieces of information associated with them,
+  which are:
+
+   1.  The date on which the transaction occurs;
+   2.  The location (account or heading) where the money is to be taken from;
+   3.  The location (account or heading) where the money is to be sent; and
+   4.  The amount of money which is to be transferred.
+
+  In addition to these items, each transaction has a number allocated to it
+  by CashBook and can also have a reference (such as a cheque or invoice
+  number) and a descriptive text to help identify the purpose of the
+  transaction.
+
+  Place the caret into the first line of the 'Date' column, by clicking there
+  with the mouse.  The date on that food receipt is 27 May 2005, so enter
+  "27-05-2005" and press Return to move to the next column.  As you start to
+  type, CashBook will allocate a number to the transaction and place it in
+  the 'No' column to the left.
+
+  The 'From' column shows the account or heading from which the transaction
+  takes money: since the food was paid for by cheque, this will be our
+  current account.  Enter the ident of the current account, which is "Cur".
+  As the third character is typed, the full account name should be filled in
+  on the right of the column; if not, check that you entered it correctly
+  both here and in the account definition.  Press Return again, to move to
+  the next column.
+
+  The 'To' column shows the account or heading to which the transaction pays
+  money: in this case, it will be the food analysis heading.  Enter the ident
+  "Food", and again the full name should be filled in on the right.  This
+  time, an asterisk will have also appeared in the centre of the column:
+  being a heading, the entry is automatically reconciled.  This will be
+  described later.
+
+  Pressing Return will move to the 'Reference' column.  We paid by cheque, so
+  recording the cheque number here would be useful; since we have already
+  told CashBook that the next cheque number is 100031, pressing F1 (the
+  'quick entry key') will enter that here and update the next number to
+  100032.
+
+  Press Return again to move to the 'Amount' column.  The receipt shows a
+  total of �18.49, so enter "18.49" here.  Press Return to move into the
+  final 'Description' column: this is a free-text field that can be used to
+  record more information about the transaction.  For food purchases, we
+  would like to record the supermarket name, so enter "Morrisons" and press
+  Return one final time to place the caret at the start of the next line.
+
+
+  Updated balances
+  ----------------
+
+  Having entered the transaction for the food receipt, a quick look at the
+  accounts list and outgoing headings list windows will show that things have
+  changed.
+
+  In the accounts list, the current and final balances will have decreased by
+  �18.49 each (to �231.51 and �731.51 respectively), reflecting the
+  fact that the money has gone from the account.  The statement balance has
+  not changed, because the current account side of the transaction was not
+  reconciled.  This means that the transaction has not been seen and 'ticked
+  off' on a statement from our bank, so the statement balance remains at the
+  original value.  The budget figure has gone to �-18.49, showing that
+  overall the balance of the current account has changed by �-18.49.
+
+  In the outgoing headings list, the total and actual balances for food have
+  increased to �18.49 to indicate that this amount has been spent.  Since
+  the budgeted amount was �600, the budget balance has decreased to
+  �600-�18.49, or �581.51.
+
+
+  Adding some more transactions
+  -----------------------------
+
+  Now that we have seen that the food transaction has been recorded
+  correctly, the other transactions need to be added.  Return to the
+  transactions window, and place the caret into the 'Date' column of the
+  first blank line; if the caret was still in the 'Description' column from
+  the food purchase, then pressing Return will do this automatically.
+
+  When we opened that savings account, on 2 June 2005, we paid in �500 by
+  cheque.  Enter the 'Date' as "2-6-2005", and the "Cur" account in the
+  'From' column, pressing Return to move from column to column.  Again,
+  CashBook will allocate a transaction number for us.  The money will be
+  moving to the savings account, so "Sav" could be entered into the 'To'
+  column as we did before.
+
+  However, there is another way to select accounts and analysis headings when
+  the ident is hard to remember.  Click Adjust over the row with the caret,
+  in the right-hand part of the 'To' column, and a menu will appear listing
+  the accounts and outgoing analysis headings that can be entered: select
+  'Accounts -- Savings Account', and the account name will be entered as if
+  the ident had been typed.  Press Return until the caret is in the
+  'Reference' column, then press F1 again to enter 100032 as the cheque
+  number.  Finally, enter "500" in the 'Amount' column.
+
+  A quick check of the current account's balance in the accounts list will
+  show that we are now overdrawn by �268.49.  Since our overdraft limit is
+  �500, the final balance still shows as �231.51.  In fact, we were paid
+  at the end of May, so this is not a problem at all.
+
+  Back in the transactions window, place the caret in the next blank 'Date'
+  field and enter "31-5-05" for the last day of May.  Pressing Return will
+  move the caret to the next column, and also sort the transaction rows so
+  that they appear in chronological order; using Tab to move between columns
+  prevents this sorting from taking place.  Complete the remainder of the
+  transaction: from "Sal", to "Cur", amount "1000".
+
+  On checking the details in the accounts list and incoming headings list, we
+  should find that we are now back in the black again.
+
+
+  Adding a regular direct debit
+  -----------------------------
+
+  The only thing left to deal with is the council tax bill.  We pay this by
+  direct debit, and the council have supplied a payment schedule which gives
+  the dates that they will take money from our account.  Although we could
+  enter these dates by hand as they become due, it will be easier to set up a
+  regular payment to handle it for us; this way, payments will show up on
+  forecasted balances and should never be forgotten.
+
+  Regular payments, whatever their nature, are referred to as 'standing
+  orders' in CashBook.  From the main menu, select 'Transactions -- New
+  Standing Order...' and the create new standing order dialogue will open.
+  There are two sections to this: the first deals with WHEN the transaction
+  will take place, while the second specifies WHAT the transaction contains.
+
+  The council have informed us that we will make ten payments, on the last
+  day of the month, starting on 30 April 2005 and finishing on 31 January
+  2006.  The total bill is �512.40, so the first payment will be �53.40
+  and the remaining nine will each be 351.00.
+
+  Filling in the easy fields of the dialogue box first, there are 10 payments
+  so enter "10" into the 'Number' field.  The payments are to be made
+  monthly, so enter "1" into the 'Every' field and set the period to
+  'Months'.
+
+  The start date is slightly less obvious.  If we were dealing with a period
+  of days or years, the date would simply be the date of the first payment,
+  and each subsequent payment date would be found by adding on the correct
+  number of days or years.  The months period behaves slightly differently,
+  however, to deal with exactly the problem we currently face.
+
+  The date of the first payment will be 30 April, which is the last day of
+  the month.  If we add on one month to that, however, we end up with 30 May:
+  not the last day of May.  To get around this, when working with a payment
+  period in months, it is valid to enter a start date beyond the end of the
+  month: if necessary, CashBook will bring the date back into range before
+  posting a payment.
+
+  As a result, enter the date "31-04-2005" into the 'Start date' field.  This
+  is clearly not a valid date, so the first payment will actually take place
+  on 30 April 2005.  The NEXT payment will take place on 31 May 2005,
+  however.
+
+  Finally, the council's bank do not take money at weekends, but defer the
+  payment to the Monday.  As a result, tick 'Avoid weekends' and select 'Put
+  back'.  Since 30 April 2005 is a Saturday, the first payment will actually
+  take place on 2 May 2005.  The date of subsequent payments will be
+  calculated based on 30 April.
+
+  Having got the dates sorted out, we can now enter the transaction details.
+  In the 'From' field, enter "Cur" as the payment will be coming from our
+  current account; in the 'To' field, enter "CTax" to indicate the council
+  tax analysis heading.  The council have given us a payment reference of
+  'CT2005147', so enter "CT2005147" into the 'Reference field'.
+
+  The amount to be paid will depend on which payment we are on: most are
+  �51.00, but the first will be �53.40.  Enter "51" in the 'Amount'
+  field, then tick 'First payment' and enter "53.40" in the field next to it.
+  Finally, additional information (if there is any) can be entered into the
+  'Description' field, then click on 'Create' to add the standing order.
+
+  Depending upon the date on which you follow this tutorial, a number of
+  transactions will be added to the transactions window.  The first will be
+  for �53.40 on 2 May 2005, then there will be further transactions for
+  �51 on 31 May, 30 June, 1 August and so on.  If the current date is after
+  31 January 2006, all ten transactions will be added and the standing order
+  will end up 'stopped'.
+
+  Selecting 'Transactions -- List standing orders' from the main menu will
+  open the standing orders list window.  This should contain an entry for the
+  council tax payments, showing the accounts and headings concerned, the
+  standard amount to be transferred and the description.  The 'Next date'
+  column shows the actual date of the next transaction, or "Stopped", and
+  'Left' shows how many transactions are still to be carried out.
+
+  With hindsight, it would have been more appropriate to have entered our
+  salary payments as a standing order as well: these should be fixed to the
+  final day of each month.  In general, any transactions which occur at
+  regular intervals are best packaged as standing orders; details of the
+  transaction, such as amounts of money, can always be edited either in the
+  standing order definition or in the resulting transactions if necessary.
+
+
+  Seeing an account 'statement'
+  -----------------------------
+
+  Before moving on to look at the operation of CashBook in detail, it would
+  be useful to see the transactions in our current account listed together in
+  the form of a 'bank statement'.  If nothing else, this would let us see how
+  the balance varies over time.
+
+  From the main menu, select 'Accounts -- View account -- Current account' to
+  open the current account transactions window.  It contains all the
+  transactions which reference the current account, but does so in the form
+  of payments and receipts and including a running balance.  The order in
+  which transactions appear here is the order in which they are sorted: this
+  may not correspond to the order your bank sees them in, and may result in
+  variations between the balances at given points.
+
+  Double-clicking on a field in the current account transactions window will
+  place the caret in the corresponding field in the transactions window;
+  using Adjust also brings the transactions window to the front.
+
+
+
+Accounts and Analysis Headings
+------------------------------
+
+  A CashBook file consists of a series of transactions, which move money from
+  one location to another.  These locations can either be accounts, or
+  analysis headings.  While the two are similar in many ways, they are used
+  for distinct purposes.
+
+  Accounts correspond to accounts in real life, such as current accounts,
+  savings accounts, loose change or credit and store cards.  They can have
+  money moved in or out, and they have balances associated with them,
+  indicating how much money is available at different times.  Depending upon
+  the type of account being represented, there may also be a credit limit or
+  overdraft specified.
+
+  Analysis headings are split into two groups to handle all income and
+  expenditure, such as wages, bank interest, or money spent on food, petrol
+  or home insurance.  Each heading can have a budget target set for it,
+  allowing income and spending to be monitored over time.  It pays to
+  carefully consider the headings that are used when setting up a cashbook
+  file, as it can make tracking your money a lot easier.
+
+
+  Creating new accounts
+  ---------------------
+
+  New accounts can be created through the create new account dialogue, either
+  by selecting 'Accounts -- New account...' from the main menu or by clicking
+  on the 'new account' button in the transaction window toolbar.
+
+  Every account must have a name and an ident associated with it.  The name
+  is used to identify the account on screen and in reports, and can be
+  anything that identifies the account: for example, 'Current account',
+  'Savings account', 'Credit card' or 'Cash in hand'.  CashBook never uses
+  the name internally, so it can safely be changed at any point without
+  affecting data stored, should this be necessary.
+
+  The ident is a short textual 'tag' of up to four characters used to
+  identify the account when entering transactions or referring to the account
+  in dialogue boxes.  It can contain any letters or numbers and although case
+  is preserved when displaying it on screen, it is ignored when looking for a
+  matching account (so "Sav1" and "sav1" would both be seen as the same).
+  Since idents are used for entering data, it is worth using ones that you
+  can remember.  As with the account name, an ident can safely be changed at
+  any point after the account has been created.
+
+  The name and ident are the only pieces of information required to create an
+  account, although additional details may be specified depending on the type
+  of account being represented.  Left blank, the additional details will
+  default to sensible values that will apply to many situations.
+
+  The 'Credit limit' field is used to specify a credit limit on a credit
+  card, an overdraft limit on an account or any similar item.  In each case,
+  the amount is entered as a positive value and indicates how far the account
+  balance can be taken below zero.
+
+  The 'Opening balance' field gives the initial balance in the account and is
+  used to calculate the current balance from.  If the account was opened
+  during the period that the cashbook file covers, the opening balance is
+  optional and the same effect can be achieved by entering a transaction for
+  the initial amount; indeed, this may be preferable, as it shows where the
+  money came from.  If the account was open before the file period begins,
+  however, the opening balance provides an easy way of bridging the gap.
+
+  If the account comes with a paying in book, the 'Next pay-in slip' field
+  allows the number of the next paying-in slip to be recorded.  If F1 is
+  pressed in the 'Reference' column when entering a transaction TO this
+  account, the current number will be inserted and the number stored will be
+  incremented ready for the next slip.
+
+  In a similar way, if the account comes with a cheque book then the 'Next
+  cheque' field allows the number of the next cheque to be recorded and used
+  when transactions are entered FROM this account.
+
+  Finally, the 'Bank details' section provides a means of recording
+  information about the account.  All the fields are plain text and can be
+  used as required.
+
+  Clicking on 'Create' will check the details and create an account; if the
+  ident is not unique, a warning will be generated and it must be changed.
+  Once created, the account will appear in all the account lists and can be
+  used in transactions.
+
+
+  Creating new analysis headings
+  ------------------------------
+
+  In a similar way to accounts, new analysis headings are created through the
+  create new heading dialogue, either by selecting 'Headings -- New
+  heading...' from the main menu or by clicking on the 'new heading' button
+  in the transaction window toolbar.
+
+  As with accounts, every heading must have a name and an ident associated
+  with it.  The name is used to identify the heading on screen and in
+  reports, and can be anything that identifies the heading's purpose: for
+  example, 'Salary', 'Bank interest', 'Food', or 'Car insurance'.  CashBook
+  never uses the name internally, so it can safely be changed at any point
+  without affecting data stored, should this be necessary.
+
+  The ident is a short textual 'tag' of up to four characters used to
+  identify the heading when entering transactions or referring to the account
+  in dialogue boxes.  It can contain any letters of numbers and although case
+  is preserved when displaying it on screen, it is ignored when looking for a
+  matching heading (so "Food" and "food" would both be seen as the same).
+  Selecting memorable idents can help speed up data entry.  As with the
+  heading name, an ident can safely be changed at any point after the heading
+  has been created.
+
+  When created, each heading can be specified as being either 'Incoming' or
+  'Outgoing', depending on whether it will be used in the 'From' or 'To'
+  fields of transactions.  Once created, the type of a heading can not be
+  changed, but it is possible to create incoming and outgoing headings with
+  the same name and ident if necessary.
+
+  The 'Budget limit' is optional, and is used in connection with the current
+  budget period.  The value is a target amount to be spent or received during
+  the period, and if set, it is reported in the heading list window along
+  with the actual amount spent and the difference.
+
+  Clicking on 'Create' will check the details and create a heading; if the
+  ident is not unique, a warning will be generated and it must be changed;
+  the available idents are also shared with any accounts defined in the file.
+  Once created, the heading will appear in the relevant heading list and can
+  be used in transactions.
+
+
+  Checking account and analysis heading details
+  ---------------------------------------------
+
+  All of the accounts and analysis headings in a cashbook file are shown in
+  one of three windows.  Accounts appear in the accounts list window, while
+  analysis headings appear in either the incoming headings list window or
+  outgoing headings list window.
+
+  The accounts list window can be opened from the main menu with 'Accounts --
+  List accounts', by clicking on the 'list accounts' button in the
+  transaction window toolbar or by pressing F9.  Each account is displayed on
+  its own line, with balance and cashflow figures.
+
+  The 'Statement' balance is the reconciled balance of the account, taking
+  into account only those transactions that have been reconciled with entries
+  in account statements.  If there are no errors, this should be the same as
+  the final balance on the last statement received, helping to show up
+  errors.
+
+  The 'Current' balance takes into account all transactions, reconciled or
+  not, up to and including the current date as given by the computer's clock.
+  This gives a reasonable indication of the balance in the account NOW, but
+  remember that it does not allow for time taken by banks to process
+  payments.
+
+  The 'Final' balance is the balance of the account at some point in the
+  future, taking into account the information on future transactions
+  available to CashBook.  Any post-dated transactions are included, subject
+  to limits set in the budget details, and future standing orders are also
+  included according to the budget rules.  Any overdraft or credit limit set
+  for the account is added to the value, showing the total amount of money
+  available for use.
+
+  Finally, the 'Budget' column shows the overall change in the account
+  balance during the current budget period, including all transactions.  This
+  can give an indication of the trend in the account balance, but the
+  condition of the account at the start of the period needs to be borne in
+  mind.
+
+  For analysis headings, the incoming headings list windows can be opened
+  from the main menu with 'Headings -- List incoming', by clicking on the
+  'list incoming headings' button in the transaction window toolbar or by
+  pressing F10.  The outgoing headings list window can be opened from the
+  main menu with 'Headings -- List outgoing', by clicking on the 'list
+  outgoing headings' button in the transaction window toolbar or by pressing
+  F11.
+
+  Each analysis heading has a 'Total' shown, which is the total amount
+  received or spent against that heading when taking into account all the
+  transactions in the file.  Because headings will not generally relate to
+  external accounts, there is no distinction made between reconciled and
+  unreconciled transactions when calculating this total.
+
+  The 'Budget' column shows the budget limit set for each heading. 'Actual'
+  is the total amount received or spent against that heading during the
+  current budget period, while 'Balance' shows the difference between the
+  two.  For incoming headings, a negative balance indicates that more money
+  needs to be received to meet the budget target, while for outgoing headings
+  it indicates that more money has been spent than was budgeted for.
+
+  The contents of the accounts list and headings list windows can be exported
+  as a CSV or TSV file, for importing into spreadsheets or wordprocessors,
+  using the 'Export CSV' and 'Export TSV' options from their respective
+  menus.
+
+  The windows can also be printed, by selecting 'Print...' from the menu or
+  clicking on the 'print' button in the toolbar.  The standard printing
+  options are available, and the entire list of accounts or analysis headings
+  will be printed.
+
+
+  Grouping accounts or analysis headings together
+  -----------------------------------------------
+
+  As new accounts or analysis headers are created, they are added to the end
+  of the relevant list in the accounts or headings list window.  The order of
+  the lists can be changed, by dragging the lines around as required.
+
+  The list can be broken up by adding header and footer lines between the
+  entries.  Headers allow sections to be given titles, while footers show a
+  sub-total for each of the columns.  The sub-totals are calculated from the
+  previous header line down, allowing more than one set of totals in a
+  section if required.  Headers appear as dark grey title bars across the
+  list, while footers are a paler grey.
+
+  To add a new header or footer, click Menu over the window and select 'New
+  section...', or click on the 'add new section' button on the toolbar to
+  open the create new section dialogue.
+
+  Section lines can be given a title, using the 'Title' field, which will be
+  shown in the name column.  The lines can be created as either a 'Header' or
+  a 'Footer'.  Clicking on 'Create' will add the new section headers or
+  footers at the bottom of the window; it can then be dragged around as
+  required.
+
+
+  Highlighting overdrawn accounts or missed budget targets
+  --------------------------------------------------------
+
+  Entries in the accounts or headings list windows can be highlighted if they
+  go overdrawn or fail to meet their budget targets.  This can make it easier
+  to see at a glance where any problems lie.
+
+  In the accounts list window, the values in the 'Statement' and 'Current'
+  columns will be highlighted if they fall below the overdraft limit for the
+  account in question.  In the 'Final' column, which takes the overdraft into
+  account as part of the value displayed, entries will be highlighted if they
+  fall below zero.
+
+  In the outgoing headings list, the values in the 'Actual' and 'Balance'
+  columns are highlighted if the amount spent in the budget period goes above
+  the limit.  Correspondingly, in the incoming headings list, the entries
+  will be highlighted if the income fails to reach the budgeted target.
+
+  The highlighting can be turned on or off from the 'Accounts' section of the
+  choices dialogue using the 'Highlight overdrawn balances' switch.  The
+  colour used for the highlighting can also be set here.
+
+
+  Editing and deleting accounts, headings or sections
+  ---------------------------------------------------
+
+  To edit the details of an account in the accounts list window, click Menu
+  over it and select 'Edit account...'; to edit a section header or footer,
+  select 'Edit section...' instead.  In both cases, double-clicking Adjust
+  over the line has the same effect.
+
+  Editing analysis headings from either of the two headings list windows is
+  started in a similar manner, by clicking Menu over the entry and selecting
+  'Edit heading...' or by double-clicking Adjust.
+
+  The resulting edit dialogues allow the details of the account, analysis
+  heading or section to be altered, or the entire item to be deleted.  While
+  it is always possible to delete sections, accounts and analysis headings
+  can not be deleted if they are used in any transactions, standing orders or
+  transaction presets.  If an account or heading can not be deleted, it is
+  possible to find the transactions responsible by looking at its statement
+  view; to identify the standing orders or presets, it will be necessary to
+  check the standing orders list and preset list windows.
+
+
+  Statement views
+  ---------------
+
+  A statement view brings together all the transactions associated with an
+  account or analysis heading and presents them in the format of a bank
+  statement.  The details shown are transaction number, date, the other
+  account or heading, reconciled status, reference, payment or receipt and
+  the description.
+
+  To open a statement view for an account or analysis heading, double-click
+  Select on the entry in the accounts list or headings list window.  Clicking
+  Menu over the line and selecting 'View account...' or 'View heading...' has
+  the same effect.  For accounts, statement views can be opened from the main
+  menu using 'Accounts -- View account --'; this menu is also available by
+  clicking on the 'view account' button in the transaction window toolbar.
+
+  With a view open, the account or heading shown can be edited by selecting
+  'Edit account...' or 'Edit heading...' from the statement view menu, or by
+  clicking on the 'edit' button in the statement view toolbar.
+
+  The reconciled status shown in the 'From/To' column of the window is for
+  the transaction in the account or heading being viewed, NOT the one shown
+  in the column.  In effect, it applies to the account not shown in the
+  column (that is, the account which the statement view is for), which is the
+  opposite of the behaviour in the transaction window and elsewhere in
+  CashBook.  Transactions showing as reconciled here should appear on a
+  printed statement from the relevant bank, building society, card issuer or
+  whatever.
+
+  Clicking Adjust over the reconciled field will toggle the state, in the
+  same way as in the transaction window.  This is the only piece of
+  information that can be changed through the statement view.
+
+  The entries in the window are sorted according to the contents of one of
+  the columns, as shown by the presence of the sort indicator arrow in the
+  corresponding column heading.  The sort order can be changed by clicking
+  Select or Adjust in any of the headings, to sort that column into ascending
+  or descending order respectively.
+
+  Alternatively, the sorting options can be changed from the sort account
+  entries dialogue, which can be opened by clicking Select on the 'sort'
+  button in the statement view toolbar or by selecting 'Sort entries...' from
+  the menu.  After the options have been changed, clicking on 'Sort' will
+  update the display.
+
+  If the option to automatically sort the transactions is selected in the
+  global choices, the window's contents will update if Return is pressed in
+  the corresponding column of the transaction window.  At other times, an
+  Adjust click on the 'sort' button in the toolbar will force a re-sort.
+
+  The contents of the statement view can be exported as a CSV or TSV file,
+  for importing into spreadsheets or wordprocessors, using the 'Export CSV'
+  and 'Export TSV' options from the statement window menu.
+
+  The window can also be printed, by selecting 'Print...' from the menu or
+  clicking on the 'print' button in the toolbar.  A range of dates can be
+  specified, to limit the entries printed; leaving either field blank allows
+  the transactions before or after a date to be included.
+
+
+  Highlighting transactions in a statement view
+  ---------------------------------------------
+
+  In the statement view for an account, it is possible to highlight
+  transactions where the balance falls below the overdraft limit.  This
+  option can be controlled from the 'Accounts' section of the choices
+  dialogue, by toggling 'Highlight overdrawn account entries'.
+
+  In views for analysis headings, transactions that fall outside the current
+  budget range can be highlighted or shaded in a similar way, so that entries
+  applying to the current budget stand out more clearly.  The 'Highlight
+  heading entries outside budget' option in the choices dialogue controls
+  this option.
+
+  In both cases, the colour used to highlight entries can be specified.  This
+  should be set depending on whether highlighted entries are required to
+  stand out or not.
+
+
+  Moving around transactions from a statement view
+  ------------------------------------------------
+
+  To locate a transaction from the statement view in the transaction window
+  for editing, click Menu over it and select 'Find transaction' or
+  double-click Select over it.  The transaction will be located, and the
+  caret placed within it (either in the 'Date' field or in the field
+  corresponding to the one double-clicked over).  Double-clicking with Adjust
+  has the same effect, but the transaction window is brought to the top of
+  the window stack so that it is fully visible.
+
+  Moving the other way, selecting 'Goto transaction' from the statement view
+  menu or clicking on the 'goto transaction' button in the statement view
+  toolbar will scroll the view so that the transaction in the transaction
+  window that contains the caret is shown (assuming that it is in the
+  statement view at all).
+
+
+
+Transactions
+------------
+
+  Transactions are central to CashBook, as they allow the movement of money
+  between accounts and analysis headings.  A transaction moving money from an
+  account to an analysis heading is a 'payment', while one that moves money
+  from a heading to an account is a 'receipt'.  Transfers between two
+  accounts can also be achieved in the same way.
+
+  The transaction window is central to a CashBook file, and acts as a focus
+  around which all the other windows are located; if the window is closed,
+  all the associated windows will also close and the file is removed from
+  memory (after a warning if the data is unsaved, of course).  It contains a
+  full list of all the transactions in the file, and is the place where new
+  transactions are added and existing ones edited.
+
+  The transactions in the window are sorted according to the contents of one
+  of the columns, as shown by the presence of the sort indicator arrow in the
+  corresponding column heading.  The sort order can be changed by clicking
+  Select or Adjust in any of the headings, to sort that column into ascending
+  or descending order respectively.
+
+  Alternatively, the sorting options can be changed from the sort
+  transactions dialogue, which can be opened by clicking Select on the 'sort'
+  button in the transaction window toolbar, by selecting 'Transactions --
+  Sort...' from the menu, or by pressing F5.  After the options have been
+  changed, clicking on 'Sort' will update the display.
+
+  If the option to automatically sort the transactions is selected in the
+  global choices, the window's contents will update if Return is pressed in
+  the sorted column.  At other times, an Adjust click on the 'sort' button in
+  the toolbar will force a re-sort.
+
+  Transactions can be exported as a CSV or TSV file, for importing into
+  spreadsheets or wordprocessors, using the 'File -- Export CSV' and 'File --
+  Export TSV' options from the menu.
+
+  The contents of the window can also be printed, by selecting 'File --
+  Print...' from the menu, clicking on the 'print' button in the toolbar or
+  pressing Print.  A range of dates can be specified, to limit the
+  transactions printed; leaving either field blank allows the transactions
+  before or after a date to be included.
+
+
+  What is a transaction?
+  ----------------------
+
+  A transaction consists of the information required to move money from one
+  location to another.  It can move money between accounts, from accounts to
+  analysis headings or from analysis headings to accounts.  Entries consist
+  of up to six pieces of information, as follows:
+
+  * The 'No' column shows the number of the transaction as it is known to
+    CashBook.  These numbers are allocated sequentially from the start of the
+    file, and appear in the transaction and statement view windows as well
+    as, printed output, exported data and reports.  Transaction numbers can
+    not be changed by the user.
+
+  * The 'Date' shows when the transaction occurred, and may be any date from
+    the year 100 to the year 9999.  The date is used to sort transactions for
+    analysis and budgeting, and allows post-dated entries (those with dates
+    ahead of the current date from the computer's clock) to be identified.
+
+  * The 'From' field shows the account or heading from which the money will
+    be taken.  If you are making a payment from an account, that account will
+    go here; otherwise, a heading corresponding to the source of the money
+    (such as 'Wages' or 'Bank interest') or another account from which the
+    money is being transferred will be entered.
+
+  * The 'To' field shows the account or heading to which the money will be
+    paid.  If you are making a payment to an account (such as 'Savings
+    account' or 'Credit card'), that account will go here; otherwise, a
+    heading corresponding to the recipient of the money (for example 'Food'
+    or 'Petrol') or another account will be entered.
+
+  * The 'Reference' is a 12 character reference, which is available for use
+    as required.  It can contain anything at all, from a cheque number (which
+    CashBook can automate) or invoice number, to something like the mileage
+    on a car when fuel was purchased.
+
+  * The 'Amount' is the amount of money that the transaction is for.  It will
+    be debited from the account or heading in the 'From' column and credited
+    to the one in the 'To' column.
+
+  * The 'Description' is a free-text field of up to 100 characters, that can
+    be used to supply more information about the transaction.  No
+    significance is placed on the contents, but they can be searched if
+    required and are made available when generating some types of report.
+
+  The from and to fields both have a reconciled flag, which can be set to
+  indicate that the entry has been checked against a bank, building society
+  or credit card statement.  When the field refers to an account, the flag is
+  initially unset; for analysis headings, the flag is always set and has no
+  meaning.
+
+  | (!) Transaction numbers are allocated sequentially in date order.
+  |     Although they usually remain constant, if a new transaction is
+  |     entered with a date which places it before other transactions in the
+  |     file then the numbers of those following transactions will each
+  |     increase by one.
+
+
+  Entering transactions
+  ---------------------
+
+  The transaction window is a lot like a spreadsheet, with rows containing
+  individual transactions and columns to represent the various fields in
+  them.  Data is entered by typing directly into the cells: new entries can
+  be made into blank cells, and existing details can be edited in the usual
+  way.
+
+  To place the caret in a cell, click Select over it.  The Left and Right
+  cursor keys move the caret backwards and forwards in the cell.  The Up and
+  Down keys move up and down the rows, while Tab and Shift-tab move right and
+  left from cell to cell.  Pressing Return will also move the caret to the
+  next cell (like Tab), but may also have additional effects: in the
+  currently sorted column, it will cause the transaction to be sorted into
+  the correct place, while in the 'Description' column, it will place the
+  caret in the next blank line.
+
+  The Page up, Page down, Home and End keys behave in the standard way.
+  Scrolling the window down below the last line, using either Down or the
+  down tool on the scroll bar, will add blank lines to the end of the window.
+
+  In general, transaction details are entered directly into the columns;
+  dates are entered in the "DD-MM-YYYY" format.  The 'From' and 'To' columns
+  are slightly different, as they consist of three cells: from left to right,
+  these contain the account or heading ident, the reconciled flag, and the
+  full name of the account or heading.  The caret can only be placed into the
+  ident area, and the other two sections will update depending upon the
+  account or analysis heading ident which is entered here.
+
+  As an alternative to remembering and typing in the idents for all accounts
+  and headings, clicking Adjust over the name field of the 'From' and 'To'
+  columns will open a menu containing all the options that can be entered.
+  This is split into two sections, with accounts in submenus at the top and
+  analysis headings at the bottom.  If the accounts or headings lists have
+  been grouped using header rows in their respective list windows, then the
+  submenus will reflect those groupings.
+
+  Each transaction can be reconciled against both the 'From' and 'To'
+  accounts, and reconciled entries are indicated by a asterisk in the correct
+  column.  With the caret in the ident field, the + and - keys set and unset
+  the reconciled status; clicking Adjust over the field will toggle its
+  state.
+
+
+  Speeding up data entry
+  ----------------------
+
+  Entering the transaction details can be speeded up for some of the fields
+  by using the F1 'quick entry key' to fill in standard default information.
+  How this behaves depends on the column which currently contains the caret,
+  as follows:
+
+  * In the 'Date' column, pressing F1 will insert the current day's date,
+    overwriting whatever was present before.  Alternatively, click Adjust
+    over the column, and select 'Today's date' from the shortcut menu.
+
+  * In the 'Reference' column, F1 will insert the next cheque or pay-in slip
+    number, depending upon the accounts given in the 'From' and 'To' columns.
+    Alternatively, click Adjust over the column, and select 'Pay-in or
+    cheque' from the shortcut menu.
+
+    If the 'From' column contains an account with a cheque number specified,
+    the next number will be inserted from that sequence; similarly, if the
+    'To' column contains an account with a pay-in slip number specified, that
+    will be used.  If both columns contain accounts with the respective
+    numbers set, a prompt will ask which to use.
+
+    The Adjust-click menu also contains a list of other references used in
+    the file, which can be selected to enter them into the field.  If the
+    field already contains some text, only other references starting with the
+    same characters will be included.
+
+  * In the 'Description' column, the entry will be completed by pressing F1.
+    If some text is already in the field, the last entry starting with that
+    string is copied down (the match is case-insensitive, but the case of the
+    copied text is preserved).  If the field was blank, the last text found
+    is copied.
+
+    Clicking Adjust over the column opens a menu containing a list of other
+    descriptions used in the file, from which one can be selected to insert
+    it into the field.  If the field already contains some text, only other
+    descriptions starting with the same characters will be included.
+
+  In addition, when moving on to the next field, holding down Ctrl while
+  pressing Return or Tab (ie.  Ctrl-Return or Ctrl-Tab) will copy the
+  contents of the transaction above into the field.
+
+
+  Transaction presets
+  -------------------
+
+  Sometimes there will be transactions, or bits of transactions, which are
+  used frequently, but not regularly enough to be candidates for standing
+  orders (as described in the next chapter).  In such cases, transaction
+  presets may be of use.
+
+  Presets are effectively transaction templates, where some or all of the
+  fields are completed and stored for future use.  While all of the columns
+  in the transaction window can be specified in a preset, often some will be
+  left blank to be filled in each time the preset is used.
+
+  New presets are created using the create new preset dialogue, either by
+  selecting 'Transactions -- New preset...' from the main menu, or by
+  clicking on the 'new transaction preset' button in the transaction window
+  toolbar.
+
+  Each preset must be given a unique 'Name' to identify it, and it can also
+  be allocated a 'Shortcut key'.  The key is a single letter (A to Z), which
+  can be pressed while the caret is in the 'Date' column of the transaction
+  window to insert the contents of the preset into the current transaction;
+  without a key, presets can be accessed from a menu.
+
+  The fields in the 'Details' section contain the normal transaction details:
+  if a field is left blank, the preset will not update that column of the
+  transaction window when inserted into a transaction.  If 'Today' is ticked,
+  the current date (at the time the preset is used) will be inserted into the
+  'Date' column; if 'Pay-in or cheque' is ticked, the 'Reference' column will
+  be set to the next appropriate pay-in slip or cheque number for the
+  accounts given in the 'From' and 'To' columns at the time (as if F1 was
+  pressed in each case).
+
+  The column of radio icons to the right of the dialogue allows the final
+  destination of the caret to be set: this allows the caret to be placed
+  appropriately for filling in any fields left blank in the preset.  Clicking
+  on 'Create' will add the preset to the file.
+
+  To insert a preset, either click Adjust over the 'Date' column of the
+  transaction window and select its name from the list, or press its shortcut
+  key while the caret is in the 'Date' column.  Pressing a shortcut key
+  behaves as if Return was pressed.  If the 'Date' field in the preset is
+  left empty, this allows all of the auto-completion options to be used with
+  dates when entering presets.
+
+  The presets defined in a file can be seen in the transaction preset list
+  window, which can be opened by selecting 'Transactions -- List presets'
+  from the main menu or by clicking on the 'list transaction presets' button
+  in the transaction toolbar.
+
+  Each line in the window lists a preset.  The 'Name' and 'Key' columns show
+  their names and shortcut keys (where defined), while the 'From', 'To',
+  'Amount' and 'Description' columns show some of the details.
+  Double-clicking on an entry will allow it to be viewed in full, edited, or
+  deleted.
+
+  The presets in the window are sorted according to the contents of one of
+  the columns, as shown by the presence of the sort indicator arrow in the
+  corresponding column heading.  The sort order can be changed by clicking
+  Select or Adjust in any of the headings, to sort that column into ascending
+  or descending order respectively.
+
+  Alternatively, the sorting options can be changed from the sort presets
+  dialogue, which can be opened by clicking Select on the 'sort' button in
+  the transaction presets list toolbar or by selecting 'Sort entries...' from
+  the menu.  After the options have been changed, clicking on 'Sort' will
+  update the display.
+
+  If the option to automatically sort the preset list is selected in the
+  global choices, the window's contents will update as presets are added or
+  updated.  At other times, an Adjust click on the 'sort' button in the
+  toolbar will force a re-sort.
+
+  The list of presets can be exported as a CSV or TSV file, for importing
+  into spreadsheets or wordprocessors, using the 'Export CSV' and 'Export
+  TSV' options from the presets list menu.  The contents of the window can
+  also be printed, by selecting 'Print...' from the menu or clicking on the
+  'print' button in the toolbar.  The full list of presets will be printed,
+  as shown in the window.
+
+
+  Reconciling entries
+  -------------------
+
+  One of the most important functions of any accounting software is to allow
+  account statements from banks, building societies, credit card companies
+  and so on to be checked off against the transaction record to make sure
+  that they are correct.  Incorrect entries need to be highlighted, to allow
+  them to be investigated and errors rectified.
+
+  The approach that CashBook uses is to allow the 'From' and 'To' fields of
+  each transaction to be marked as reconciled once they have been checked off
+  against a statement.  Reconciled items show up with an asterisk in the
+  centre field of the relevant column, and are included in the statement
+  balance of the account in question.  When all of the entries on the new
+  statement have been checked and reconciled, the statement balance in
+  CashBook should agree with the final balance on the statement.
+
+  Each transaction has two separate reconciled markers, for the 'From' and
+  'To' accounts, since transactions between accounts can apply to two
+  different statements.  Headings also have reconciled markers, but these are
+  set automatically and are ignored when calculations are carried out.  Once
+  both fields in a transaction have been reconciled, the line can be
+  highlighted (or greyed out) in the transaction window.
+
+  When the caret is in either the 'From' or 'To' column, the reconciled
+  status can be changed by pressing + (or =) to set the marker or - to unset
+  it.  Alternatively, clicking Adjust over the marker will toggle its state.
+
+  When reconciling the transactions contained in a statement, it is possible
+  to simply find each entry in the transaction window and check it off.
+  However, there are two ways in which the process can be made easier.
+
+   1.  If 'Reconcile Mode' is turned on, either by selecting 'Transactions --
+      Reconcile' from the main menu or by toggling the 'reconcile' icon in
+      the transaction window toolbar, pressing either + or - will update the
+      status of the flag as normal.  Having done this, the account at the
+      caret is checked, and the caret moved on to the next unreconciled entry
+      concerning it.
+
+      Once the reconciliation is complete, the Reconcile Mode can be turned
+      off again, by toggling the toolbar icon or un-ticking the menu entry.
+
+   2.  As an alternative, a statement view can be opened for the account to
+      be reconciled.  This option allows the statement to be worked through
+      in the order that it appears on paper.  The reconciled fields in the
+      statement view can also be toggled with Adjust
+
+  The Find transaction window can be used to locate the first unreconciled
+  transaction for a given account, by entering that account unreconciled in
+  both the 'From' and 'To' fields.
+
+  When viewing the account details in the accounts list window, the
+  reconciled balances for each account are shown under the 'Statement'
+  column.  In each case, this should correspond to the final balance shown on
+  the most recent reconciled statement for that account; if not, there is a
+  discrepancy between the data in CashBook and the information held by the
+  bank.
+
+  Transactions where both the 'From' and 'To' fields are reconciled can be
+  shown highlighted or shaded in the transaction window if required.  This
+  makes it easier to spot transactions which still need to be checked against
+  a bank or card statement.  The option can be set and the highlight colour
+  changed from the 'Transactions' section of the choices dialogue.
+
+  An unreconciled transaction report can be generated by selecting 'Analysis
+  -- Unreconciled report...' from the main menu: this will list unreconciled
+  transactions meeting certain criteria.  More details can be found in the
+  Reporting and Analysis chapter.
+
+
+  Deleting transactions
+  ---------------------
+
+  It will not normally be necessary to delete transactions from a file, but
+  under some circumstances it may be needed.  It is possible to delete an
+  entry column by column, clearing the contents of each cell in turn with
+  Delete, Ctrl-U or (if the clipboard is enabled) Ctrl-X.  However, there is
+  also a facility to delete an entire line in one go, by pressing Ctrl-F10
+  when the caret is in the required transaction.
+
+  Since this operation could potentially be unwelcome, there is an option to
+  disable it.  This can be set from the 'Transactions' section of the choices
+  dialogue.
+
+
+
+Standing Orders and Repeating Transactions
+------------------------------------------
+
+  Through the use of Standing Orders, CashBook can automatically enter
+  regularly recurring transactions such as salary payments, direct debits
+  and, of course, standing orders.  Each standing order definition describes
+  a transaction which is repeated a given number of times (from once to 999
+  times) with a specified interval.
+
+  Transactions entered automatically can have all of the same information
+  attached as manually entered ones.  In addition, it is possible to specify
+  different amounts for the first or last transaction in the sequence: this
+  can be used to take account of the common situation where a series of
+  standing orders or direct debits start or finish with a different payment.
+
+
+  Creating a new standing order
+  -----------------------------
+
+  New standing orders can be created using the create new standing order
+  dialogue, either by selecting 'Transactions -- New standing order...' from
+  the main menu, or by clicking on the 'new standing order' button in the
+  transaction window toolbar.
+
+  The contents of the dialogue box can be split into two sections: at the
+  top, information is entered to show when the transactions will occur, while
+  at the bottom, the actual details of the transaction are given.
+
+  Enter the date of the first transaction and the number of transactions that
+  are to be made in the 'Start date' and 'Number' fields.  The start date
+  given is used as a target, and depending upon the other settings, the
+  actual date of the first transaction may differ.
+
+  The period between transactions is entered in the 'Every' field, with the
+  unit selected after it.  Days and years will operate as expected, with each
+  new transaction date being calculated exactly from the previous one.  The
+  exception to this is if the date is set to 29th February of a leap year,
+  with a period of years: in non-leap years, the transaction will occur on
+  28th February.
+
+  If months are selected, however, things are slightly different.  The day of
+  the month for the start date can be entered as any between 1 and 31
+  inclusive, regardless of the actual number of days in the given month.  In
+  the event of the current month having less days than the date specified,
+  the transaction is brought forward to the last real day.  This allows a
+  direct debit to be set to be paid on the last day of every month, by
+  setting the start date to be the 31st day.
+
+  'Avoid weekends' allows the transactions to avoid being paid at weekends
+  when the banks are closed.  Once a target date is found for the
+  transaction, the date will be stepped forwards or backwards until a weekday
+  is chosen.  Despite this, the ORIGINAL target date (prior to a weekday
+  being found) is used to add the offset to for the next payment.
+
+  In the 'Details' section below, enter the transaction details as for a
+  normal transaction.  Sometimes direct debits require a different amount to
+  be paid on the first or last instalment; if this is the case, enter the
+  usual amount in the 'Amount' field and use the 'First payment' and 'Last
+  payment' fields as necessary.
+
+  Clicking on 'Create' will add the new standing order to the list.  If the
+  start date falls before the current date, transactions will be added
+  immediately to bring the date of the next transaction into the future: in
+  extreme cases, this may result in the standing order being completed
+  immediately.
+
+
+  Viewing standing orders
+  -----------------------
+
+  A complete list of the standing orders that are defined in a file can be
+  seen in the standing orders list window, which can be opened by selecting
+  'Transactions -- List standing orders' from the main menu or by clicking on
+  the 'list standing orders' button in the transaction window toolbar.
+
+  Each line in the window shows details of a single standing order.  The
+  'From', 'To', 'Amount' and 'Description' columns show the transaction
+  details as they will be entered into the accounts.  The amount shown is
+  always the standard amount, even if the next transaction will be the first
+  or last in the sequence.
+
+  The 'Next date' is the date on which the next transaction will be entered.
+  This is the calculated date, and takes into account details such as shorter
+  months, weekend avoidance and so on.  If the standing order is complete or
+  has been stopped, this will show as 'Stopped'.
+
+  The 'Left' column shows how many transactions are still to be carried out.
+  This counts down from the initial number, and will show zero if the order
+  is complete or has been stopped.
+
+  The orders in the window are sorted according to the contents of one of the
+  columns, as shown by the presence of the sort indicator arrow in the
+  corresponding column heading.  The sort order can be changed by clicking
+  Select or Adjust in any of the headings, to sort that column into ascending
+  or descending order respectively.
+
+  Alternatively, the sorting options can be changed from the sort standing
+  orders dialogue, which can be opened by clicking Select on the 'sort'
+  button in the standing orders list toolbar or by selecting 'Sort
+  entries...' from the menu.  After the options have been changed, clicking
+  on 'Sort' will update the display.
+
+  If the option to automatically sort the standing order list is selected in
+  the global choices, the window's contents will update as orders are added
+  or updated, or as the associated transactions are added to the file.  At
+  other times, an Adjust click on the 'sort' button in the toolbar will force
+  a re-sort.  Automatic sorting can be used on the 'Next date' column to
+  ensure that the next standing order to occur is always shown at the top of
+  the list.
+
+  The list of standing orders can be exported as a CSV or TSV file, for
+  importing into spreadsheets or wordprocessors, using the 'Export CSV' and
+  'Export TSV' options from the standing orders list menu.
+
+  The contents of the window can also be printed, by selecting 'Print...'
+  from the menu or clicking on the 'print' button in the toolbar.  The full
+  list of standing orders will be printed, as shown in the window.
+  Alternatively, the standing order report can be opened by selecting 'Full
+  report' from the menu: this gives complete details of each order in the
+  form of a list.
+
+
+  Editing and stopping standing orders
+  ------------------------------------
+
+  Once a standing order has been created, it is possible to change some of
+  the details, or stop it before it is complete.  These actions are carried
+  out through the Edit standing order details dialogue, which can be opened
+  by double-clicking over a line in the standing orders list window or by
+  clicking Menu over it and selecting 'Edit standing order...'.
+
+  Any of the details of the standing order can be edited, although if it is
+  currently in progress the start date and period can not be changed.  The
+  number of transactions can always be adjusted, but if the order is in
+  progress the number must remain greater than those that have already taken
+  place.
+
+  To store any changes that have been made, click 'Update'; clicking 'Cancel'
+  will lose any changes that have been made since they were last stored.
+
+  A standing order can be stopped by clicking on 'Stop'.  This will cause the
+  remaining transactions to be set to zero, and allows the start date and
+  period to be altered.  Stopped orders can be left in the list for future
+  use; if 'Delete' is used, on the other hand, the details are removed from
+  the file.
+
+
+
+Budgeting
+---------
+
+  Two facilities are provided by CashBook for tracking and analysing income,
+  spending and cashflow.  Budgeting, which is described in this chapter,
+  continually monitors the money going into and out of analysis headings, as
+  well as keeping an eye on the flow of money through accounts.  In contrast,
+  the Reporting and Analysis facilities can provide much more detailed
+  information, but do so as a snapshot taken at a particular instance in
+  time.
+
+  Budgeting allows targets to be set for income and expenditure over a period
+  of time, then compares these to what actually happens.  The process makes
+  use of analysis headings, with the option to set a budget limit for each
+  heading.
+
+
+  Setting up a budget
+  -------------------
+
+  To set up a budget, two pieces of information need to be decided: the
+  period over which the budget is to run, and the amount of money available
+  to be spent in that period.  Once these have been established, it is
+  possible to allocate the available funds across the known areas of
+  expenditure.
+
+  By default, a CashBook budget will run for the duration of the whole file
+  and include all of the transactions.  This makes sense if a new file is
+  started at the beginning of each financial period; if not, the budget
+  period can be restricted to a given set of dates.  Open the budget details
+  dialogue by selecting 'Analysis -- Budget...' from the main menu, and enter
+  the dates into the 'Budgeting dates' section.
+
+  Allocating the expenditure is done through individual analysis headings.
+  Each heading can have a budget limit set in the edit heading details
+  dialogue, which shows up in the 'Budget' column of the headings list
+  window.  If this value is non-zero, the field in the 'Actual' column will
+  show how much has been spent against that heading during the budget period
+  (if there is no period set, this value will be the same as the one in
+  'Total'). 'Balance' indicates how much of the budget amount is left (ie.
+  Balance = Budget - Actual).
+
+  The layout of the headings list windows means that printing them or
+  exporting them to another application provides a useful budget sheet
+  showing budgeted amounts and actual expenditure.  Budget limits can be
+  revised at any point, and the various calculations will update
+  automatically.
+
+  Similar budgeting facilities are available on incoming headings, although
+  it may be harder to budget for many types of income.  Once set up, the
+  difference between the grand totals for the incoming and outgoing 'Budget'
+  columns should show the targeted gain or loss over the period, while the
+  same difference for the 'Actual' columns shows the actual performance.
+
+
+  Budgeting with accounts
+  -----------------------
+
+  In the accounts list window, the 'Budget' column shows the change in
+  balance of each account during the budget period, by adding up all credits
+  and debits that fall in the date range.  This has no direct connection with
+  the budgets set up for analysis headings, but in the case of savings
+  accounts can provide a limited indication of the amount of money put away
+  (or, indeed, withdrawn) during the period.
+
+  The value should be treated with caution, as it can easily be affected by
+  the starting condition of the accounts.  For example, if the budget period
+  coincided with the tax year and money was held in a current account ready
+  to be transferred to a savings account at the start of the new year, that
+  current account would be likely to show a large negative 'Budget' value for
+  most of the budget period as the balance started high and an unusually
+  large amount was quickly withdrawn.
+
+  While the account budget indication can be useful as a quick guide, for
+  more detailed analysis of this kind of information the reporting and
+  analysis features may be more appropriate.
+
+
+  Monitoring post-dated transactions
+  ----------------------------------
+
+  In addition to analysing income and expenditure, CashBook allows post-dated
+  transactions to be monitored.  The 'Final' column in the account list
+  window includes the effect of any post-dated transactions and pending
+  standing orders for a specified period of time.  This can provide prior
+  warning when large amounts of money are due to leave an account.
+
+  The budget details dialogue, accessed from the main menu at 'Analysis --
+  Budget...', allows these options to be changed in the 'Post-dated
+  transactions' section. 'Trial standing orders for X days' indicates how
+  many days' worth of future standing orders are included in the 'Future'
+  value and can be set to "0" to disable the feature.  If 'Restrict
+  transactions' is set, post-dated transactions entered into the transaction
+  window are also limited to this period: any transactions which are further
+  ahead do not appear anywhere in the calculated values.
+
+
+
+Reporting and Analysis
+----------------------
+
+  CashBook's analysis facilities allow reports to be generated, providing
+  information on the accounts and analysis headings in a file.  Details can
+  be extracted on individual transactions, or on collections of transactions,
+  accounts, analysis headings and so on.  This makes it possible to gain a
+  much clearer idea of the way in which money is being spent (or saved).
+
+  Reports are text-based, and can be viewed on screen or printed via the
+  built-in report viewer.  The contents can be exported in a number of
+  formats, including CSV, and several of the reports can be created in a
+  tabular layout which is suitable for graphing or loading into a spreadsheet
+  for further manipulation.
+
+  The various reports are accessed from the 'Analysis' menu.  Four options
+  are available, which are described in detail later in this chapter:
+
+  * Transaction reports allow individual transactions to be shown, based on
+    date, account or analysis heading, amount, reference or description.
+    Summary totals of the individual accounts and analysis headings can be
+    produced, and details on budget targets can also be included.
+
+  * Unreconciled transaction reports allow unreconciled transactions to be
+    shown.
+
+  * Cashflow reports show the change in balance of accounts and analysis
+    headings over time.  Their output can be in the form of a list, or in a
+    tabular format suitable for loading into a spreadsheet.
+
+  * Balance reports indicate snapshots of the balance of accounts and
+    analysis headings at the end of given time periods.  As with cashflow
+    reports, their output can be in list or tabular format.
+
+  All of the reports can have their entries split into groups by date, and
+  the unreconciled reports can also be grouped by account and analysis
+  heading.
+
+  The settings used for individual reports can be saved as templates in a
+  cashbook file for re-use at a later time.
+
+  The reports fall broadly into two groups.  Transaction and unreconciled
+  transaction reports are, at their names suggest, mainly concerned with
+  transactions -- although the transaction report can also provide useful
+  summaries of analysis headings.  Cashflow and balance reports, on the other
+  hand, deal with the flow of money in to and out of accounts and analysis
+  headings.  Transaction reports can also be used to show income and
+  expenditure against analysis headings.
+
+  Since CashBook effectively operates a double-entry system, cashflow and
+  balance reports are of most use when looking at accounts in isolation.
+  Each transaction has equal but opposite entries in two accounts or analysis
+  headings, which results in these reports always totalling to zero if all
+  the accounts and headings are included; this is explained in more detail
+  when each report is discussed below.  Due to this effect, transaction
+  reports are often more use for providing information on spending against
+  accounts, analysis headings and budget targets.
+
+  In addition to these general reports, the standing order report allows a
+  list of the currently defined standing orders to be produced quickly.
+
+
+  The report viewer
+  -----------------
+
+  The report viewer is used to display completed reports or printouts on
+  screen, and allows the results to be printed or saved out in a number of
+  different formats.  Depending on the report, the CSV output is suitable for
+  importing into a spreadsheet or graphing package for further manipulation.
+
+  The fonts used in the report can be changed using the report font dialogue,
+  by selecting 'Font...' from the report window menu or by clicking on the
+  'font' in the toolbar.  Four fonts can be chosen: for the normal, italic,
+  bold and bold-italic text respectively.  The font size can be specified in
+  points, and the line spacing specified as a percentage of the point size.
+
+  Tabular data in reports can be surrounded by a grid, to make reading the
+  lines easier.  The grid can be toggled on and off by selecting 'Include --
+  Grid' from the report window menu, or by clicking on the 'show grid' button
+  in the toolbar.
+
+  If a RISC OS printer driver has been loaded in the current session, then it
+  becomes possible to switch the report window between showing a flat report
+  (the only option if no driver is available) or one split into pages --
+  showing where page breaks occur and allowing things like page headers and
+  numbers to be previewed.  To toggle page display on and off, select 'Show
+  pages' from the report window menu or click on the 'show pages' button in
+  the toolbar.  The page display size is fixed on screen so that fonts appear
+  at 100% scaling; if layout requirements would result in the page content
+  being scaled down to fit on the paper, this results in the apparent page
+  size growing on screen.
+
+  The paper layout can be switched between Portrait and Landscape by
+  selecting 'Layout -- Portrait' and 'Layout -- Landscape' from the report
+  window menu, or by clicking on the 'portrait' and 'landscape' buttons in
+  the toolbar.  To force the report to be scaled down so that its width fits
+  on a single sheet of paper, select 'Layout -- Fit width' from the report
+  window menu or click on the 'fit width' button in the toolbar.
+
+  Report pages can contain header and footer areas, which show the report
+  title and page numbers respectively.  These can be switched on and off
+  using 'Include -- Title' and 'Include -- Page numbers' in the report window
+  menu, or by clicking on the 'show title' and 'show page numbers' buttons in
+  the toolbar.
+
+  Default values, to be used for new all new reports, can be set in the
+  'Report' section of the choices dialogue.
+
+  The report can be printed from the print report dialogue, opened by
+  selecting 'Print...' from the report window menu.  The standard printing
+  options are available, allowing the information to be rotated and scaled to
+  best fit the paper or to be printed using fast text output if the hardware
+  supports this.
+
+  Alternatively, the report contents can be exported in various different
+  formats from the report window menu:
+
+  * Plain ASCII text, from the 'Save text' option, saves the content for a
+    fixed width font using spaces to pad out the columns.  This is most
+    likely to be of use for sending to a printer or including in another
+    fixed width document such as an email.
+
+  * Comma separated values (CSV), using the 'Export CSV' option.  CSV files
+    are a standard format, used extensively by other applications like
+    spreadsheets and graphing packages.  The output differentiates between
+    text and numerical data, and splits columns into separate fields.  Some
+    reports can produce tabular layouts, which are particularly suited to
+    operations like charting.
+
+  * Tab separated values (TSV), using the 'Export TSV' option.  TSV files are
+    like CSV, but use tabs (ASCII character 9) instead of commas to separate
+    fields and do not differentiate between text and numbers.  The format is
+    most likely to be used for importing text into wordprocessors.
+
+  Finally, the settings used to create the report can be saved as a template
+  in the file, by selecting 'Save template...' from the report window menu,
+  so that they can be re-used in the future.  This is described in the next
+  section.
+
+
+  Saving report templates
+  -----------------------
+
+  The settings used for individual reports can be saved as templates in a
+  cashbook file, so that they can be re-used at a later date.  Saved reports
+  behave in a similar way to any other report, except that the contents of
+  the report dialogue will be pre-loaded to the required values.  In
+  addition, the name of the report template will appear in the title of the
+  finished report.
+
+  The first step to creating a saved report template is to generate the
+  required report in the usual way (as described in the following sections).
+  Once the report viewer window shows the desired result, select 'Save
+  template...' from the menu to open the Save as template dialogue box.
+
+  A name can be entered into the 'Name' field of the dialogue, which will be
+  used to identify the template in the saved reports menu.  It will also
+  appear in the title of future reports created from the template.  The
+  pop-up menu to the right of the field offers a list of any existing
+  template names: saving a new template with one of these will cause the
+  original template to be overwritten.  Click 'Save' to save the template
+  into the file (to make this permanent, the file itself will now need to be
+  saved in the usual way).
+
+  Reports generated from templates can themselves be saved as templates in
+  exactly the same way.  In this case, the name of the original template used
+  to create the report will be offered by default in the Save as template
+  dialogue.  Leaving the name unchanged will update the original template
+  definition; alternatively the name can be modified to create a new template
+  from the report.
+
+  Saved report templates can be accessed from the 'Analysis -- Saved reports
+  --' sub-menu of the main menu.  Selecting a template from this list will
+  open a report dialogue for the report (as described in the following
+  sections), with a couple of differences: the template name will be shown in
+  the dialogue title, and there will be two additional buttons at the bottom
+  of the window.
+
+  Clicking on the 'Delete' button will delete the report template from the
+  file.  The template can be renamed by clicking on 'Rename...', which will
+  open the Rename template dialogue.  This behaves in a similar way to the
+  Save as template dialogue, except that it is not possible to rename the
+  template to the same name as another in the file.  Click on 'Rename' to
+  change the name.
+
+
+  Transaction reports
+  -------------------
+
+  A transaction report shows details of transactions which meet a given set
+  of criteria.  By restricting the report to certain accounts or analysis
+  headings, it is possible to produce a report showing income or expenditure
+  relating to specific areas.
+
+  The report consists of two parts: a list of all the transactions that match
+  the criteria specified, and a summary of the income, expenditure and
+  account activity related to those transactions by analysis heading or
+  account.
+
+  By using only the analysis heading summary, a report can be produced on
+  analysis headings which is similar to that shown in the incoming and
+  outgoing headings list windows.  In many situations, this can be more
+  useful than the similar output from the cashflow report (described later).
+
+  By using the account summary, a report can be produced which is similar to
+  the information shown in the 'Budget' column of the account list window,
+  but which relates only to the selected transactions (if no 'Include'
+  criteria are set, the information should match that of the account list
+  exactly).  This can provide information on account activity related to
+  other criteria, unlike the cashflow report, which only provides information
+  on overall account activity.
+
+  Transaction reports are useful for breaking income and expenditure up into
+  groups, either by analysis heading, by account, or both.  The reported
+  transactions show the individual dates and amounts of money involved, while
+  the summaries show totals over the periods of the report.
+
+  If the report is created for the current budget period (by selecting the
+  'Use budget period' option), the summaries contain additional information
+  relating to the budget limits.  Along with the 'total' amount allocated to
+  each heading, the 'budgeted' amount is shown, calculated from the number of
+  days in the grouped period and the number of days in the whole budget
+  period.  The 'balance' for the grouped period is the difference between the
+  amount budgeted and the amount actually spent in that period, while the
+  'remaining' value shows the amount remaining from the whole budget period.
+
+  Selecting 'Analysis -- Transaction report...' from the main menu will open
+  the Transaction report dialogue.
+
+  The date range over which the report will be compiled is set in the
+  'Period' section.  Lower and upper limits can be set by entering dates into
+  the 'From' and 'To' fields; if either are left blank, the earliest and
+  latest dates in the file are used respectively.  If 'Use budget period' is
+  set, the current budgeting date range will be used instead of any entered
+  values.
+
+  The way that transactions are grouped is set in the 'Groupings' section.
+  If the report is ungrouped, all the selected transactions will be shown in
+  one block, with a single summary at the end.  If 'Group transactions' is
+  ticked, the transactions will be broken up into chunks as shown and each
+  section will have its own summary at the end.
+
+  The period of each group is given in the 'Group by' field, and can be
+  specified in days, months or years.  If 'Lock to calendar' is on, groups
+  will always end on a calendar boundary (the end of a month or year),
+  regardless of the start date specified.
+
+  The 'Include' section contains the criteria for selecting which
+  transactions to include.  The 'From' and 'To' fields specify the accounts
+  or analysis headings to which the transactions must relate: a transaction
+  is included if it matches an entry in EITHER the from or to list.  If both
+  lists are left blank, all transactions will be included.
+
+  Accounts and headings are entered into the include fields in comma
+  separated lists of idents, like this: "11,M4,T2".  Clicking on the pop-up
+  menu icons to the right of the fields, or pressing F1 (the 'quick entry
+  key') with the caret present, will open the account entry window; this will
+  allow the idents to be entered in the usual way.  An asterisk ("*") can be
+  used to signify 'any' in one field if the other has specific idents
+  entered.
+
+  The selection of transactions can be further narrowed down using the
+  'Reference', 'Amount' and 'Description' fields: if any of these are
+  specified, the transaction must match the values given.  The amount field
+  can be given either a lower limit, and upper limit, or both, while both the
+  reference and description fields can be given a piece of text to match.
+  The text comparison uses standard wildcards, where "#" matches a single
+  character and "*" matches zero or more different characters.
+
+  Finally, the 'Output' section contains options to select whether the
+  transaction entries or the summaries are included in the report.  Any
+  combination can be selected.  By default, accounts or analysis headings
+  which have a zero balance in a given group will be omitted from the group's
+  summary; this can be reversed by ticking 'Include empty', so that all
+  accounts and analysis headings will be included in every group.
+
+  Once the options have been set, clicking on 'Generate' will create the
+  report and display it in a report viewer.
+
+
+  Unreconciled Transaction reports
+  --------------------------------
+
+  An unreconciled transaction report provides details of transactions in the
+  cashbook file which have not been reconciled.  This makes it possible to
+  identify items which have not appeared on statements, which can potentially
+  highlight errors.
+
+  Selecting 'Analysis -- Unreconciled report...' from the main menu will open
+  the Unreconciled transaction report dialogue.
+
+  The date range over which the report will be compiled is set in the
+  'Period' section.  Lower and upper limits can be set by entering dates into
+  the 'From' and 'To' fields; if either are left blank, the earliest and
+  latest dates in the file are used respectively.  If 'Use budget period' is
+  set, the current budgeting date range will be used.
+
+  If 'Group transactions' is ticked, transactions in the report will be
+  grouped and shown together, either by date or by account and heading.
+  'Group by account and heading' collects transactions together based on the
+  unreconciled accounts or headings that they contain in the From and To
+  columns.  If both are unreconciled, the transaction will be shown in the
+  report twice.
+
+  'Group by date' shows the transactions sorted by the dates that they occur
+  on.  The size of each group can be specified in days, months or years.  If
+  'Lock to calendar' is ticked, groups will always end on calendar boundaries
+  regardless of the start date specified.
+
+  Finally, the 'Include' section allows accounts and headings to be specified
+  for inclusion in the report.  If both the 'From' and 'To' fields are left
+  blank, all accounts and sections will be used; otherwise, only those
+  unreconciled transactions which match one or other of the fields will get
+  included.
+
+  Accounts and headings are entered into the include fields in comma
+  separated lists of idents, like this: "11,M4,T2".  Clicking on the pop-up
+  menu icons to the right of the fields, or pressing F1 (the 'quick entry
+  key') with the caret present, will open the account entry window; this will
+  allow the idents to be entered in the usual way.  An asterisk ("*") can be
+  used to signify 'any' in either of the fields, if the other contains
+  specific idents.
+
+  Once the report parameters have been set, click on 'Generate' to create the
+  report.
+
+
+  Cashflow reports
+  ----------------
+
+  Cashflow reports show the flow of money in to or out of a set of accounts
+  or analysis headings over a given period of time.  Effectively, if the
+  balance of an account at the start of the period is A and at the end it is
+  B, then the cashflow of that account over that period is B-A.  At the end
+  of each period, the cashflow for each account and analysis heading included
+  in the report is added together, to give an overall total.
+
+  Due to the double-entry nature of transactions in CashBook, each one will
+  create two equal but opposite entries in two separate accounts or headings
+  (corresponding to the 'From' and 'To' fields of the transaction).  As a
+  result, if a cashflow report is generated including all the accounts and
+  analysis headings in a file, every period total will be zero as the two
+  halves of each transaction will always cancel out.  It is this fact which
+  underpins double-entry book keeping.
+
+  In addition to this, the cashflow for incoming analysis headings will
+  always be NEGATIVE, as money always flows FROM the heading to the account
+  or heading at the other side of the transaction.  Conversely, outgoing
+  headings always have a POSITIVE cashflow, since money always flows TO them
+  from another account or heading.
+
+  As a result of these two points, cashflow reports are usually of most use
+  when applied only to accounts.  In this situation, they indicate whether
+  the balance of an account is rising, falling or merely remaining at a
+  constant level.
+
+  Cashflow reports can also be useful when applied solely to analysis
+  headings, in which case they indicate the amount of money spent on or
+  received from each category during the report period.  Beware that, as
+  explained above, incoming headings will always show negative cashflows, and
+  outgoing headings positive ones; this can initially seem unintuitive.  The
+  information here is effectively the same as that shown in the incoming
+  headings list and outgoing headings list windows if the report period is
+  either the budget period or the whole file.
+
+  As noted above, producing a cashflow report including all the accounts and
+  headings in a file provides a check that the file balances: the totals
+  should always be zero if CashBook is doing its job properly! Cashflow
+  reports containing an incomplete mix of accounts AND headings may give
+  unhelpful (if accurate) results.  An incomplete set of accounts OR headings
+  can be useful: it could, for example, show information about a group of
+  savings accounts, while ignoring current accounts and credit cards.
+
+  When working with analysis headings, it may be the case that a transaction
+  report or the information in the headings list windows (which can of course
+  be printed) proves to be of more use.  In the case of the headings list
+  windows, this will probably depend on the period over which the report is
+  to be run.
+
+  Selecting 'Analysis -- Cashflow report...' from the main menu will open the
+  Cashflow report dialogue so that a report can be created.
+
+  The date range over which the report will be compiled is set in the
+  'Period' section, and follows the standard format.  Lower and upper limits
+  can be set by entering dates into the 'From' and 'To' fields; if either are
+  left blank, the earliest and latest dates in the file are used
+  respectively.  If 'Use budget period' is set, the current budgeting date
+  range will be used.
+
+  By default, the report shows figures for the cashflow in each account and
+  analysis heading over the whole date range specified.  If 'Group results'
+  is ticked, then the report will be broken up into sections as specified by
+  'Group by'.  Ticking 'Lock to calendar' ensures that groups will always end
+  on calendar boundaries, regardless of the start date.  If no money enters
+  or leaves an account or analysis heading during a group period, it will be
+  omitted unless 'Include empty groups' is ticked.
+
+  The 'Include' section specifies which accounts and analysis headings to
+  include in the report.  If all three fields are left blank, then everything
+  will be included; as noted in the explanation above, this may not be that
+  useful.
+
+  As soon as one field contains an ident, only the specified accounts and
+  headings will end up in the report.  An asterisk ("*") can be used to
+  signify 'all' in one or more fields; entering "*" into the 'Accounts' field
+  would generate a report including all the accounts and no analysis
+  headings, while entering "*" into both the 'Incoming headings' and
+  'Outgoing headings' fields would generate a report including all the
+  analysis headings in the file.
+
+  Accounts and headings are entered into the include fields in comma
+  separated lists of idents, like this: "11,M4,T2".  Clicking on the pop-up
+  menu icons to the right of the fields, or pressing F1 (the 'quick entry
+  key') with the caret present, will open the account entry window; this will
+  allow the idents to be entered in the usual way.
+
+  The 'Tabular format' option at the bottom of the dialogue determines the
+  format used by the report.  When off, the standard format is used and
+  entries run down the page.  If ticked, the results are arranged in a table
+  with the accounts and headings across and dates running down: this is a
+  handy format for importing into spreadsheets or graphing packages.  There
+  is a maximum limit of 20 columns to the table, and if this will be exceeded
+  (if there are more than 20 accounts and headings included), requests for
+  the tabular format will be ignored.
+
+  Once the report parameters have been set, click on 'Generate' to create the
+  report.
+
+
+  Balance reports
+  ---------------
+
+  A balance report shows the balances of a set of accounts or analysis
+  headings at the end of a given period.  By grouping the report, it can show
+  how the balances vary over time.  At the end of each period, the balances
+  of every account and analysis heading in the report are summed to give an
+  overall total.
+
+  As with cashflow reports, the double-entry nature of transactions in
+  CashBook can cause all the totals to be zero if every account and analysis
+  heading in a file is included: if a transaction moves �10 from a heading
+  to an account in isolation, the heading's balance will be �-10 and the
+  account's balance will be �+10 afterwards.  Summing these balances gives
+  a total balance of �0.
+
+  However, unlike a cashflow report, this will not hold true if any accounts
+  have opening balances specified.  In this case, the total shown in each
+  report will be the total of the opening balances of all the accounts
+  included in the report.
+
+  Still in a similar way to cashflow reports, the balances for incoming
+  analysis headings will always be negative, while the balances for outgoing
+  headings will always be positive.  This is because incoming headings are
+  effectively paying money out, into your accounts; outgoing headings, on the
+  other hand, are always accruing the money paid out from your accounts.
+
+  As a result, and as with cashflow reports, balance reports will usually be
+  of most use when applied to either accounts OR analysis headings but not
+  both at the same time.  When applied to accounts, they show the amount of
+  money contained in those accounts; when grouped by time, an indication of
+  how those balances have changed over time is also provided.
+
+  Used with analysis headings, a balance report shows how the total income or
+  expenditure of a heading increases over time.  This is distinct from
+  information returned from a transaction report (or cashflow report), which
+  shows the income or expenditure totalled for each time period.
+
+  Selecting 'Analysis -- Balance report...' from the main menu will open the
+  Balance report dialogue.
+
+  The date range over which the report will be compiled is set in the
+  'Period' section, and follows the standard format.  Lower and upper limits
+  can be set by entering dates into the 'From' and 'To' fields; if either are
+  left blank, the earliest and latest dates in the file are used
+  respectively.  If 'Use budget period' is set, the current budgeting date
+  range will be used.
+
+  By default, the report shows figures for the balance of each account and
+  analysis heading at the end of the date range specified.  In normal use, it
+  is generally more useful to tick 'Group results', so that the balance for
+  each account or heading is shown at the end of each group period (for
+  example at the end of each month).  Ticking 'Lock to calendar' ensures that
+  groups will always end on calendar boundaries, regardless of the start
+  date.
+
+  The 'Include' section specifies which accounts and analysis headings to
+  include in the report.  If all three fields are left blank, then everything
+  will be included; as soon as one field contains an ident, only the
+  specified accounts and headings will end up in the report (but "*" can be
+  used to signify 'all' in a field if others have idents specified).
+
+  Accounts and headings are entered into the include fields in comma
+  separated lists of idents, like this: "11,M4,T2".  Clicking on the pop-up
+  menu icons to the right of the fields, or pressing F1 (the 'quick entry
+  key') with the caret present, will open the account entry window; this will
+  allow the idents to be entered in the usual way.
+
+  The 'Tabular format' option at the bottom of the dialogue determines the
+  format used by the report.  When off, the standard format is used and
+  entries run down the page.  If ticked, the results are arranged in a table
+  with the accounts and headings across and dates running down: this is a
+  handy format for importing into spreadsheets or graphing packages.  There
+  is a maximum limit of 20 columns to the table, and if this will be exceeded
+  (if there are more than 20 accounts and headings included), requests for
+  the tabular format will be ignored.
+
+  Once the report parameters have been set, click on 'Generate' to create the
+  report.
+
+
+  Standing Order Reports
+  ----------------------
+
+  A standing order report gives details of the orders currently defined in a
+  cash book file.  Selecting 'Analysis -- Standing order report' from the
+  main menu or 'Full report' from the standing orders list menu will create
+  the report.
+
+  The report lists all the details of each standing order, including the
+  accounts and headings concerned, amounts to be transferred, the number of
+  transactions, dates and so on.  No parameters can be set for the report.
+
+
+
+Printing
+--------
+
+  The contents of most CashBook windows can be printed, to provide a hard
+  copy of the data they contain.  For printing to work, a printer driver must
+  have been loaded at some point during the current session.  If your printer
+  supports text-mode printing, CashBook can use this to produce a faster
+  print job at the expense of flexibility.
+
+  To print the contents of a window, select 'Print...' from the window's menu
+  or click on the 'print' button in the toolbar.  In the case of the
+  transaction window, the menu option is 'File -- Print...' from the main
+  menu, and the Print key can also be used.
+
+  When printing the transaction window or statement view contents, there is
+  an option in the 'Range<icon> section of the dialogue to restrict the
+  printed dates to a given range: enter dates in the <icon>Include dates
+  from' and/or 'to' fields as required.  If either is left blank, the first
+  and last dates in the file are used respectively.  Clicking on 'Print' will
+  start the print job.
+
+  Instead of sending the print job direct to the printer, it is also possible
+  to send it to a report viewer by clicking on 'Report'.  The resulting
+  report can then be processed further in the same way that any analysis
+  report can be.
+
+  The default options for printing, including the choice between standard and
+  fast text, are set in the 'Printing' section of the choices window.
+
+
+  Standard printing
+  -----------------
+
+  The default method of printing uses outline fonts, which can be scaled as
+  required.  This method is the most flexible, allowing the text to be sized
+  and rotated to provide the best fit on a page, but on older printers it can
+  also be slow.  Selecting 'Standard printing' in the 'Print Mode' section of
+  the dialogue will use this mode.
+
+  The 'Formatting' section of the dialogue allows control over how the
+  printed output will appear.  The 'Portrait' and 'Landscape' options
+  determine the orientation of the text on the page.  Using landscape will
+  allow longer lines to fit on a single sheet of paper, at the expense of
+  getting fewer lines per page.  Setting 'Scale width to fit page' will
+  shrink the text size if this is required to fit the whole width on one
+  page.  Otherwise, the printout will be tiled across as many sheets of paper
+  as necessary, although it will still be scaled down if required to ensure
+  that the widest column fits on a single sheet.
+
+  A number of options can control what is actually printed. 'Include report
+  title' will include the title of the report at the head of each page, while
+  'Include page numbers' will number each printed sheet at the foot of the
+  page, to make it easier to identify the correct order.  Where the layout
+  ends up more than one sheet wide, page numbers are of the form X, Y.  A
+  grid can be drawn around areas of tabular data, if 'Draw grid around
+  tables' is ticked.
+
+  The margins used are those set in the 'Printing' section of the choices
+  window.  If these are set to be smaller than the current printer's margins,
+  a warning will be given and the margins will be temporarily increased.  The
+  fonts used for printing are the ones set in the 'Fonts' section of the
+  choices window (which also set the default font for the report viewer).
+
+  When printing in standard mode, column headings for tables will be repeated
+  if lines from the table continue over a page break.
+
+
+  Fast text printing
+  ------------------
+
+  If your printer supports text mode printing, selecting 'Fast text printing'
+  in the 'Print Mode' section of the dialogue can be used to speed up the
+  print job.  The printer's internal font will be used, meaning that the
+  outline font settings are ignored.  It is no longer possible to scale the
+  print size down to fit on a single page width, and data wider than this may
+  not print correctly (the page width is defined by the printer's default
+  font).  Landscape printing is also not available, unless it can be set in
+  the Printers application.
+
+  When printing in text mode, the 'Use text formatting' option in the
+  'Formatting' section determines whether an attempt is made to use bold,
+  italic and underline styles to produce the same effect as the outline font
+  printing uses; this will depend on the text settings in the RISC OS printer
+  driver and the ability of the target printer.
+
+
+
+Saving and Loading
+------------------
+
+  Saving a cashbook file is done in the usual RISC OS way, by opening the
+  'File -- Save' dialogue from the main menu, clicking on the 'save file'
+  button in the transaction window toolbar or pressing F3.  Enter a name in
+  the save as dialogue, and drag the file to a directory viewer; if a full
+  path is present, clicking 'OK' or pressing Return will save to the same
+  location.
+
+  In addition to using the save as dialogue, a file which has already been
+  saved (and hence has a full pathname showing in the titlebar of the
+  transaction window) can be saved instantly with an Adjust click on the
+  'save file' button or by pressing Ctrl-f3.
+
+  Cashbook files contain details of all the transactions, as well as
+  definitions of all accounts, analysis headings, standing orders,
+  transaction presets and report templates that have been set up.  Budgeting
+  details are saved, as are column widths for all the windows.
+
+
+  Loading files
+  -------------
+
+  A cashbook file can be loaded by double-clicking on it in a filer window,
+  as long as CashBook has been 'seen' by the filer or is loaded on the
+  iconbar.  Files can also be dragged to the iconbar icon.
+
+  The file format has been defined to be as backwards compatible as possible.
+  If files from an old version of CashBook are loaded into a newer version,
+  missing information is usually set to a sensible default value where
+  possible.  If the file is subsequently saved, this additional information
+  will be included in the file.
+
+  Going the other way, older versions of CashBook will just ignore any
+  information that they do not understand: if this happens, a warning will be
+  given.  Saving the file again will cause this additional information to be
+  lost: be careful!
+
+
+  File information
+  ----------------
+
+  Information about a cashbook file can be found by selecting 'File -- Info'
+  from the main menu or by pressing Ctrl-f1.
+
+  The file information dialogue shows the location of the file on disc, if it
+  has been saved, along with the date it was saved and whether there are
+  unsaved modifications in memory (also shown by an asterisk at the end of
+  the transaction window title bar).
+
+  The dialogue also shows how many accounts, analysis headings, transactions,
+  standing orders and transaction presets are in the file.
+
+
+
+Import and Export
+-----------------
+
+  CashBook can import and export data in a number of formats.  Transaction
+  details from other applications can be imported in comma separated value
+  (CSV) format, while data can be exported from any of CashBook's windows as
+  comma or tab separated values (CSV or TSV), or in the case of reports, as
+  plain text.
+
+
+  Importing data
+  --------------
+
+  At present, data import is fairly inflexible and geared to bringing data in
+  from Apricote's Personal Accounts using the CSV format.  To import
+  transactions, drag a CSV file (with filetype CSV, or &DFE) into a
+  transaction window.  If the window already contains some transactions, the
+  new data will be added to the end.
+
+  The file should contain lines of data in the following format:
+
+    <date>,<to>,<from>,<reference>,
+      <debit>,<credit>,<balance>,<description>
+
+  The <date>, <reference> and <description> fields are imported directly: the
+  date must be in a format that would be accepted if it were typed into a
+  CashBook window.
+
+  The <from> and <to> fields contain account or analysis heading names and
+  idents, in the format "Ident:Name".  If a new ident is encountered, a
+  suitable account or analysis heading is created: accounts are assumed to
+  have numerical idents (eg. '11'), while analysis headings are assumed to
+  have alphanumeric ones (eg. 'A1').
+
+  If any ident appears to be blank (either because the format of the field is
+  incorrect or because it is empty), a message will be displayed but the
+  import will continue.
+
+  The amount transferred in the transaction is read from the <debit> and
+  <credit> fields, depending upon which one is populated; if both are
+  present, the <debit> amount is used.  The <balance> value is thrown away.
+
+  When the import has been completed, the import complete dialogue will open,
+  showing the number of transactions successfully imported along with the
+  number of lines that were rejected due to errors.  This can be dismissed by
+  clicking on 'Close'.
+
+  For more detailed information about the import, click on 'View log...' to
+  show a record of all the lines found in the file.  Each entry shows whether
+  it was imported or rejected, and the fields are shown as CashBook found
+  them.  The log is a standard report, and can be saved or printed in the
+  normal way by clicking Menu over it.  See the Reporting and Analysis
+  chapter for more details.
+
+
+  Importing data from Personal Accounts
+  -------------------------------------
+
+  As noted in the preceding section, the CSV import facilities of CashBook
+  are mainly intended for importing data from Apricote's Personal Accounts.
+  The following process should be followed to import transaction data into
+  CashBook.
+
+   1.  In Personal Accounts, ensure that the 'Reconciliation' options show a
+      'User typed character' of "#", a 'Display reconciled character' of
+      "�" and a 'Display un-reconciled character' of a single space.
+
+   2.  Go to the Reports 1 dialogue.  Under 'Columns to include in report',
+      tick 'Date', 'From', 'To', 'Ref', 'Total', 'Balance' and 'Description'.
+      Make sure that 'Include summary of income & payment headings used in
+      report' is not ticked.  Clear all the fields under 'Entries to include
+      in report', and untick 'Auto-Monthly'.  Save the report as a CSV file,
+      using the centre file icon under 'Save/export Report'.
+
+   3.  Open the exported file in a text editor, by Shift-double-clicking on
+      it.  Delete the lines from the top and bottom of the file which are not
+      transactions (the header and summary lines).  Re-save the file.
+
+   4.  Open a new transaction window in CashBook, by clicking on its iconbar
+      icon.  Drag the CSV file into the window.  This will import the
+      transactions, and create any accounts or analysis headings that are
+      used.
+
+   5.  Although accounts and headings will have been created, they will not
+      be sorted as they were in Personal Accounts.  It will be necessary to
+      go into the accounts list and headings list windows and re-arrange the
+      entries as required.
+
+   6.  If any accounts or headings were not used by the imported
+      transactions, these need to be manually entered.
+
+   7.  Account details, such as initial balances, cheque numbers and bank
+      info will need to be entered by hand.
+
+   8.  Any standing orders in the original file will need to be created from
+      scratch.
+
+
+  Exporting Data
+  --------------
+
+  Data can be exported from CashBook as comma separated values and tab
+  separated values files, for use in spreadsheets and word processors.  Most
+  windows' menus have 'Export CSV' and 'Export TSV' entries which allow this
+  to be done (the transaction window has the options in the 'File' sub-menu
+  of the main menu.
+
+  The report window also contains the option to export data as
+  space-delimited ASCII text.  This is described in more detail in the
+  Reporting and Analysis section.
+
+
+
+Finding transactions
+--------------------
+
+  It is possible to locate transactions within a cashbook file in two ways.
+  If the date or transaction number is known, it can be jumped to using the
+  goto transaction dialogue; if not, the find transaction dialogue can be
+  used to look for the correct entry based on a number of criteria.
+
+
+  Going to a transaction
+  ----------------------
+
+  If you know the date or number of a transaction, it is possible to go
+  direct to it using the goto transaction dialogue.  Open it by selecting
+  'Transactions -- Goto...' from the main menu, or by clicking on the 'goto
+  transaction' button in the transaction window toolbar.
+
+  Simply enter the date or transaction number into the 'Transaction' field,
+  selecting 'Date' or 'Number' as appropriate, and click on 'Go'.  If the
+  transaction exists, the caret will be placed in the date field; if not, a
+  message will indicate this.
+
+
+  Searching for transactions
+  --------------------------
+
+  If the date or transaction number is not known, or if several similar
+  transactions need to be located, then the file can be searched based on the
+  contents of a combination of any of the transaction fields.  The find
+  transaction dialogue is opened by selecting 'Transactions -- Find...' from
+  the main menu, or by clicking on the 'find transaction' button in the
+  transaction window toolbar.
+
+  The top section of the dialogue allows the contents of some or all of the
+  fields to be specified.  Any combination can be used, and it is possible to
+  find transactions where all of the specified fields match or where any one
+  or more match.  Values are entered as they would be in a transaction entry,
+  with the same entry keys used for reconciliation of accounts and headings.
+
+  The reference and description fields can include wildcards if required. "*"
+  will match any number of characters, including none, while "#" will match
+  any single character.  If 'Match whole field' is ticked, then the entered
+  text must be an exact match for the whole entry; otherwise, the text can
+  appear anywhere in the cell.  Unless the 'Case sensitive' option is on,
+  upper and lower case are treated as the same in both fields.
+
+  The 'And' and 'Or' switches determine how multiple fields are treated.  If
+  'Or' is selected, then any transactions where one or more of the specified
+  fields match will be found.  If 'And' is selected, all the specified fields
+  must match for a transaction to be found.
+
+  The 'Search direction' can be set to search forwards or backwards from the
+  current location of the caret, or from the start or end of the file, as
+  required.  Click 'Find' to start the search.
+
+
+  Search results
+  --------------
+
+  If any matching transactions are found, the found transaction dialogue will
+  open and the caret will be placed in the first matching field of the line.
+  The dialogue shows which fields matched and gives the transaction number.
+
+  The 'Previous' and 'Next' buttons allow the search to continue in either
+  way, relative to the current search direction, using the same parameters.
+  'New search' allows the current search parameters to be modified, while
+  'Cancel' will abort the search.
+
+
+
+Purging Data
+------------
+
+  After a time, cashbook files will contain old data which is no longer
+  needed.  While this is not actually a problem, it may be desirable to
+  remove old transactions which have been reconciled, unused accounts and
+  analysis headings, and completed standing orders.
+
+  It is possible to carry out this process as part of a year-end routine,
+  removing old transactions before saving the file under a new name.  This
+  ensures that records are maintained, while also reducing the amount of
+  'clutter' in the working copy of the file.
+
+  The process is carried out from the purge file dialogue, which can be
+  opened by selecting 'File -- Purge...' from the main menu.  Four options
+  are available, allowing each type of item to be purged as required.
+
+  If 'Remove reconciled transactions' is selected, all transactions where
+  both the 'From' and 'To' fields are reconciled will be removed.  If a date
+  is supplied in the 'Keep transactions from' field, only transactions taking
+  place before that date will be deleted.  It is not possible to purge
+  unreconciled transactions.
+
+  'Remove unused accounts' and 'Remove unused headings' allow any accounts or
+  analysis headings to be removed if they are not referred to in any
+  transactions or standing orders.  This process is done after transactions
+  and standing orders have been purged, so it will remove any accounts or
+  analysis headings left unused following the purge.  Note that in this
+  context, 'used' means referred to in a transaction, standing order, or
+  transaction preset.
+
+  Finally, 'Remove completed standing orders' will remove any standing orders
+  which have either completed or been stopped.
+
+  To start the purge, click on 'Purge'.  Once the process has completed, the
+  filename is removed from the file so that it can not accidentally be saved
+  back over the original; instead, the file must be dragged to a filer window
+  again.
+
+
+
+Configuration
+-------------
+
+  A number of aspects of CashBook's operation can be adjusted and configured
+  to suit individual users' tastes, computer or geographical location.  To
+  access the choices dialogue, select 'Choices...' from the iconbar menu.
+
+  The choices dialogue is split into a number of sections, which are
+  described below.  To close the window and apply any changes made, click on
+  the 'Apply' button; to save the changes so that they will be used the next
+  time CashBook is loaded, click on 'Save'.
+
+
+  General choices
+  ---------------
+
+  The 'General' choices contain a number of options which do not fit in
+  elsewhere.  They include general user interface issues and control over the
+  way that dates are handled.
+
+  If 'Remember dialogue contents' is ticked, the contents of dialogue boxes
+  will be retained the next time they are opened.  When opening a dialogue
+  from a toolbar button, the contents can be cleared by using an Adjust-click
+  instead of Select (the contents can not be cleared when opening from a
+  menu).  If the option is off, this behaviour is reversed, so that by
+  default dialogue contents are cleared, but can still be retained if an
+  Adjust-click on a toolbar button is used.
+
+  The 'Desktop interface' section contains a couple of options relating to
+  the general interface.  If 'RISC OS 5 keyboard' is selected, keys such as
+  Home and End follow the RISC OS 5 Style Guide; otherwise, they follow the
+  old Acorn guidelines.  This option is selected by default on any system
+  running RISC OS 5, but can be overridden manually. 'Support global
+  clipboard' determines whether CashBook handles global cut, copy and paste
+  from the transaction window.  It should be turned off if system wide
+  support is available (eg. if Select or Adjust's icon selection is on, or if
+  an add-on module like IcnClipBrd is present). 'Transaction drag and drop'
+  controls support for the drag and drop of data between fields in the
+  transaction window: when on, entries can be dragged around the window in
+  the usual way.
+
+  The 'Dates' section controls the way in which dates are handled. 'Format'
+  controls the format in use for all input and display: the different options
+  can be selected from the pop-up menu to the right of the field.  The 'Input
+  separators' field contains a list of symbols which can be used to separate
+  the sections of a date on entry.  By default this is "-/\.", which means
+  that dates can be entered as "DD-MM-YYYY", "DD/MM/YYYY", "DD\MM\YYYY" or
+  "DD.MM.YYYY" (dependant on the date format selected, of course). 'Display
+  separator' is the symbol to be used whenever a date is displayed or
+  printed.  The 'Use territory calendar info' option tells CashBook to get
+  information about the structure of dates (eg. the number of days in each
+  month) from the system.  This should usually be left on; if turned off,
+  CashBook uses its own default values.
+
+
+  Currency choices
+  ----------------
+
+  The 'Currency' choices determine the way in which CashBook handles monetary
+  values.
+
+  The 'Show zeros' option determines whether a zeros are displayed, or
+  whether the fields or cells with a zero value are left blank.  It affects
+  all windows, dialogue boxes, exported files and printed pages.
+
+  The remainder of the section determines the currency and the way in which
+  numbers are formatted.  It is usually best to leave 'Use territory
+  defaults' set, and allow CashBook to get the information from the system.
+  If the option is turned off, the remaining settings can be changed.
+
+  'Decimal places' sets the number of digits following the decimal point: in
+  most currencies, this will be 2.  The 'Decimal point' can also be
+  specified, to allow the full-stop to be replaced by other symbols such as a
+  comma.
+
+  The way in which 'Negative values' are shown can be adjusted.  If 'Minus
+  sign' is used, numbers appear as '-1.23', whereas if 'Brackets' is chosen,
+  they will be formatted as '(1.23)'.
+
+
+  Transaction choices
+  -------------------
+
+  The 'Transactions' section controls some aspects of the transaction
+  window's behaviour.
+
+  If 'Automatically sort transactions' is set, pressing Return in the sorted
+  field of a transaction (ie. the field whose column heading shows the sort
+  indicator) will automatically sort it into the correct place in the window.
+  Any affected statement views will also be re-sorted.
+
+  'Allow full transaction delete' enables or disables the use of Ctrl-F10 in
+  the transaction window for clearing whole transactions in one go.
+
+  'Highlight reconciled entries' will allow transactions with both the 'From'
+  and 'To' fields reconciled to be shown in a different colour.  The
+  'Highlight colour' can be selected in the field below, by clicking on the
+  pop-up icon.
+
+  The length of the Adjust-click menus over the 'Reference' and 'Description'
+  fields of the transaction window can be specified using the 'Limit
+  completion menus to X items' field.  If set to a number greater than zero,
+  the menus will include at most that many entries collected from the
+  transactions nearest to the mouse click.  Set this to "0" to make the
+  length of the menus unlimited.
+
+  If 'Automatically sort presets' is on, the contents of the preset list
+  window will be re-sorted after new presets are added.
+
+
+  Account and analysis heading choices
+  ------------------------------------
+
+  The 'Accounts' section controls the behaviour of the accounts and analysis
+  headings, including the statement view windows.
+
+  If 'Highlight overdrawn balances' is ticked, entries in the accounts list
+  window will be displayed in a different colour if they go overdrawn.
+  Similarly, entries in the outgoing headings list will be highlighted if
+  they go over the specified budget limit, while entries in the incoming
+  headings list will be highlighted if they fail to reach the budgeted
+  amount.  The 'Highlight colour' can be selected in the field below, by
+  clicking on the pop-up icon.
+
+  In the 'Statement views' section, the 'Highlight heading entries outside
+  budget' option allows entries in the analysis heading statement views to be
+  shown in a different colour if they fall outside the current budget range.
+
+  The 'Highlight overdrawn account entries' will display the balances in
+  account statement views using a different colour if they go below the
+  specified credit limit.
+
+
+  Standing order choices
+  ----------------------
+
+  The 'Standing orders' section controls the way in which standing orders
+  behave.
+
+  If 'Sort after adding standing orders' is on, the contents of the
+  'transaction' window and any open statement views will be sorted into date
+  order after any new standing orders are added.
+
+  If 'Automatically sort standing orders' is on, the contents of the standing
+  order list window will be re-sorted after new standing orders are added.
+  This can be useful for ensuring that the next standing orders to be applied
+  always end up at the top of the window.
+
+  The remainder of the section deals with what CashBook views as 'weekend
+  days' for the purposes of avoiding them when picking dates to add standing
+  orders. 'Use territory defaults' is usually selected, and the information
+  is read from the system.  If it is unset, the days that comprise the
+  weekend can be set manually.
+
+
+  Printing choices
+  ----------------
+
+  The 'Printing' section controls the printing options, including print
+  margins and the default settings.
+
+  The 'Standard printing' and 'Fast text printing' options determine the
+  default mode to be used for print jobs.  Standard uses RISC OS fonts and
+  should work with all but the most elderly of printers; while it will be
+  slower on old hardware, it allows more options for scaling text and fitting
+  it on the page.  Fast text will only work on printers that offer a text
+  mode: this is mainly old dot-matrixes and PostScript devices.  It has the
+  advantage of speed, but is much less flexible in terms of layout and
+  formatting.
+
+  When printing in standard mode, the text can be placed on the page in
+  either 'Portrait' or 'Landscape' mode; the latter is useful if there are
+  long lines present.  Ticking 'Scale width to fit page' will ensure that
+  print jobs always come out one page wide, by reducing the font size until
+  the widest line fits.  Page numbers can be added by ticking 'Include page
+  numbers'.
+
+  The font used for printing is the one set in the 'Fonts' section of the
+  choices.
+
+  The 'Print margins' should be set to keep the page contents away from the
+  edges of the paper.  They are measured from the edge of the paper, and
+  should be larger than the margins set in the printer drivers; if they are
+  not, a warning will be given whenever a page is printed.  The 'Gutter' is
+  the space between the footer area containing the page number and the bottom
+  of the main printable area: if page numbering is off, then the footer is
+  not included in the layout and the gutter dimension will not be used.
+
+  For fast text printing, the 'Use text formatting' option can be used to
+  include bold and underline formatting on the page.  This depends on support
+  from both the printer itself and from the text mode drivers in the RISC OS
+  printing system.
+
+
+  Report choices
+  --------------
+
+  The 'Reports' section of the choices allows the default font and display
+  details to be set for the report window.  The settings are also used for
+  printing in standard mode.
+
+  'Normal font' and 'Bold font' are the fonts used for normal and bold text
+  respectively.  The 'Font size' for both can be set in points, and the 'Line
+  spacing' is given as a percentage of the font size.  The use of a grid
+  around tabular data can be controlled with the 'Show grid' option.
+
+
+
+Version History
+---------------
+
+  This is a list of the major changes made to CashBook.  For full details of
+  all the internal alterations, see the full change log.
+
+
+  0.98 (23 September 2006)
+  ------------------------
+
+  First public beta release, for feedback and comment.
+
+
+  0.98a (27 September 2006)
+  -------------------------
+
+  Limited release to some end users.
+
+  * Negative values are now supported in some transaction amounts.
+  * Bug fixes.
+
+
+  0.99 (18 February 2007)
+  -----------------------
+
+  Second public beta release, for feedback and comment.
+
+  * Full support for negative currency values.
+  * Support for sorting added throughout application.  Sort indicators and
+    dialogue boxes added to transaction, statement view and standing order
+    list windows.  Internal transaction data now sorted before critical
+    calculations.
+  * Highlighting options for overdrawn accounts, missed budgets and
+    out-of-budget transactions added.
+  * Quick-save options (Adjust clicks and Ctrl-f3) added.
+  * Bug fixes.
+
+
+  0.99a (1 April 2007)
+  --------------------
+
+  Update to second public beta release, for feedback and comment.
+
+  * Fixed buffer overrun when opening statement views on unused accounts or
+    headings.
+
+
+  0.99b (2 April 2007)
+  --------------------
+
+  Update to second public beta release, for feedback and comment.
+
+  * Shift-Adjust-Close now open parent directory but leaves file open.
+
+
+  0.99c (23 May 2007)
+  -------------------
+
+  Update to second public beta release, for feedback and comment.
+
+  * Transaction window redraws correctly when importing CSV files.
+  * Various minor redraw issues with current input line of transaction window
+    fixed.
+
+
+  1.00 (4 September 2007)
+  -----------------------
+
+  First stable release.
+
+  * Corrections to interactive help messages.
+
+
+  1.01 (7 December 2007)
+  ----------------------
+
+  Update to first stable release.
+
+  * Unsaved files warning now contains a 'Save' button.
+  * Sign conversions in file load routines fixed.
+  * Report date ranges correctly handle empty transaction dates.
+
+
+  1.02 (15 February 2008)
+  -----------------------
+
+  Update to first stable release.
+
+  * Purge operation fixed, having been broken since version 0.99.
+  * Statement view windows are now correctly deleted if parent account is
+    deleted.
+  * Calls to "Wimp_SetExtent" now correctly call "Wimp_OpenWindow" to avoid
+    redraw artifacts when windows shrink.
+
+
+  1.03 (18 March 2008)
+  --------------------
+
+  Update to first stable release (limited issue).
+
+  * Clicking Adjust over the 'From' or 'To' columns of the transaction window
+    opens a short cut menu showing all applicable accounts and analysis
+    headings.
+  * Transaction report includes information on budget targets when budget
+    period is used.
+  * CSV file import logs progress and reports on number of lines imported and
+    rejected.
+  * Ctrl-F10 delete transaction option added.
+  * Various minor redraw errors fixed.
+
+
+  1.10 (20 April 2008)
+  --------------------
+
+  Second stable release.
+
+  * CSV file import error checking and logging improved.
+  * Heading statement views do not shade when there are no budget dates set.
+  * Adjust-click refresh in transaction window fixed.
+  * Files close if successfully saved after clicking transaction window close
+    icon.
+  * Various minor redraw errors fixed.
+
+
+  1.11 (9 October 2008)
+  ---------------------
+
+  Update to second stable release.
+
+  * Ctrl-F2 closes the transaction window.
+  * Adjust clicks on reconciled fields in dialogues will toggle their state.
+  * Adjust clicks on account name fields in dialogues will open a selection
+    menu.
+  * Various minor bug fixes and redraw errors fixed.
+
+
+  1.12 (4 November 2008)
+  ----------------------
+
+  Update to second stable release (limited issue).
+
+  * Reports output accounts and headings in the same order as they are listed
+    in the accounts, incoming headings and outgoing headings windows.
+
+
+  1.15 (11 March 2009)
+  --------------------
+
+  Third public beta release, for feedback and comment.
+
+  * Transaction presets added.
+  * Adjust-click menu added for 'Date' column in transaction windows.
+  * Trying to restart a stopped standing order without altering the start
+    date prompts a warning, before duplicate transactions are entered into
+    the file.
+
+
+  1.16 (18 March 2009)
+  --------------------
+
+  Update to third public beta release, for feedback and comment.
+
+  * Adjust-click menus no longer abort when selections are made, if the
+    transaction window toolbar's accounts menu has been opened.
+
+
+  1.17 (2 April 2009)
+  -------------------
+
+  Update to third public beta release, for feedback and comment.
+
+  * The file information dialogue includes details of transaction presets.
+  * Transaction presets correctly set the reconciled status of new
+    transactions.
+  * Adjust-click menus added for 'Reference' and 'Description' columns in the
+    transaction window.
+  * Ctrl-Tab and Ctrl-Return facility added to transaction window.
+  * 'Account summary' option added to transaction reports.
+
+
+  1.18 (19 April 2009)
+  --------------------
+
+  Update to third public beta release, for feedback and comment.
+
+  * Saved report templates added.
+  * Bug affecting the loading of non-standard cashbook files (ie. those not
+    as generated by CashBook) containing presets resolved.
+
+
+  1.20 (20 April 2009)
+  --------------------
+
+  Third stable release.
+
+  * Minor improvements and bug fixes to the saved report interface.
+  * Presets checked when purging or deleting accounts.
+  * Deleted accounts removed from report templates.
+
+
+  1.21 (28 September 2009)
+  ------------------------
+
+  Update to third stable release.
+
+  * Checks on loading, and warns the user if another copy is already on the
+    iconbar.
+  * Pay-in slip numbers can now be tracked for accounts and used in the
+    reference field (in a similar way to cheque numbers).
+
+
+  1.22 (6 October 2009)
+  ---------------------
+
+  Update to third stable release.
+
+  * Fixed bug preventing analysis headings from being created or edited
+    (added in 1.21).
+
+
+  1.23 (17 April 2011)
+  --------------------
+
+  Update to third stable release.
+
+  * Add match whole string option to find dialogue.
+  * Change 'Next' and 'Previous' buttons in found dialogue to work relative
+    to the current search direction.
+
+
+  1.30 (14 October 2012)
+  ----------------------
+
+  Fourth stable release.
+
+  * Relicensed as Open Source.
+  * Extensive internal restructuring.
+  * Support for page numbering and heading line repetition when printing.
+  * Substring search within transaction list.
+
+
+  1.35 (26 February 2016)
+  -----------------------
+
+  Update to fourth stable release.
+
+  * Re-implemented Data Transfer support code into a more modern and
+    maintainable format.
+  * Correctly carry column headings across from the first page when printing
+    reports (ticket #409).
+  * Add transaction numbers to all transaction views and reports (tickets
+    #430 and #494).
+  * Remove escaped characters from print job titles (ticket #509).
+  * Fix ZeroPain when closing files, and tidy up file closure code to prevent
+    accidental dereferencing of stale pointers (ticket #556).
+  * Report correct transaction numbers in Found dialogue box (ticket #567).
+
+
+  1.36 (29 February 2016)
+  -----------------------
+
+  Update to fourth stable release.
+
+  * Don't try to place caret in transaction number column when looking up
+    transactions from account views (ticket #578).
+  * Use valid dialogue info pointers when opening Find dialogue
+    (ticket #579).
+
+
+  1.37 (23 February 2017)
+  -----------------------
+
+  Update to fourth stable release.
+
+  * Support added for displaying and entering dates in YYYY-MM-DD and
+    MM-DD-YYYY formats in addition to DD-MM-YYYY (ticket #610).
+  * Fixed problem with 'Reconcile Mode' where the caret didn't advance on
+    keypresses.
+  * Perform a secondary visual sort on transaction number in transaction and
+    account view windows, to ensure that transactions always retain the same
+    relative order when the sort index is the same (tickets #280, #362, #488
+    and #594).
+  * Don't allow zero or negative days or months when entering dates
+    (ticket #607).
+  * Don't allow negative credit limits to be entered (ticket #606).
+  * Close account edit and heading edit dialogue boxes when their parent
+    windows close.
+  * Re-implemented data entry line code into a stand-alone module separate
+    from the Transaction module.
+  * Improve error checking when allocating memory for windows and data
+    structures (ticket #609).
+  * Improve error checking when allocating memory during file loading, and
+    when adjusting memory allocation in normal use.
+  * Improve error and bounds checks when loading files from disc
+    (ticket #614).
+  * Fix redraw of lines in preset and standing order windows, so that the
+    correct entry is redrawn after edit dialogues are closed.
+  * Row numbers are redrawn if and when they are changed (ticket #530).
+  * Start to add support for entering interest rate data (incomplete and
+    non-functional).
+
+
+  1.40 (15 April 2018)
+  --------------------
+
+  Fifth stable release.
+
+  * Re-implemented analysis report system to make it modular and enable
+    additional reports to be added.
+  * Re-implemented report viewer, adding new menus and toolbar.  Page layouts
+    can be previewed on screen when a printer driver is present.
+  * Allow a grid to be plotted around tables in reports and printed output
+    (ticket #354).
+  * Allow print jobs to be sent to a report window instead of direct to a
+    printer (ticket #300).
+  * Allow zero-balance entries to be included in transaction report summaries
+    (ticket #601).
+  * Implement drag and drop between fields in the transaction window
+    (ticket #629).
+  * Tidy up print dialogue and print protocol implementation.
+  * Remove all unbounded string operations from source code.
+  * Highlight the line over which Menu was clicked when menus can operate on
+    items in a window.
+  * Fix bug which caused previous dates to be ignored when entering
+    transactions.
+  * Fix unwanted caret movements when entering dates in the transaction
+    window whilst an account view is open (ticket #630).
+  * Make changes to cell contents from the Global Clipboard stick correctly
+    when the caret is moved to another cell (ticket #628).
+  * Correctly ensure that a C99-friendly version of the Shared C Library is
+    present (ticket #632).
+
+
+  1.41 (2 June 2018)
+  ------------------
+
+  Update to fifth stable release.
+
+  * Fix errors writing cheque number details to file, introduced in 1.40
+    (ticket #659).
+
+
+  1.42 (15 September 2019)
+  ------------------------
+
+  Update to fifth stable release.
+
+  * Fix problems inserting paying in slip numbers, introduced in 1.40
+    (ticket #689).
+
+
+  1.43 (28 July 2020)
+  -------------------
+
+  Update to fifth stable release.
+
+  * Use ResConf-style system variables to identify resources.
+
+
+  1.44 (10 January 2021)
+  ----------------------
+
+  Update to fifth stable release.
+
+  * Fix "out by one" error when copying text from dialogue boxes
+    (tickets #731, #735 and #736).
+  * Update website and contact information.
+  * Re-licence under EUPL v1.2.
+
+
+  Test Build
+  ----------
+
+  Alpha release for feedback and comment.
+
+  * Restructure dialogue box and list window support, to reduce code
+    duplication (work in progress).
+  * Start to add support for entering interest rate data (incomplete and
+    non-functional).
+
+
+
+Future Developments
+-------------------
+
+  CashBook is a work in progress, so if there is a feature that you think
+  would be useful, please let me know.
+
+  There is no specific development plan going forward, but the following
+  ideas are under consideration; other suggestions for new features are
+  welcome.  Bug reports are always useful, as without them problems might
+  never get fixed!
+
+  Currently there are are a number of ideas under consideration, which
+  include:
+
+  * Support for tracking interest rates on accounts, both for saving and
+    borrowing.  This would allow some new reporting options, including the
+    analysis of loan repayment periods.
+  * Improved data import.  This would include better CSV file import which
+    isn't tied to data from Personal Accounts, and adding support for TSV and
+    QIF imports.  Automatic reconciliation of internet banking records would
+    be desirable.
+  * Improvements to the reporting options, including the generation of data
+    based on monthly variance.
+  * More flexible standing order date options.
+
+  Development of CashBook remains a spare-time activity, fitted in around
+  work and other hobbies.  As a result, implementing new features can take
+  time.
+
+
+
+
+Updates and Contacting Me
+-------------------------
+
+  If you have any comments about CashBook, or would like to report any bugs
+  that you find, you can email me at the address below.
+
+  Updates to CashBook and more programs for RISC OS computers can be found on
+  my website at http://www.stevefryatt.org.uk/risc-os/
+
+  Stephen Fryatt
+  email: info@stevefryatt.org.uk

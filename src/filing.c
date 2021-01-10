@@ -2,7 +2,7 @@
  *
  * This file is part of CashBook:
  *
- *   http://www.stevefryatt.org.uk/software/
+ *   http://www.stevefryatt.org.uk/risc-os/
  *
  * Licensed under the EUPL, Version 1.1 only (the "Licence");
  * You may not use this work except in compliance with the
@@ -453,9 +453,9 @@ void filing_import_csv_file(struct file_block *file, char *filename)
 
 			rec_from = (strchr(ident, '#') > 0) ? TRANS_REC_FROM : TRANS_FLAGS_NONE;
 
-			name = ident + strcspn(ident, "#:è");
+			name = ident + strcspn(ident, "#:ÔøΩ");
 			*name++ = '\0';
-			while (strchr("#:è", *name))
+			while (strchr("#:ÔøΩ", *name))
 				name++;
 
 			if (*ident == '\0') {
@@ -477,9 +477,9 @@ void filing_import_csv_file(struct file_block *file, char *filename)
 
 			rec_to = (strchr(ident, '#') > 0) ? TRANS_REC_TO : TRANS_FLAGS_NONE;
 
-			name = ident + strcspn(ident, "#:è");
+			name = ident + strcspn(ident, "#:ÔøΩ");
 			*name++ = '\0';
-			while (strchr("#:è", *name))
+			while (strchr("#:ÔøΩ", *name))
 				name++;
 
 			if (*ident == '\0') {

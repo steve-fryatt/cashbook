@@ -118,9 +118,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 See the Licence for the specific language governing permissions and limitations under the Licence.
 
-The source for <cite>CashBook</cite> can be found alongside this binary download, at <link ref="#url http://www.stevefryatt.org.uk/software">http://www.stevefryatt.org.uk/software</link>
-
-The necessary libraries and build tools can be found at <link ref="#url http://www.stevefryatt.org.uk/risc-os/build">http://www.stevefryatt.org.uk/risc-os/build</link>
+The source for <cite>CashBook</cite> can be found on GitHub, at <link ref="#url https://github.com/steve-fryatt/cashbook">https://github.com/steve-fryatt/cashbook</link>
 
 </chapter>
 
@@ -1598,6 +1596,17 @@ Update to fifth stable release.
 
 <list>
 <li>Use ResConf-style system variables to identify resources.
+</list>
+
+
+<subhead title="1.44 (11 January 2021)">
+
+Update to fifth stable release.
+
+<list>
+<li>Fix "out by one" error when copying text from dialogue boxes (tickets&nbsp;#731, #735 and #736).
+<li>Update website and contact information.
+<li>Re-licence under EUPL v1.2.
 </list>
 
 

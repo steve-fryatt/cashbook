@@ -13,6 +13,6 @@ Description: Personal Accounts Software
  Transactions move money between accounts and analysis headings, and can be
  reconciled against statements. Budgeting over arbitrary periods of time is
  possible, and various analysis and report options are available.
-Homepage: http://www.stevefryatt.org.uk/software/cashbook/
+Homepage: http://www.stevefryatt.org.uk/risc-os/cashbook/
 Components: Apps.Spreadsheet.!CashBook (Movable)
 Recommends: StrongHelp

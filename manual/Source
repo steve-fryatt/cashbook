@@ -46,14 +46,9 @@ Version $$version$$ ($$date$$) 
 #Align Left
 If you have any comments about {f/:CashBook}, or would like to report any bugs that you find, you can email me at the address below.
 
-Updates to {f/:CashBook} and more programs for RISC OS computers can be found on my website at <http://www.stevefryatt.org.uk/software/=>#url>.
+Updates to {f/:CashBook} and more programs for RISC OS computers can be found on my website at <http://www.stevefryatt.org.uk/risc-os=>#url>.
 
-#Align Centre
-<<<<<<< HEAD
-ï¿½ Stephen Fryatt, 2003-2020 (<info@stevefryatt.org.uk=>#url mailto:info@stevefryatt.org.uk>)
-=======
-© Stephen Fryatt, 2003-2020 (<steve@stevefryatt.org.uk=>#url mailto:steve@stevefryatt.org.uk>)
->>>>>>> parent of d3d57f4... Update website links for new site.
+© Stephen Fryatt, 2003-2021 (<info@stevefryatt.org.uk=>#url mailto:info@stevefryatt.org.uk>)
 
 A plain text version of this manual is available <here=>*Filer_Run <CashBook$HelpText\>>.
 #Align Left
@@ -68,7 +63,7 @@ A plain text version of this manual is available <here=>*Filer_Run <CashBook$Hel
 =============================================================================
 CashBook - Home Accounts Manager                                 Version $$version$$
 
-(C) Stephen Fryatt, 2003-2020                  $$date$$
+(C) Stephen Fryatt, 2003-2021                  $$date$$
 =============================================================================
 </literal>
 
@@ -102,7 +97,7 @@ CashBook - Home Accounts Manager                                 Version $$versi
 
 <img src="images/cashbook.gif" alt="" width=34 height=34 class="list-image">
 
-<p><b>Home Accounts Manager</b> &ndash; &copy; Stephen Fryatt, 2003-2020<br>
+<p><b>Home Accounts Manager</b> &ndash; &copy; Stephen Fryatt, 2003-2021<br>
 Version $$version$$ ($$date$$)</p>
 
 </literal>
@@ -122,10 +117,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 See the Licence for the specific language governing permissions and limitations under the Licence.
 
-The source for <cite>CashBook</cite> can be found alongside this binary download, at <link ref="#url http://www.stevefryatt.org.uk/software">http://www.stevefryatt.org.uk/software</link>
-
-The necessary libraries and build tools can be found at <link ref="#url http://www.stevefryatt.org.uk/software/build">http://www.stevefryatt.org.uk/software/build</link>
-
+The source for <cite>CashBook</cite> can be found on GitHub, at <link ref="#url https://github.com/steve-fryatt/cashbook">https://github.com/steve-fryatt/cashbook</link>
 </chapter>
 
 
@@ -1652,7 +1644,7 @@ Updates and Contacting Me
   that you find, you can email me at the address below.
 
   Updates to CashBook and more programs for RISC OS computers can be found on
-  my website at http://www.stevefryatt.org.uk/software/
+  my website at http://www.stevefryatt.org.uk/risc-os
 
   Stephen Fryatt
   email: info@stevefryatt.org.uk
@@ -1743,7 +1735,7 @@ fStd
 
 <p>If you have any comments about <cite>CashBook</cite>, or would like to report any bugs that you find, you can email me at the address below.</p>
 
-<p>Updates to <cite>CashBook</cite> and more programs for RISC&nbsp;OS computers can be found on my website at <a href="http://www.stevefryatt.org.uk/software/">http://www.stevefryatt.org.uk/software/</a></p></div>
+<p>Updates to <cite>CashBook</cite> and more programs for RISC&nbsp;OS computers can be found on my website at <a href="http://www.stevefryatt.org.uk/risc-os">http://www.stevefryatt.org.uk/risc-os</a></p></div>
 
 <p class="breadcrumb">[ <a href="../../" class="breadcrumb">Home</a>
 | <a href="../" class="breadcrumb">RISC&nbsp;OS Software</a>

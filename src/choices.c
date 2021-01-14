@@ -1016,7 +1016,7 @@ static void choices_colpick_click_handler(wimp_pointer *pointer)
 		colpick_select_colour(pointer->i - 1);
 
 		if (pointer->buttons == wimp_CLICK_SELECT)
-			wimp_create_menu(NULL, 0, 0);
+			wimp_create_menu((wimp_menu *) -1, 0, 0);
 	}
 }
 

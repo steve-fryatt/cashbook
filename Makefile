@@ -112,4 +112,6 @@ OBJS = account.o			\
        transact_list_window.o		\
        window.o
 
+SUBS = !Boot,feb !Run,feb
+
 include $(SFTOOLS_MAKE)/CApp

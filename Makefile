@@ -98,4 +98,6 @@ OBJS = account.o			\
        transact.o			\
        window.o
 
+SUBS = !Boot,feb !Run,feb
+
 include $(SFTOOLS_MAKE)/CApp

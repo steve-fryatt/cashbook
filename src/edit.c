@@ -1316,7 +1316,7 @@ static void edit_process_currency_field_keypress(struct edit_field *field, wimp_
 static void edit_process_account_field_keypress(struct edit_field *field, wimp_key *key, enum account_type type)
 {
 	acct_t	new_account;
-	bool	new_reconciled;
+	osbool	new_reconciled;
 	wimp_i	ident, reconcile, name;
 
 	if (field == NULL || field->icon == NULL || key == NULL)
@@ -2142,4 +2142,3 @@ static void edit_free_transfer_block(struct edit_block *instance, struct edit_da
 		}
 	}
 }
-

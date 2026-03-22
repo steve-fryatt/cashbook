@@ -248,7 +248,7 @@ static void main_initialise(void)
 
 	/* Initialise the configuration. */
 
-	config_initialise(task_name, "CashBook", "<CashBook$Dir>");
+	config_initialise(task_name, "CashBook", "<CashBook$Dir>", NULL);
 
 	config_opt_init("IyonixKeys", (osbyte1(osbyte_IN_KEY, 0, 0xff) == 0xaa));	/**< Use RISC OS 5 Delete: default true only on an Iyonix.		*/
 	config_opt_init("GlobalClipboardSupport", TRUE);				/**< Support the global clipboard in the transaction window.		*/
@@ -482,4 +482,3 @@ static void main_process_date_change(void)
 
 	hourglass_off();
 }
-

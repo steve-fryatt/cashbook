@@ -431,9 +431,9 @@ void report_initialise(osspriteop_area *sprites)
 
 	/* Save dialogue boxes. */
 
-	report_saveas_text = saveas_create_dialogue(FALSE, "file_fff", report_save_text);
-	report_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", report_save_csv);
-	report_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", report_save_tsv);
+	report_saveas_text = saveas_create_dialogue(FALSE, "file_fff", osfile_TYPE_TEXT, report_save_text);
+	report_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", dataxfer_TYPE_CSV, report_save_csv);
+	report_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", osfile_TYPE_TEXT, report_save_tsv);
 
 	/* Initialise subsidiary parts of the report system. */
 
@@ -917,7 +917,7 @@ void report_write_line(struct report *report, int tab_bar, char *text)
 			case 'u':
 				cell_flags |= REPORT_CELL_FLAGS_UNDERLINE;
 				break;
-				
+
 			case 'v':
 				line_flags |= REPORT_LINE_FLAGS_RULE_BELOW;
 				cell_flags |= REPORT_CELL_FLAGS_RULE_AFTER;
@@ -1786,12 +1786,12 @@ static struct report *report_print_window_closed(struct report *report, void *da
 static osbool report_save_text(char *filename, osbool selection, void *data)
 {
 	struct report *report = (struct report *) data;
-	
+
 	if (report == NULL || report->file == NULL)
 		return FALSE;
 
 	report_export_text(report, filename, FALSE);
-	
+
 	return TRUE;
 }
 
@@ -1807,12 +1807,12 @@ static osbool report_save_text(char *filename, osbool selection, void *data)
 static osbool report_save_csv(char *filename, osbool selection, void *data)
 {
 	struct report *report = (struct report *) data;
-	
+
 	if (report == NULL || report->file == NULL)
 		return FALSE;
 
 	report_export_delimited(report, filename, DELIMIT_QUOTED_COMMA, dataxfer_TYPE_CSV);
-	
+
 	return TRUE;
 }
 
@@ -1828,12 +1828,12 @@ static osbool report_save_csv(char *filename, osbool selection, void *data)
 static osbool report_save_tsv(char *filename, osbool selection, void *data)
 {
 	struct report *report = (struct report *) data;
-	
+
 	if (report == NULL || report->file == NULL)
 		return FALSE;
-		
+
 	report_export_delimited(report, filename, DELIMIT_TAB, dataxfer_TYPE_TSV);
-	
+
 	return TRUE;
 }
 
@@ -2756,7 +2756,7 @@ static os_error *report_plot_cell(struct report *report, os_box *outline, char *
 			return error;
 
 		if (flags & REPORT_CELL_FLAGS_CENTRE)
-			indent = ((outline->x1 - outline->x0) - width) / 2; 
+			indent = ((outline->x1 - outline->x0) - width) / 2;
 		else
 			indent = (outline->x1 - outline->x0) - width;
 	} else {
@@ -3263,4 +3263,3 @@ static osbool report_get_window_extent(struct report *report, int *x, int *y)
 
 	return TRUE;
 }
-

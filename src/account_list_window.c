@@ -443,8 +443,8 @@ void account_list_window_initialise(osspriteop_area *sprites)
 
 	account_list_window_menu = templates_get_menu("AccountListMenu");
 
-	account_list_window_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", account_list_window_save_csv);
-	account_list_window_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", account_list_window_save_tsv);
+	account_list_window_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", dataxfer_TYPE_CSV, account_list_window_save_csv);
+	account_list_window_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", osfile_TYPE_TEXT, account_list_window_save_tsv);
 }
 
 
@@ -2469,4 +2469,3 @@ static void account_list_window_export_delimited(struct account_list_window *win
 
 	hourglass_off();
 }
-

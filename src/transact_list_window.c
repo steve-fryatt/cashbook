@@ -214,7 +214,7 @@
 /**
  * The height of the Transaction List Window toolbar, in OS Units.
  */
- 
+
 #define TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT 132
 
 /**
@@ -347,7 +347,7 @@ struct transact_list_window {
 	/**
 	 * True if reconcile should automatically jump to the next unreconciled entry.
 	 */
-	osbool					auto_reconcile;	
+	osbool					auto_reconcile;
 };
 
 /**
@@ -504,9 +504,9 @@ void transact_list_window_initialise(osspriteop_area *sprites)
 	transact_list_window_menu_transact = templates_get_menu("MainTransactionsSubmenu");
 	transact_list_window_menu_analysis = templates_get_menu("MainAnalysisSubmenu");
 
-	transact_list_window_saveas_file = saveas_create_dialogue(FALSE, "file_1ca", transact_list_window_save_file);
-	transact_list_window_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", transact_list_window_save_csv);
-	transact_list_window_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", transact_list_window_save_tsv);
+	transact_list_window_saveas_file = saveas_create_dialogue(FALSE, "file_1ca", dataxfer_TYPE_CASHBOOK, transact_list_window_save_file);
+	transact_list_window_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", dataxfer_TYPE_CSV, transact_list_window_save_csv);
+	transact_list_window_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", osfile_TYPE_TEXT, transact_list_window_save_tsv);
 }
 
 
@@ -624,7 +624,7 @@ void transact_list_window_open(struct transact_list_window *windat)
 /**
  * Close and delete the Transaction List Window associated with the
  * given instance.
- * 
+ *
  * THIS IS NOT CALLED BY ANY CODE ANY MORE!!!
  *
  * \param *windat		The window to delete.
@@ -2602,7 +2602,7 @@ static void transact_list_window_open_print_window(struct transact_list_window *
 
 /**
  * Determine whether to include a transaction in a print job.
- * 
+ *
  * \param *file			The file owning the transaction list.
  * \param transaction		The transaction to be output.
  * \param from			The earliest date to be included, or NULL_DATE.
@@ -3010,4 +3010,3 @@ static osbool transact_list_window_load_csv(wimp_w w, wimp_i i, unsigned filetyp
 
 	return TRUE;
 }
-

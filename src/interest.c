@@ -233,8 +233,8 @@ void interest_initialise(osspriteop_area *sprites)
 
 //	interest_window_menu = templates_get_menu("InterestMenu");
 
-//	account_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", account_save_csv);
-//	account_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", account_save_tsv);
+//	account_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", dataxfer_TYPE_CSV, account_save_csv);
+//	account_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", osfile_TYPE_TEXT, account_save_tsv);
 
 	interest_decimal_places = 2;
 

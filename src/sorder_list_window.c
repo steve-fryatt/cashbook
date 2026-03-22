@@ -321,8 +321,8 @@ void sorder_list_window_initialise(osspriteop_area *sprites)
 
 	sorder_list_window_block = list_window_create(&sorder_list_window_definition, sprites);
 
-	sorder_list_window_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", sorder_list_window_save_csv);
-	sorder_list_window_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", sorder_list_window_save_tsv);
+	sorder_list_window_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", dataxfer_TYPE_CSV, sorder_list_window_save_csv);
+	sorder_list_window_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", osfile_TYPE_TEXT, sorder_list_window_save_tsv);
 }
 
 
@@ -968,4 +968,3 @@ static void sorder_list_window_export_delimited_line(FILE *out, enum filing_deli
 	string_printf(buffer, FILING_DELIMITED_FIELD_LEN, "%d", sorder_get_transactions(file, index, SORDER_TRANSACTIONS_LEFT));
 	filing_output_delimited_field(out, buffer, format, DELIMIT_NUM | DELIMIT_LAST);
 }
-

@@ -314,8 +314,8 @@ void preset_list_window_initialise(osspriteop_area *sprites)
 
 	preset_list_window_block = list_window_create(&preset_list_window_definition, sprites);
 
-	preset_list_window_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", preset_list_window_save_csv);
-	preset_list_window_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", preset_list_window_save_tsv);
+	preset_list_window_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", dataxfer_TYPE_CSV, preset_list_window_save_csv);
+	preset_list_window_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", osfile_TYPE_TEXT, preset_list_window_save_tsv);
 }
 
 

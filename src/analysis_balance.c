@@ -1,4 +1,4 @@
-/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2026, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -88,6 +88,7 @@
 #define ANALYSIS_BALANCE_OUTGOING 27
 #define ANALYSIS_BALANCE_OUTGOINGPOPUP 28
 #define ANALYSIS_BALANCE_TABULAR 29
+#define ANALYSIS_BALANCE_INCLUDEIDENTS 32
 
 
 /**
@@ -113,6 +114,7 @@ struct analysis_balance_report {
 	acct_t				outgoing[ANALYSIS_ACC_LIST_LEN];
 
 	osbool				tabular;
+	osbool				include_idents;
 };
 
 /**
@@ -268,6 +270,7 @@ static void *analysis_balance_create_instance(struct analysis_block *parent)
 	new->saved.incoming_count = 0;
 	new->saved.outgoing_count = 0;
 	new->saved.tabular = FALSE;
+	new->saved.include_idents = FALSE;
 
 	return new;
 }
@@ -371,6 +374,7 @@ static void analysis_balance_fill_window(struct analysis_block *parent, wimp_w w
 		*icons_get_indirected_text_addr(window, ANALYSIS_BALANCE_OUTGOING) = '\0';
 
 		icons_set_selected(window, ANALYSIS_BALANCE_TABULAR, FALSE);
+		icons_set_selected(window, ANALYSIS_BALANCE_INCLUDEIDENTS, FALSE);
 	} else {
 		/* Set the period icons. */
 
@@ -409,6 +413,7 @@ static void analysis_balance_fill_window(struct analysis_block *parent, wimp_w w
 				template->outgoing, template->outgoing_count);
 
 		icons_set_selected(window, ANALYSIS_BALANCE_TABULAR, template->tabular);
+		icons_set_selected(window, ANALYSIS_BALANCE_INCLUDEIDENTS, template->include_idents);
 	}
 }
 
@@ -464,6 +469,7 @@ static void analysis_balance_process_window(struct analysis_block *parent, wimp_
 			template->outgoing, ANALYSIS_ACC_LIST_LEN);
 
 	template->tabular = icons_get_selected(window, ANALYSIS_BALANCE_TABULAR);
+	template->include_idents = icons_get_selected(window, ANALYSIS_BALANCE_INCLUDEIDENTS);
 }
 
 
@@ -534,6 +540,8 @@ static void analysis_balance_generate(struct analysis_block *parent, void *templ
 				if ((acc = account_get_list_entry_account(file, sequence[acc_group], group_line)) != NULL_ACCOUNT) {
 					if (analysis_data_test_account(scratch, acc, ANALYSIS_DATA_INCLUDE)) {
 						stringbuild_add_printf("\\t\\v\\r\\b%s", account_get_name(file, acc));
+						if (settings->include_idents)
+							stringbuild_add_printf(" (%s)", account_get_ident(file, acc));
 					}
 				}
 			}
@@ -601,7 +609,10 @@ static void analysis_balance_generate(struct analysis_block *parent, void *templ
 							total += amount;
 
 							stringbuild_reset();
-							stringbuild_add_printf("\\i%s\\t\\d\\r", account_get_name(file, acc));
+							stringbuild_add_string("\\i");
+							if (settings->include_idents)
+								stringbuild_add_printf("%s\\t", account_get_ident(file, acc));
+							stringbuild_add_printf("%s\\t\\d\\r", account_get_name(file, acc));
 							stringbuild_add_currency(amount, TRUE);
 							stringbuild_report_line(report, 2);
 						}
@@ -611,6 +622,8 @@ static void analysis_balance_generate(struct analysis_block *parent, void *templ
 			stringbuild_reset();
 			stringbuild_add_string("\\i\\b");
 			stringbuild_add_message("BRTotal");
+			if (settings->include_idents)
+				stringbuild_add_string("\\t\\s");
 			stringbuild_add_string("\\t\\d\\r\\b");
 			stringbuild_add_currency(total, TRUE);
 			stringbuild_report_line(report, 2);
@@ -621,7 +634,7 @@ static void analysis_balance_generate(struct analysis_block *parent, void *templ
 
 /**
  * Remove any references to a report template.
- * 
+ *
  * \param *parent	The analysis instance being updated.
  * \param template	The template to be removed.
  */
@@ -690,6 +703,7 @@ static void analysis_balance_copy_template(void *to, void *from)
 		b->outgoing[i] = a->outgoing[i];
 
 	b->tabular = a->tabular;
+	b->include_idents = a->include_idents;
 }
 
 
@@ -722,6 +736,9 @@ static void analysis_balance_write_file_block(void *block, FILE *out, char *name
 
 	if (name != NULL && *name != '\0')
 		config_write_token_pair(out, "Name", name);
+
+	if (template->include_idents != FALSE)
+		config_write_token_pair(out, "Idents:", config_return_opt_string(template->include_idents));
 
 	if (template->accounts_count > 0) {
 		analysis_template_account_list_to_hex(buffer, FILING_MAX_FILE_LINE_LEN,
@@ -776,8 +793,9 @@ static void analysis_balance_process_file_token(void *block, struct filing_block
 		template->incoming_count = analysis_template_account_hex_to_list(filing_get_text_value(in, NULL, 0), template->incoming);
 	} else if (filing_test_token(in, "Outgoing")) {
 		template->outgoing_count = analysis_template_account_hex_to_list(filing_get_text_value(in, NULL, 0), template->outgoing);
+	} else if (filing_test_token(in, "Idents")) {
+		template->include_idents = filing_get_opt_value(in);
 	} else {
 		filing_set_status(in, FILING_STATUS_UNEXPECTED);
 	}
 }
-

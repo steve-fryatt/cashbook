@@ -1,4 +1,4 @@
-/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2026, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -1308,7 +1308,7 @@ void accview_build_window_title(struct file_block *file, acct_t account)
 	file_get_leafname(file, name, WINDOW_TITLE_LENGTH);
 
 	msgs_param_lookup("AccviewTitle", view->window_title, WINDOW_TITLE_LENGTH,
-			account_get_name(file, account), name, NULL, NULL);
+			account_get_name(file, account), account_get_ident(file, account), name, NULL);
 
 	wimp_force_redraw_title(view->accview_window);
 }
@@ -1487,8 +1487,9 @@ static struct report *accview_print(struct report *report, void *data, date_t fr
 	stringbuild_add_string("\\b\\u");
 	stringbuild_add_message_param("AccviewTitle",
 			account_get_name(view->file, view->account),
+			account_get_ident(view->file, view->account),
 			file_get_leafname(view->file, NULL, 0),
-			NULL, NULL);
+			NULL);
 
 	stringbuild_report_line(report, 1);
 
@@ -2332,4 +2333,3 @@ static void accview_export_delimited(struct accview_window *view, char *filename
 
 	hourglass_off();
 }
-

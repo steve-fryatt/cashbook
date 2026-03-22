@@ -1,4 +1,4 @@
-/* Copyright 2003-2017, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2026, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -31,7 +31,7 @@ menu(IconBarMenu, "CashBook")
 	item("Info") {
 		d_box(ProgInfo);
 	}
-	item("Help");
+	item("Help...");
 	item("Choices...");
 	item("Quit");
 }
@@ -276,7 +276,7 @@ menu(ReportViewMenu, "Report")
 			always;
 		}
 		dotted;
-		
+
 	}
 	item("Save text") {
 		d_box(SaveAs) {

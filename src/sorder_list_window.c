@@ -370,8 +370,8 @@ void sorder_list_window_initialise(osspriteop_area *sprites)
 	sorder_list_window_menu = templates_get_menu("SOrderMenu");
 	ihelp_add_menu(sorder_list_window_menu, "SorderMenu");
 
-	sorder_list_window_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", sorder_list_window_save_csv);
-	sorder_list_window_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", sorder_list_window_save_tsv);
+	sorder_list_window_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", dataxfer_TYPE_CSV, sorder_list_window_save_csv);
+	sorder_list_window_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", osfile_TYPE_TEXT, sorder_list_window_save_tsv);
 }
 
 
@@ -1886,4 +1886,3 @@ static void sorder_list_window_export_delimited(struct sorder_list_window *winda
 
 	hourglass_off();
 }
-

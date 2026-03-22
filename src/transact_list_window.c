@@ -212,7 +212,7 @@
 /**
  * The height of the Transaction List Window toolbar, in OS Units.
  */
- 
+
 #define TRANSACT_LIST_WINDOW_TOOLBAR_HEIGHT 132
 
 /**
@@ -348,7 +348,7 @@ struct transact_list_window {
 	/**
 	 * True if reconcile should automatically jump to the next unreconciled entry.
 	 */
-	osbool					auto_reconcile;	
+	osbool					auto_reconcile;
 };
 
 /**
@@ -600,9 +600,9 @@ void transact_list_window_initialise(osspriteop_area *sprites)
 	transact_list_window_edit_callbacks.auto_complete = transact_list_window_edit_auto_complete;
 	transact_list_window_edit_callbacks.insert_preset = transact_list_window_edit_insert_preset;
 
-	transact_list_window_saveas_file = saveas_create_dialogue(FALSE, "file_1ca", transact_list_window_save_file);
-	transact_list_window_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", transact_list_window_save_csv);
-	transact_list_window_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", transact_list_window_save_tsv);
+	transact_list_window_saveas_file = saveas_create_dialogue(FALSE, "file_1ca", dataxfer_TYPE_CASHBOOK, transact_list_window_save_file);
+	transact_list_window_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", dataxfer_TYPE_CSV, transact_list_window_save_csv);
+	transact_list_window_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", osfile_TYPE_TEXT, transact_list_window_save_tsv);
 }
 
 
@@ -2508,7 +2508,7 @@ static void transaction_list_window_terminate_drag(wimp_dragged *drag, void *dat
 	case EDIT_FIELD_ACCOUNT_IN:
 	case EDIT_FIELD_ACCOUNT_OUT:
 		target_type = (transfer->type == EDIT_FIELD_ACCOUNT_IN) ? ACCOUNT_FULL_IN : ACCOUNT_FULL_OUT;
-	
+
 		if (start_field_type == EDIT_FIELD_ACCOUNT_IN || start_field_type == EDIT_FIELD_ACCOUNT_OUT) {
 			switch (drag_data->start_column) {
 			case TRANSACT_LIST_WINDOW_FROM:
@@ -4587,4 +4587,3 @@ static osbool transact_list_window_load_csv(wimp_w w, wimp_i i, unsigned filetyp
 
 	return TRUE;
 }
-

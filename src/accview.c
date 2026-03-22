@@ -325,8 +325,8 @@ void accview_initialise(osspriteop_area *sprites)
 
 	accview_window_menu = templates_get_menu("AccountViewMenu");
 
-	accview_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", accview_save_csv);
-	accview_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", accview_save_tsv);
+	accview_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", dataxfer_TYPE_CSV, accview_save_csv);
+	accview_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", osfile_TYPE_TEXT, accview_save_tsv);
 
 	accview_sort_callbacks.compare = accview_sort_compare;
 	accview_sort_callbacks.swap = accview_sort_swap;

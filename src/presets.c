@@ -365,8 +365,8 @@ void preset_initialise(osspriteop_area *sprites)
 	preset_window_menu = templates_get_menu("PresetMenu");
 	ihelp_add_menu(preset_window_menu, "PresetMenu");
 
-	preset_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", preset_save_csv);
-	preset_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", preset_save_tsv);
+	preset_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", dataxfer_TYPE_CSV, preset_save_csv);
+	preset_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", osfile_TYPE_TEXT, preset_save_tsv);
 
 	preset_sort_callbacks.compare = preset_sort_compare;
 	preset_sort_callbacks.swap = preset_sort_swap;
@@ -2487,4 +2487,3 @@ osbool preset_check_account(struct file_block *file, acct_t account)
 
 	return FALSE;
 }
-

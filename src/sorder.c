@@ -391,8 +391,8 @@ void sorder_initialise(osspriteop_area *sprites)
 	sorder_window_menu = templates_get_menu("SOrderMenu");
 	ihelp_add_menu(sorder_window_menu, "SorderMenu");
 
-	sorder_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", sorder_save_csv);
-	sorder_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", sorder_save_tsv);
+	sorder_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", dataxfer_TYPE_CSV, sorder_save_csv);
+	sorder_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", osfile_TYPE_TEXT, sorder_save_tsv);
 
 	sorder_sort_callbacks.compare = sorder_sort_compare;
 	sorder_sort_callbacks.swap = sorder_sort_swap;
@@ -2864,4 +2864,3 @@ static enum date_adjust sorder_get_date_adjustment(enum transact_flags flags)
 	else
 		return DATE_ADJUST_NONE;
 }
-

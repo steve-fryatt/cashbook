@@ -50,6 +50,7 @@
 #include "sflib/menus.h"
 #include "sflib/icons.h"
 #include "sflib/debug.h"
+#include "sflib/dataxfer.h"
 #include "sflib/config.h"
 #include "sflib/saveas.h"
 #include "sflib/string.h"
@@ -118,7 +119,7 @@ static char	*file_get_default_title(struct file_block *file, char *name, size_t 
 
 void file_initialise(void)
 {
-	file_saveas_file = saveas_create_dialogue(FALSE, "file_1ca", file_save_file);
+	file_saveas_file = saveas_create_dialogue(FALSE, "file_1ca", dataxfer_TYPE_CASHBOOK, file_save_file);
 }
 
 
@@ -139,7 +140,7 @@ struct file_block *build_new_file_block(void)
 		error_msgs_report_error("NoMemNewFile");
 		return NULL;
 	}
- 
+
 	/* Zero any memory pointers, so that we know what memory has been
 	 * successfully claimed later on.
 	 */
@@ -362,7 +363,7 @@ void delete_file(struct file_block *file)
 
 	while (*list != NULL && *list != file)
 		list = &((*list)->next);
-	
+
 	if (*list != NULL)
 		*list = file->next;
 
@@ -614,7 +615,7 @@ static char *file_get_default_title(struct file_block *file, char *name, size_t 
 
 /**
  * Return the next X offset, in OS units, for opening a new child window.
- * 
+ *
  * \param *file		The file to return a new offset for.
  * \return		The new offset, in OS units.
  */
@@ -694,4 +695,3 @@ void file_process_all(void (*callback)(struct file_block *))
 	}
 
 }
-

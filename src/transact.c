@@ -478,9 +478,9 @@ void transact_initialise(osspriteop_area *sprites)
 	transact_window_menu_transact = templates_get_menu("MainTransactionsSubmenu");
 	transact_window_menu_analysis = templates_get_menu("MainAnalysisSubmenu");
 
-	transact_saveas_file = saveas_create_dialogue(FALSE, "file_1ca", transact_save_file);
-	transact_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", transact_save_csv);
-	transact_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", transact_save_tsv);
+	transact_saveas_file = saveas_create_dialogue(FALSE, "file_1ca", dataxfer_TYPE_CASHBOOK, transact_save_file);
+	transact_saveas_csv = saveas_create_dialogue(FALSE, "file_dfe", dataxfer_TYPE_CSV, transact_save_csv);
+	transact_saveas_tsv = saveas_create_dialogue(FALSE, "file_fff", osfile_TYPE_TEXT, transact_save_tsv);
 
 	transact_edit_callbacks.get_field = transact_edit_get_field;
 	transact_edit_callbacks.put_field = transact_edit_put_field;
@@ -2456,7 +2456,7 @@ static void transaction_window_terminate_drag(wimp_dragged *drag, void *data)
 	case EDIT_FIELD_ACCOUNT_IN:
 	case EDIT_FIELD_ACCOUNT_OUT:
 		target_type = (transfer->type == EDIT_FIELD_ACCOUNT_IN) ? ACCOUNT_FULL_IN : ACCOUNT_FULL_OUT;
-	
+
 		if (start_field_type == EDIT_FIELD_ACCOUNT_IN || start_field_type == EDIT_FIELD_ACCOUNT_OUT) {
 			switch (drag_data->start_column) {
 			case TRANSACT_ICON_FROM:
@@ -3611,7 +3611,7 @@ static osbool transact_edit_put_field(struct edit_data *data)
 
 	if (data->line >= windat->trans_count) {
 		start = windat->trans_count;
-		
+
 		for (i = windat->trans_count; i <= data->line; i++)
 			transact_add_raw_entry(windat->file, NULL_DATE, NULL_ACCOUNT, NULL_ACCOUNT, TRANS_FLAGS_NONE, NULL_CURRENCY, "", "");
 
@@ -5189,4 +5189,3 @@ osbool transact_check_account(struct file_block *file, acct_t account)
 
 	return FALSE;
 }
-

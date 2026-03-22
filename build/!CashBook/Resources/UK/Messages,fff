@@ -1,4 +1,4 @@
-# Copyright 2004-2018, Stephen Fryatt (info@stevefryatt.org.uk)
+# Copyright 2004-2026, Stephen Fryatt (info@stevefryatt.org.uk)
 #
 # This file is part of CashBook:
 #
@@ -89,7 +89,7 @@ AcclistBudgetTo: to %0
 
 # Account view
 
-AccviewTitle:%0 transactions: %1
+AccviewTitle:%0 (%1) transactions: %2
 
 AccviewMemErr1:There was not enough memory to open the account statement window.
 AccviewMemErr2:There was not enough memory to create the account statement listing.

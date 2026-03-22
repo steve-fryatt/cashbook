@@ -877,7 +877,8 @@ Help.CashFlwRep.InLst:\Tlist of incoming headings which will be included in the 
 Help.CashFlwRep.InLstP:\Senter an incoming using the account entry \w.
 Help.CashFlwRep.OutLst:\Tlist of outgoing headings which will be included in the report.|MThe list is separated by commas, and * indicates 'any'.
 Help.CashFlwRep.OutLstP:\Senter an outgoing using the account entry \w.
-Help.CashFlwRep.Tabular:\Stoggle the display into a tabular format, useful for passing to a spreadsheet or graphing package.
+Help.CashFlwRep.Tabular/Help.BalanceRep.Tabular:\Stoggle the display into a tabular format, useful for passing to a spreadsheet or graphing package.
+Help.CashFlwRep.Idents/Help.BalanceRep.Tabular:\Stoggle the inclusion of account and heading idents in the report.
 Help.CashFlwRep.OK:\Sgenerate a cashflow report.
 
 Help.BalanceRep:\Tbalance report \w, allowing new reports to be created.
@@ -896,7 +897,6 @@ Help.BalanceRep.InLst:\Tlist of incoming headings which will be included in the 
 Help.BalanceRep.InLstP:\Senter an incoming using the account entry \w.
 Help.BalanceRep.OutLst:\Tlist of outgoing headings which will be included in the report.|MThe list is separated by commas, and * indicates 'any'.
 Help.BalanceRep.OutLstP:\Senter an outgoing using the account entry \w.
-Help.BalanceRep.Tabular:\Stoggle the display into a tabular format, useful for passing to a spreadsheet or graphing package.
 Help.BalanceRep.OK:\Sgenerate a balance report.
 
 Help.SaveRepTempSav:\Tsave report template \w, allowing the settings for this report to be saved as a template for future use.

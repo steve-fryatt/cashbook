@@ -1,4 +1,4 @@
-/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2026, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -94,6 +94,7 @@
 #define ANALYSIS_TRANS_OPSUMMARY 37
 #define ANALYSIS_TRANS_OPACCSUMMARY 38
 #define ANALYSIS_TRANS_OPEMPTY 41
+#define ANALYSIS_TRANS_INCLUDEIDENTS 42
 
 
 /**
@@ -123,6 +124,8 @@ struct analysis_transaction_report {
 	osbool				output_summary;
 	osbool				output_accsummary;
 	osbool				output_empty;
+
+	osbool				include_idents;
 };
 
 /**
@@ -299,6 +302,7 @@ static void *analysis_transaction_create_instance(struct analysis_block *parent)
 	new->saved.output_summary = TRUE;
 	new->saved.output_accsummary = TRUE;
 	new->saved.output_empty = FALSE;
+	new->saved.include_idents = FALSE;
 
 	return new;
 }
@@ -408,6 +412,7 @@ static void analysis_transaction_fill_window(struct analysis_block *parent, wimp
 		icons_set_selected(window, ANALYSIS_TRANS_OPSUMMARY, TRUE);
 		icons_set_selected(window, ANALYSIS_TRANS_OPACCSUMMARY, TRUE);
 		icons_set_selected(window, ANALYSIS_TRANS_OPEMPTY, FALSE);
+		icons_set_selected(window, ANALYSIS_TRANS_INCLUDEIDENTS, FALSE);
 	} else {
 		/* Set the period icons. */
 
@@ -455,6 +460,7 @@ static void analysis_transaction_fill_window(struct analysis_block *parent, wimp
 		icons_set_selected(window, ANALYSIS_TRANS_OPSUMMARY, template->output_summary);
 		icons_set_selected(window, ANALYSIS_TRANS_OPACCSUMMARY, template->output_accsummary);
 		icons_set_selected(window, ANALYSIS_TRANS_OPEMPTY, template->output_empty);
+		icons_set_selected(window, ANALYSIS_TRANS_INCLUDEIDENTS, template->include_idents);
 	}
 }
 
@@ -523,6 +529,7 @@ static void analysis_transaction_process_window(struct analysis_block *parent, w
  	template->output_summary = icons_get_selected(window, ANALYSIS_TRANS_OPSUMMARY);
 	template->output_accsummary = icons_get_selected(window, ANALYSIS_TRANS_OPACCSUMMARY);
 	template->output_empty = icons_get_selected(window, ANALYSIS_TRANS_OPEMPTY);
+	template->include_idents = icons_get_selected(window, ANALYSIS_TRANS_INCLUDEIDENTS);
 }
 
 
@@ -603,7 +610,7 @@ static void analysis_transaction_generate(struct analysis_block *parent, void *t
 			from = transact_get_from(file, i);
 			to = transact_get_to(file, i);
 			amount = transact_get_amount(file, i);
-		
+
 			if ((next_start == NULL_DATE || date >= next_start) &&
 					(next_end == NULL_DATE || date <= next_end) &&
 					(analysis_data_test_account(scratch, from, ANALYSIS_DATA_FROM) ||
@@ -623,7 +630,10 @@ static void analysis_transaction_generate(struct analysis_block *parent, void *t
 
 					if (settings->output_trans) {
 						stringbuild_reset();
-						stringbuild_add_message("TRHeadings");
+						stringbuild_add_message_param("TRHeadings",
+								(settings->include_idents) ? "" : "\\v",
+								(settings->include_idents) ? "\\t\\s\\v" : "",
+								NULL, NULL);
 						stringbuild_report_line(report, 1);
 					}
 				}
@@ -639,8 +649,12 @@ static void analysis_transaction_generate(struct analysis_block *parent, void *t
 					stringbuild_add_printf("\\k\\v\\d\\r%d\\t\\v\\c",
 							transact_get_transaction_number(i));
 					stringbuild_add_date(date);
-					stringbuild_add_printf("\\t\\v%s\\t\\v%s\\t\\v%s\\t\\v\\d\\r",
-							account_get_name(file, from),
+					if (settings->include_idents)
+						stringbuild_add_printf("\\t%s", account_get_ident(file, from));
+					stringbuild_add_printf("\\t\\v%s", account_get_name(file, from));
+					if (settings->include_idents)
+						stringbuild_add_printf("\\t%s", account_get_ident(file, to));
+					stringbuild_add_printf("\\t\\v%s\\t\\v%s\\t\\v\\d\\r",
 							account_get_name(file, to),
 							transact_get_reference(file, i, NULL, 0));
 					stringbuild_add_currency(amount, TRUE);
@@ -665,7 +679,7 @@ static void analysis_transaction_generate(struct analysis_block *parent, void *t
 
 			stringbuild_reset();
 			stringbuild_add_string("\\i");
-			stringbuild_add_message("TRAccounts");
+			stringbuild_add_message_param("TRAccounts", (settings->include_idents) ? "\\t\\s" : "", NULL, NULL, NULL);
 			stringbuild_report_line(report, 2);
 
 			entries = account_get_list_length(file, ACCOUNT_FULL);
@@ -678,7 +692,10 @@ static void analysis_transaction_generate(struct analysis_block *parent, void *t
 						total += amount;
 
 						stringbuild_reset();
-						stringbuild_add_printf("\\k\\i%s\\t\\d\\r", account_get_name(file, account));
+						stringbuild_add_string("\\i\\k");
+						if (settings->include_idents)
+							stringbuild_add_printf("%s\\t", account_get_ident(file, account));
+						stringbuild_add_printf("%s\\t\\d\\r", account_get_name(file, account));
 						stringbuild_add_currency(amount, TRUE);
 						stringbuild_report_line(report, 2);
 					}
@@ -688,6 +705,8 @@ static void analysis_transaction_generate(struct analysis_block *parent, void *t
 			stringbuild_reset();
 			stringbuild_add_string("\\i\\k\\b");
 			stringbuild_add_message("TRTotal");
+			if (settings->include_idents)
+				stringbuild_add_string("\\t\\s");
 			stringbuild_add_string("\\t\\d\\r\\b");
 			stringbuild_add_currency(total, TRUE);
 			stringbuild_report_line(report, 2);
@@ -707,7 +726,7 @@ static void analysis_transaction_generate(struct analysis_block *parent, void *t
 
 			stringbuild_reset();
 			stringbuild_add_string("\\i");
-			stringbuild_add_message("TROutgoings");
+			stringbuild_add_message_param("TRAccounts", (settings->include_idents) ? "\\t\\s" : "", NULL, NULL, NULL);
 			if (settings->budget)
 				stringbuild_add_message("TRSummExtra");
 			stringbuild_report_line(report, 2);
@@ -722,7 +741,10 @@ static void analysis_transaction_generate(struct analysis_block *parent, void *t
 						total += amount;
 
 						stringbuild_reset();
-						stringbuild_add_printf("\\i\\k%s\\t\\d\\r", account_get_name(file, account));
+						stringbuild_add_string("\\i\\k");
+						if (settings->include_idents)
+							stringbuild_add_printf("%s\\t", account_get_ident(file, account));
+						stringbuild_add_printf("%s\\t\\d\\r", account_get_name(file, account));
 						stringbuild_add_currency(amount, TRUE);
 
 						if (settings->budget) {
@@ -747,6 +769,8 @@ static void analysis_transaction_generate(struct analysis_block *parent, void *t
 			stringbuild_reset();
 			stringbuild_add_string("\\i\\k\\b");
 			stringbuild_add_message("TRTotal");
+			if (settings->include_idents)
+				stringbuild_add_string("\\t\\s");
 			stringbuild_add_string("\\t\\d\\r\\b");
 			stringbuild_add_currency(total, TRUE);
 			stringbuild_report_line(report, 2);
@@ -759,7 +783,7 @@ static void analysis_transaction_generate(struct analysis_block *parent, void *t
 
 			stringbuild_reset();
 			stringbuild_add_string("\\i");
-			stringbuild_add_message("TRIncomings");
+			stringbuild_add_message_param("TRIncomings", (settings->include_idents) ? "\\t\\s" : "", NULL, NULL, NULL);
 			if (settings->budget)
 				stringbuild_add_message("TRSummExtra");
 			stringbuild_report_line(report, 2);
@@ -774,7 +798,10 @@ static void analysis_transaction_generate(struct analysis_block *parent, void *t
 						total += amount;
 
 						stringbuild_reset();
-						stringbuild_add_printf("\\i\\k%s\\t\\d\\r", account_get_name(file, account));
+						stringbuild_add_string("\\i\\k");
+						if (settings->include_idents)
+							stringbuild_add_printf("%s\\t", account_get_ident(file, account));
+						stringbuild_add_printf("%s\\t\\d\\r", account_get_name(file, account));
 						stringbuild_add_currency(-amount, TRUE);
 
 						if (settings->budget) {
@@ -799,6 +826,8 @@ static void analysis_transaction_generate(struct analysis_block *parent, void *t
 			stringbuild_reset();
 			stringbuild_add_string("\\i\\k\\b");
 			stringbuild_add_message("TRTotal");
+			if (settings->include_idents)
+				stringbuild_add_string("\\t\\s");
 			stringbuild_add_string("\\t\\d\\r\\b");
 			stringbuild_add_currency(-total, TRUE);
 			stringbuild_report_line(report, 2);
@@ -809,7 +838,7 @@ static void analysis_transaction_generate(struct analysis_block *parent, void *t
 
 /**
  * Remove any references to a report template.
- * 
+ *
  * \param *parent	The analysis instance being updated.
  * \param template	The template to be removed.
  */
@@ -881,6 +910,7 @@ static void analysis_transaction_copy_template(void *to, void *from)
 	b->output_summary = a->output_summary;
 	b->output_accsummary = a->output_accsummary;
 	b->output_empty = a->output_empty;
+	b->include_idents = a->include_idents;
 }
 
 
@@ -915,6 +945,9 @@ static void analysis_transaction_write_file_block(void *block, FILE *out, char *
 
 	if (name != NULL && *name != '\0')
 		config_write_token_pair(out, "Name", name);
+
+	if (template->include_idents != FALSE)
+		config_write_token_pair(out, "Idents:", config_return_opt_string(template->include_idents));
 
 	if (template->from_count > 0) {
 		analysis_template_account_list_to_hex(buffer, FILING_MAX_FILE_LINE_LEN,
@@ -990,8 +1023,9 @@ static void analysis_transaction_process_file_token(void *block, struct filing_b
 		filing_get_text_value(in, template->desc, TRANSACT_DESCRIPT_FIELD_LEN);
 	} else if (filing_test_token(in, "IncEmpty")) {
 		template->output_empty = filing_get_opt_value(in);
+	} else if (filing_test_token(in, "Idents")) {
+		template->include_idents = filing_get_opt_value(in);
 	} else {
 		filing_set_status(in, FILING_STATUS_UNEXPECTED);
 	}
 }
-

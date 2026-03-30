@@ -877,6 +877,8 @@ The selection of transactions can be further narrowed down using the <icon>Refer
 
 Finally, the <icon>Output</icon> section contains options to select whether the transaction entries or the summaries are included in the report. Any combination can be selected. By default, accounts or analysis headings which have a zero balance in a given group will be omitted from the group&rsquo;s summary; this can be reversed by ticking <icon>Include empty</icon>, so that all accounts and analysis headings will be included in every group.
 
+By default, accounts and analysis headings are referenced in the report without their idents. To include the idents, tick <icon>Include idents</icon>.
+
 Once the options have been set, clicking on <icon>Generate</icon> will create the report and display it in a report viewer.
 
 
@@ -895,6 +897,8 @@ If <icon>Group transactions</icon> is ticked, transactions in the report will be
 Finally, the <icon>Include</icon> section allows accounts and headings to be specified for inclusion in the report. If both the <icon>From</icon> and <icon>To</icon> fields are left blank, all accounts and sections will be used; otherwise, only those unreconciled transactions which match one or other of the fields will get included.
 
 Accounts and headings are entered into the include fields in comma separated lists of idents, like this: <entry>11,M4,T2</entry>. Clicking on the pop-up menu icons to the right of the fields, or pressing <key>f1</key> (the &lsquo;quick entry key&rsquo;) with the caret present, will open the <window>account entry</window> window; this will allow the idents to be entered in the usual way. An asterisk (<entry>*</entry>) can be used to signify &lsquo;any&rsquo; in either of the fields, if the other contains specific idents.
+
+By default, accounts and analysis headings are referenced in the report without their idents. To include the idents, tick <icon>Include idents</icon> at the bottom of the dialogue.
 
 Once the report parameters have been set, click on <icon>Generate</icon> to create the report.
 
@@ -1620,7 +1624,7 @@ Test build to continue 1.4x series, for feedback and comment.
 
 <list>
 <li>Add account or heading ident to statement view title bar.
-<li>Add option to include account and heading idents in Cashflow and Balance Reports.
+<li>Add option to include account and heading idents in all reports.
 /list>
 
 

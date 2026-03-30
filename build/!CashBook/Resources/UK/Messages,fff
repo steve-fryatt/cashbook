@@ -343,10 +343,10 @@ GRHeader:Report for period between %0 and %1, generated on %2
 
 TRWinT:Transaction Report
 TRTitle:\b\uTransaction Report for %0
-TRHeadings:\k\v\b\o\rNo\t\v\b\o\cDate\t\v\b\oFrom\t\v\b\oTo\t\v\b\oReference\t\v\b\o\rAmount\t\v\b\oDescription
-TRAccounts:\k\bAccounts\t\b\rTotal
-TROutgoings:\k\bOutgoings\t\b\rTotal
-TRIncomings:\k\bIncomings\t\b\rTotal
+TRHeadings:\k\v\b\o\rNo\t\v\b\o\cDate\t\b\o%0From%1\t\b\o%0To%1\t\v\b\oReference\t\v\b\o\rAmount\t\v\b\oDescription
+TRAccounts:\k\bAccounts%0\t\b\rTotal
+TROutgoings:\k\bOutgoings%0\t\b\rTotal
+TRIncomings:\k\bIncomings%0\t\b\rTotal
 TRSummExtra:\t\b\rBudgeted\t\b\rBalance\t\b\rRemaining
 TRTotal:Total
 
@@ -354,7 +354,7 @@ TRTotal:Total
 
 URWinT:Unreconciled Transaction Report
 URTitle:\b\uUnreconciled Transaction Report for %0
-URHeadings:\k\v\b\o\rNo\t\v\b\o\cDate\t\b\oFrom\t\s\v\t\b\oTo\t\s\v\t\v\b\oReference\t\v\b\o\rAmount\t\v\b\oDescription
+URHeadings:\k\v\b\o\rNo\t\v\b\o\cDate\t\b\oFrom%0\t\s\v\t\b\oTo%0\t\s\v\t\v\b\oReference\t\v\b\o\rAmount\t\v\b\oDescription
 URTotalIn:Unreconciled incoming
 URTotalOut:Unreconciled outgoing
 URTotal:Total unreconciled
@@ -840,6 +840,7 @@ Help.TransRep.OPSummA:\Stoggle whether account summaries are included in the rep
 Help.TransRep.OPSummH:\Stoggle whether analysis heading summaries are included in the report.
 Help.TransRep.OPEmpty:\Stoggle whether empty (zero balance) accounts and analysis headings are included in the report summaries.
 Help.TransRep.OK:\Sgenerate a transaction report.
+Help.TransRep.Idents/Help.UnrecRep.Idents/Help.CashFlwRep.Idents/Help.BalanceRep.Idents:\Stoggle the inclusion of account and heading idents in the report.
 Help.TransRep.Delete/Help.UnrecRep.Delete/Help.CashFlwRep.Delete/Help.BalanceRep.Delete:\Sdetele the template behind this report.
 Help.TransRep.Rename/Help.UnrecRep.Rename/Help.CashFlwRep.Rename/Help.BalanceRep.Rename:\Srename the template behind this report.
 
@@ -878,7 +879,6 @@ Help.CashFlwRep.InLstP:\Senter an incoming using the account entry \w.
 Help.CashFlwRep.OutLst:\Tlist of outgoing headings which will be included in the report.|MThe list is separated by commas, and * indicates 'any'.
 Help.CashFlwRep.OutLstP:\Senter an outgoing using the account entry \w.
 Help.CashFlwRep.Tabular/Help.BalanceRep.Tabular:\Stoggle the display into a tabular format, useful for passing to a spreadsheet or graphing package.
-Help.CashFlwRep.Idents/Help.BalanceRep.Tabular:\Stoggle the inclusion of account and heading idents in the report.
 Help.CashFlwRep.OK:\Sgenerate a cashflow report.
 
 Help.BalanceRep:\Tbalance report \w, allowing new reports to be created.

@@ -1,4 +1,4 @@
-/* Copyright 2003-2018, Stephen Fryatt (info@stevefryatt.org.uk)
+/* Copyright 2003-2026, Stephen Fryatt (info@stevefryatt.org.uk)
  *
  * This file is part of CashBook:
  *
@@ -89,6 +89,8 @@
 #define ANALYSIS_UNREC_TOSPEC 26
 #define ANALYSIS_UNREC_TOSPECPOPUP 27
 
+#define ANALYSIS_UNREC_INCLUDEIDENTS 30
+
 
 /**
  * Unreconciled Report Template structure.
@@ -108,6 +110,8 @@ struct analysis_unreconciled_report {
 	int				to_count;
 	acct_t				from[ANALYSIS_ACC_LIST_LEN];
 	acct_t				to[ANALYSIS_ACC_LIST_LEN];
+
+	osbool				include_idents;
 };
 
 /**
@@ -286,6 +290,7 @@ static void *analysis_unreconciled_create_instance(struct analysis_block *parent
 	new->saved.lock = FALSE;
 	new->saved.from_count = 0;
 	new->saved.to_count = 0;
+	new->saved.include_idents = FALSE;
 
 	return new;
 }
@@ -387,6 +392,8 @@ static void analysis_unreconciled_fill_window(struct analysis_block *parent, wim
 
 		*icons_get_indirected_text_addr(window, ANALYSIS_UNREC_FROMSPEC) = '\0';
 		*icons_get_indirected_text_addr(window, ANALYSIS_UNREC_TOSPEC) = '\0';
+
+		icons_set_selected(window, ANALYSIS_UNREC_INCLUDEIDENTS, FALSE);
 	} else {
 		/* Set the period icons. */
 
@@ -424,6 +431,8 @@ static void analysis_unreconciled_fill_window(struct analysis_block *parent, wim
 				icons_get_indirected_text_addr(window, ANALYSIS_UNREC_TOSPEC),
 				icons_get_indirected_text_length(window, ANALYSIS_UNREC_TOSPEC),
 				template->to, template->to_count);
+
+		icons_set_selected(window, ANALYSIS_UNREC_INCLUDEIDENTS, template->include_idents);
 	}
 }
 
@@ -480,6 +489,8 @@ static void analysis_unreconciled_process_window(struct analysis_block *parent, 
 			analysis_account_idents_to_list(parent, ACCOUNT_FULL | ACCOUNT_OUT,
 			icons_get_indirected_text_addr(window, ANALYSIS_UNREC_TOSPEC),
 			template->to, ANALYSIS_ACC_LIST_LEN);
+
+	template->include_idents = icons_get_selected(window, ANALYSIS_UNREC_INCLUDEIDENTS);
 }
 
 
@@ -578,7 +589,9 @@ static void analysis_unreconciled_generate(struct analysis_block *parent, void *
 								}
 
 								stringbuild_reset();
-								stringbuild_add_message("URHeadings");
+								stringbuild_add_message_param("URHeadings",
+										(settings->include_idents) ? "\\t\\s" : "",
+										NULL, NULL, NULL);
 								stringbuild_report_line(report, 1);
 							}
 
@@ -599,13 +612,16 @@ static void analysis_unreconciled_generate(struct analysis_block *parent, void *
 							stringbuild_add_string("\\t");
 							if (flags & TRANS_REC_FROM)
 								stringbuild_add_string(rec_char);
-							stringbuild_add_printf("\\t\\v%s\\t",
-									account_get_name(file, from));
+							if (settings->include_idents)
+								stringbuild_add_printf("\\t%s", account_get_ident(file, from));
+							stringbuild_add_printf("\\t%s\\t", account_get_name(file, from));
 							if (flags & TRANS_REC_TO)
 								stringbuild_add_string(rec_char);
-							stringbuild_add_printf("\\t\\v%s\\t\\v%s\\t\\v\\d\\r",
-								account_get_name(file, to),
-								transact_get_reference(file, i, NULL, 0));
+							if (settings->include_idents)
+								stringbuild_add_printf("\\t%s", account_get_ident(file, to));
+							stringbuild_add_printf("\\t%s\\t\\v%s\\t\\v\\d\\r",
+									account_get_name(file, to),
+									transact_get_reference(file, i, NULL, 0));
 							stringbuild_add_currency(amount, TRUE);
 							stringbuild_add_printf("\\t\\v%s",
 									transact_get_description(file, i, NULL, 0));
@@ -673,7 +689,9 @@ static void analysis_unreconciled_generate(struct analysis_block *parent, void *
 						}
 
 						stringbuild_reset();
-						stringbuild_add_message("URHeadings");
+						stringbuild_add_message_param("URHeadings",
+								(settings->include_idents) ? "\\t\\s" : "",
+								NULL, NULL, NULL);
 						stringbuild_report_line(report, 1);
 					}
 
@@ -689,13 +707,17 @@ static void analysis_unreconciled_generate(struct analysis_block *parent, void *
 					stringbuild_add_string("\\t");
 					if (flags & TRANS_REC_FROM)
 						stringbuild_add_string(rec_char);
-					stringbuild_add_printf("\\t\\v%s\\t",
+					if (settings->include_idents)
+						stringbuild_add_printf("\\t%s", account_get_ident(file, from));
+					stringbuild_add_printf("\\t%s\\t",
 							account_get_name(file, from));
 					if (flags & TRANS_REC_TO)
 						stringbuild_add_string(rec_char);
-					stringbuild_add_printf("\\t\\v%s\\t\\v%s\\t\\v\\d\\r",
-						account_get_name(file, to),
-						transact_get_reference(file, i, NULL, 0));
+					if (settings->include_idents)
+						stringbuild_add_printf("\\t%s", account_get_ident(file, to));
+					stringbuild_add_printf("\\t%s\\t\\v%s\\t\\v\\d\\r",
+							account_get_name(file, to),
+							transact_get_reference(file, i, NULL, 0));
 					stringbuild_add_currency(amount, TRUE);
 					stringbuild_add_printf("\\t\\v%s",
 							transact_get_description(file, i, NULL, 0));
@@ -710,7 +732,7 @@ static void analysis_unreconciled_generate(struct analysis_block *parent, void *
 
 /**
  * Remove any references to a report template.
- * 
+ *
  * \param *parent	The analysis instance being updated.
  * \param template	The template to be removed.
  */
@@ -772,6 +794,8 @@ static void analysis_unreconciled_copy_template(void *to, void *from)
 	b->to_count = a->to_count;
 	for (i = 0; i < a->to_count; i++)
 		b->to[i] = a->to[i];
+
+	b->include_idents = a->include_idents;
 }
 
 
@@ -803,6 +827,9 @@ static void analysis_unreconciled_write_file_block(void *block, FILE *out, char 
 
 	if (name != NULL && *name != '\0')
 		config_write_token_pair(out, "Name", name);
+
+	if (template->include_idents != FALSE)
+		config_write_token_pair(out, "Idents:", config_return_opt_string(template->include_idents));
 
 	if (template->from_count > 0) {
 		analysis_template_account_list_to_hex(buffer, FILING_MAX_FILE_LINE_LEN,
@@ -847,8 +874,9 @@ static void analysis_unreconciled_process_file_token(void *block, struct filing_
 		template->from_count = analysis_template_account_hex_to_list(filing_get_text_value(in, NULL, 0), template->from);
 	} else if (filing_test_token(in, "To")) {
 		template->to_count = analysis_template_account_hex_to_list(filing_get_text_value(in, NULL, 0), template->to);
+	} else if (filing_test_token(in, "Idents")) {
+		template->include_idents = filing_get_opt_value(in);
 	} else {
 		filing_set_status(in, FILING_STATUS_UNEXPECTED);
 	}
 }
-

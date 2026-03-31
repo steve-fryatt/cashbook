@@ -160,19 +160,20 @@ static void analysis_cashflow_process_file_token(void *block, struct filing_bloc
 /* The Cashflow Report definition. */
 
 static struct analysis_report_details analysis_cashflow_details = {
-	"CRWinT", "CRTitle",
-	analysis_cashflow_create_instance,
-	analysis_cashflow_delete_instance,
-	analysis_cashflow_open_window,
-	analysis_cashflow_fill_window,
-	analysis_cashflow_process_window,
-	analysis_cashflow_generate,
-	analysis_cashflow_process_file_token,
-	analysis_cashflow_write_file_block,
-	analysis_cashflow_copy_template,
-	analysis_cashflow_rename_template,
-	analysis_cashflow_remove_account,
-	analysis_cashflow_remove_template
+	.report_window_token = "CRWinT",
+	.report_title_token = "CRTitle",
+	.create_instance = analysis_cashflow_create_instance,
+	.delete_instance = analysis_cashflow_delete_instance,
+	.open_window = analysis_cashflow_open_window,
+	.fill_window = analysis_cashflow_fill_window,
+	.read_window = analysis_cashflow_process_window,
+	.run_report = analysis_cashflow_generate,
+	.process_file_token = analysis_cashflow_process_file_token,
+	.write_file_template = analysis_cashflow_write_file_block,
+	.copy_template = analysis_cashflow_copy_template,
+	.rename_template = analysis_cashflow_rename_template,
+	.remove_account = analysis_cashflow_remove_account,
+	.remove_template = analysis_cashflow_remove_template
 };
 
 /* The Cashflow Report Dialogue Icon Details. */
@@ -217,21 +218,21 @@ static struct dialogue_icon analysis_cashflow_icon_list[] = {
 /* The Cashflow Report Dialogue Definition. */
 
 static struct analysis_dialogue_definition analysis_cashflow_dialogue_definition = {
-	REPORT_TYPE_CASHFLOW,
-	sizeof(struct analysis_cashflow_report),
-	"CflRepTitle",
-	{
-		"CashFlwRep",
-		"CashFlwRep",
-		analysis_cashflow_icon_list,
-		DIALOGUE_GROUP_ANALYSIS,
-		DIALOGUE_FLAGS_TAKE_FOCUS,
-		NULL,
-		NULL,
-		NULL,
-		NULL,
-		NULL,
-		NULL
+	.type = REPORT_TYPE_CASHFLOW,
+	.block_size = sizeof(struct analysis_cashflow_report),
+	.title_token = "CflRepTitle",
+	.dialogue = {
+		.template_name = "CashFlwRep",
+		.ihelp_token = "CashFlwRep",
+		.icons = analysis_cashflow_icon_list,
+		.group = DIALOGUE_GROUP_ANALYSIS,
+		.flags = DIALOGUE_FLAGS_TAKE_FOCUS,
+		.callback_fill = NULL,
+		.callback_process = NULL,
+		.callback_close = NULL,
+		.callback_menu_prepare = NULL,
+		.callback_menu_select = NULL,
+		.callback_menu_close = NULL
 	}
 };
 

@@ -157,19 +157,20 @@ static void analysis_unreconciled_process_file_token(void *block, struct filing_
 /* The Unreconciled Report definition. */
 
 static struct analysis_report_details analysis_unreconciled_details = {
-	"URWinT", "URTitle",
-	analysis_unreconciled_create_instance,
-	analysis_unreconciled_delete_instance,
-	analysis_unreconciled_open_window,
-	analysis_unreconciled_fill_window,
-	analysis_unreconciled_process_window,
-	analysis_unreconciled_generate,
-	analysis_unreconciled_process_file_token,
-	analysis_unreconciled_write_file_block,
-	analysis_unreconciled_copy_template,
-	analysis_unreconciled_rename_template,
-	analysis_unreconciled_remove_account,
-	analysis_unreconciled_remove_template
+	.report_window_token = "URWinT",
+	.report_title_token = "URTitle",
+	.create_instance = analysis_unreconciled_create_instance,
+	.delete_instance = analysis_unreconciled_delete_instance,
+	.open_window = analysis_unreconciled_open_window,
+	.fill_window = analysis_unreconciled_fill_window,
+	.read_window = analysis_unreconciled_process_window,
+	.run_report = analysis_unreconciled_generate,
+	.process_file_token = analysis_unreconciled_process_file_token,
+	.write_file_template = analysis_unreconciled_write_file_block,
+	.copy_template = analysis_unreconciled_copy_template,
+	.rename_template = analysis_unreconciled_rename_template,
+	.remove_account = analysis_unreconciled_remove_account,
+	.remove_template = analysis_unreconciled_remove_template
 };
 
 /* The Unreconciled Report Dialogue Icon Details. */
@@ -228,21 +229,21 @@ static struct dialogue_icon analysis_unreconciled_icon_list[] = {
 /* The Unreconciled Report Dialogue Definition. */
 
 static struct analysis_dialogue_definition analysis_unreconciled_dialogue_definition = {
-	REPORT_TYPE_UNRECONCILED,
-	sizeof(struct analysis_unreconciled_report),
-	"UrcRepTitle",
-	{
-		"UnrecRep",
-		"UnrecRep",
-		analysis_unreconciled_icon_list,
-		DIALOGUE_GROUP_ANALYSIS,
-		DIALOGUE_FLAGS_TAKE_FOCUS,
-		NULL,
-		NULL,
-		NULL,
-		NULL,
-		NULL,
-		NULL
+	.type = REPORT_TYPE_UNRECONCILED,
+	.block_size = sizeof(struct analysis_unreconciled_report),
+	.title_token = "UrcRepTitle",
+	.dialogue = {
+		.template_name = "UnrecRep",
+		.ihelp_token = "UnrecRep",
+		.icons = analysis_unreconciled_icon_list,
+		.group = DIALOGUE_GROUP_ANALYSIS,
+		.flags = DIALOGUE_FLAGS_TAKE_FOCUS,
+		.callback_fill = NULL,
+		.callback_process = NULL,
+		.callback_close = NULL,
+		.callback_menu_prepare = NULL,
+		.callback_menu_select = NULL,
+		.callback_menu_close = NULL
 	}
 };
 

@@ -160,19 +160,20 @@ static void analysis_balance_process_file_token(void *block, struct filing_block
 /* The Balance Report definition. */
 
 static struct analysis_report_details analysis_balance_details = {
-	"BRWinT", "BRTitle",
-	analysis_balance_create_instance,
-	analysis_balance_delete_instance,
-	analysis_balance_open_window,
-	analysis_balance_fill_window,
-	analysis_balance_process_window,
-	analysis_balance_generate,
-	analysis_balance_process_file_token,
-	analysis_balance_write_file_block,
-	analysis_balance_copy_template,
-	analysis_balance_rename_template,
-	analysis_balance_remove_account,
-	analysis_balance_remove_template
+	.report_window_token = "BRWinT",
+	.report_title_token = "BRTitle",
+	.create_instance = analysis_balance_create_instance,
+	.delete_instance = analysis_balance_delete_instance,
+	.open_window = analysis_balance_open_window,
+	.fill_window = analysis_balance_fill_window,
+	.read_window = analysis_balance_process_window,
+	.run_report = analysis_balance_generate,
+	.process_file_token = analysis_balance_process_file_token,
+	.write_file_template = analysis_balance_write_file_block,
+	.copy_template = analysis_balance_copy_template,
+	.rename_template = analysis_balance_rename_template,
+	.remove_account = analysis_balance_remove_account,
+	.remove_template = analysis_balance_remove_template
 };
 
 /* The Balance Report Dialogue Icon Details. */
@@ -216,12 +217,12 @@ static struct analysis_dialogue_icon analysis_balance_icon_list[] = {
 /* The Balance Report Dialogue Definition. */
 
 static struct analysis_dialogue_definition analysis_balance_dialogue_definition = {
-	REPORT_TYPE_BALANCE,
-	sizeof(struct analysis_balance_report),
-	"BalanceRep",
-	"BalanceRep",
-	"BalRepTitle",
-	analysis_balance_icon_list
+	.type = REPORT_TYPE_BALANCE,
+	.block_size = sizeof(struct analysis_balance_report),
+	.template_name = "BalanceRep",
+	.ihelp_token = "BalanceRep",
+	.title_token = "BalRepTitle",
+	.icons = analysis_balance_icon_list
 };
 
 

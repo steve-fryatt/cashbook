@@ -171,19 +171,20 @@ static void analysis_transaction_process_file_token(void *block, struct filing_b
 /* The Transaction Report definition. */
 
 static struct analysis_report_details analysis_transaction_details = {
-	"TRWinT", "TRTitle",
-	analysis_transaction_create_instance,
-	analysis_transaction_delete_instance,
-	analysis_transaction_open_window,
-	analysis_transaction_fill_window,
-	analysis_transaction_process_window,
-	analysis_transaction_generate,
-	analysis_transaction_process_file_token,
-	analysis_transaction_write_file_block,
-	analysis_transaction_copy_template,
-	analysis_transaction_rename_template,
-	analysis_transaction_remove_account,
-	analysis_transaction_remove_template
+	.report_window_token = "TRWinT",
+	.report_title_token = "TRTitle",
+	.create_instance = analysis_transaction_create_instance,
+	.delete_instance = analysis_transaction_delete_instance,
+	.open_window = analysis_transaction_open_window,
+	.fill_window = analysis_transaction_fill_window,
+	.read_window = analysis_transaction_process_window,
+	.run_report = analysis_transaction_generate,
+	.process_file_token = analysis_transaction_process_file_token,
+	.write_file_template = analysis_transaction_write_file_block,
+	.copy_template = analysis_transaction_copy_template,
+	.rename_template = analysis_transaction_rename_template,
+	.remove_account = analysis_transaction_remove_account,
+	.remove_template = analysis_transaction_remove_template
 };
 
 /* The Transaction Report Dialogue Icon Details. */
@@ -232,12 +233,12 @@ static struct analysis_dialogue_icon analysis_transaction_icon_list[] = {
 /* The Transaction Report Dialogue Definition. */
 
 static struct analysis_dialogue_definition analysis_transaction_dialogue_definition = {
-	REPORT_TYPE_TRANSACTION,
-	sizeof(struct analysis_transaction_report),
-	"TransRep",
-	"TransRep",
-	"TrnRepTitle",
-	analysis_transaction_icon_list
+	.type = REPORT_TYPE_TRANSACTION,
+	.block_size = sizeof(struct analysis_transaction_report),
+	.template_name = "TransRep",
+	.ihelp_token = "TransRep",
+	.title_token = "TrnRepTitle",
+	.icons = analysis_transaction_icon_list
 };
 
 

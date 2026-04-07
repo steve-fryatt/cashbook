@@ -142,7 +142,7 @@ static void analysis_remove_account_from_report_template(struct analysis_report 
 
 void analysis_initialise(void)
 {
-	analysis_report_types[REPORT_TYPE_NONE] = 
+	analysis_report_types[REPORT_TYPE_NONE] = NULL;
 	analysis_report_types[REPORT_TYPE_TRANSACTION] = analysis_transaction_initialise();
 	analysis_report_types[REPORT_TYPE_UNRECONCILED] = analysis_unreconciled_initialise();
 	analysis_report_types[REPORT_TYPE_CASHFLOW] = analysis_cashflow_initialise();
@@ -729,4 +729,3 @@ osbool analysis_read_file(struct file_block *file, struct filing_block *in)
 
 	return analysis_template_read_file(file->analysis->templates, in);
 }
-

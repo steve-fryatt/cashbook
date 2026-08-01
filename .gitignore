@@ -10,3 +10,4 @@ build/!CashBook/Resources/UK/HelpText,fff
 build/!CashBook/Resources/UK/Menus,ffd
 build/package
 obj
+test/absolute/test_*,ff8

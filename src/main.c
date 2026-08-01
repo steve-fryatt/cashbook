@@ -133,6 +133,8 @@ static date_t			main_last_update_date = NULL_DATE;
 wimp_t				main_task_handle;
 osbool				main_quit_flag = FALSE;
 
+#ifndef UNIT_TESTING
+
 /**
  * Main code entry point.
  */
@@ -150,6 +152,7 @@ int main(int argc, char *argv[])
 	return 0;
 }
 
+#endif
 
 /**
  * Wimp Poll loop.

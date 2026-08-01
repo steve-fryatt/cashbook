@@ -39,6 +39,7 @@
 extern wimp_t		main_task_handle;
 extern osbool		main_quit_flag;
 
+#ifndef UNIT_TESTING
 
 /**
  * Main code entry point.
@@ -47,4 +48,4 @@ extern osbool		main_quit_flag;
 int main(int argc, char *argv[]);
 
 #endif
-
+#endif

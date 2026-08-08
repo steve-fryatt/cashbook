@@ -32,7 +32,7 @@ To make a release version and package it into Zip files for distribution, use
 
 	make release
 
-This will clean the project and re-build it all, then create a distribution archive (no source), source archive and RiscPkg package in the folder within which the project folder is CashBookd. By default the output of `git describe` is used to version the build, but a specific version can be applied by setting the `VERSION` variable -- for example
+This will clean the project and re-build it all, then create a distribution archive (no source), source archive and RiscPkg package in the folder within which the project folder is located. By default the output of `git describe` is used to version the build, but a specific version can be applied by setting the `VERSION` variable -- for example
 
 	make release VERSION=1.23
 

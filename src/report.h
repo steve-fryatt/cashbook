@@ -30,6 +30,10 @@
 #ifndef CASHBOOK_REPORT
 #define CASHBOOK_REPORT
 
+#include "global.h"
+#include "oslib/osspriteop.h"
+#include "oslib/types.h"
+
 /* Report data block format consists of a series of lines as follows:
  *
  * <tab-bar-data><format flag>text[\t<format flag>text]\0
@@ -181,4 +185,3 @@ void report_redraw_all(struct file_block *file);
 void report_process_all_templates(struct file_block *file, void (*callback)(struct analysis_report *template, void *data), void *data);
 
 #endif
-

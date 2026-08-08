@@ -74,7 +74,7 @@ static char *stringbuild_ptr = NULL;
 static char *stringbuild_end = NULL;
 
 /**
- * Set TRUE if a line was too long for the buffer.
+ * Set TRUE if a line was too long for the buffer during the current session.
  */
 
 static osbool stringbuild_too_long = FALSE;
@@ -87,7 +87,11 @@ static osbool stringbuild_too_long = FALSE;
 
 #define stringbuild_valid() ((stringbuild_buffer != NULL) && (stringbuild_ptr != NULL) && (stringbuild_end != NULL))
 
-#define stringbuild_remaining() (stringbuild_end - (stringbuild_ptr + 1))
+/**
+ * The number of bytes remainining in the buffer.
+ */
+
+#define stringbuild_remaining() (stringbuild_end - stringbuild_ptr)
 
 /**
  * Initialise a new stringbuild session, using a supplied memory buffer to
@@ -163,10 +167,8 @@ char *stringbuild_get_line(void)
 
 	/* If the buffer has overrun, do nothing. */
 
-	if (stringbuild_ptr >= stringbuild_end) {
-		stringbuild_too_long = TRUE;
+	if (stringbuild_too_long == TRUE)
 		return NULL;
-	}
 
 	/* Terminate the buffer and return the string it holds. */
 
@@ -192,6 +194,32 @@ void stringbuild_report_line(struct report *report, int tab_bar)
 		report_write_line(report, tab_bar, line);
 }
 
+#ifdef UNIT_TESTING
+
+/**
+ * Return the remaining count for use in Unit Testing.
+ *
+ * \return			The value of stringbuild_remaining().
+ */
+
+int stringbuild_get_remaining(void)
+{
+	return stringbuild_remaining();
+}
+
+
+/**
+ * Return the too long status for use in Unit Testing.
+ *
+ * \return			The value of stringbuild_too_long.
+ */
+
+osbool stringbuild_get_too_long(void)
+{
+	return stringbuild_too_long;
+}
+
+#endif
 
 /**
  * Add a string to the end of the current line.
@@ -201,19 +229,24 @@ void stringbuild_report_line(struct report *report, int tab_bar)
 
 void stringbuild_add_string(char *string)
 {
-	size_t	length, chars_to_write;
-
 	if (string == NULL)
 		return;
 
-	length = strlen(string);
-	chars_to_write = (length <= stringbuild_remaining()) ? length : stringbuild_remaining();
+	size_t length = strlen(string);
+	size_t chars_to_write = 0;
 
-	if (chars_to_write <= 0)
+	if (length <= stringbuild_remaining()) {
+		chars_to_write = length + 1;
+	} else {
+		chars_to_write = stringbuild_remaining() + 1;
+		stringbuild_too_long = TRUE;
+	}
+
+	if (chars_to_write <= 1)
 		return;
 
 	strncpy(stringbuild_ptr, string, chars_to_write);
-	stringbuild_ptr += chars_to_write;
+	stringbuild_ptr += (chars_to_write - 1);
 }
 
 
@@ -228,17 +261,30 @@ void stringbuild_add_string(char *string)
 
 int stringbuild_add_printf(char *cntrl_string, ...)
 {
-	int		chars_written;
-	va_list		ap;
+	if (cntrl_string == NULL)
+		return 0;
+
+	int space_available = stringbuild_remaining() + 1;
+
+	if (space_available <= 1) {
+		stringbuild_too_long = TRUE;
+		return 0;
+	}
+
+	va_list ap;
 
 	va_start(ap, cntrl_string);
-	chars_written = vsnprintf(stringbuild_ptr, stringbuild_remaining(), cntrl_string, ap);
+	int chars_written = vsnprintf(stringbuild_ptr, space_available, cntrl_string, ap);
+	va_end(ap);
 
-	if (chars_written >= 0) {
+	if (chars_written < space_available) {
 		stringbuild_ptr += chars_written;
+	} else if (chars_written >= 0) {
+		stringbuild_ptr += (space_available - 1);
+		*stringbuild_end = '\0';
+		stringbuild_too_long = TRUE;
 	} else {
-		while (stringbuild_ptr < stringbuild_end && *stringbuild_ptr != '\0')
-			stringbuild_ptr++;
+		*stringbuild_ptr = '\0';
 	}
 
 	return chars_written;
@@ -255,13 +301,23 @@ int stringbuild_add_printf(char *cntrl_string, ...)
 
 void stringbuild_add_message(char *token)
 {
-	if (stringbuild_remaining() <= 0)
-		return;
+	int space_available = stringbuild_remaining() + 1;
 
-	msgs_lookup(token, stringbuild_ptr, stringbuild_remaining());
+	if (space_available <= 1) {
+		stringbuild_too_long = TRUE;
+		return;
+	}
+
+	enum msgs_status result = msgs_lookup_result(token, stringbuild_ptr, space_available);
+
+	if (result == MSGS_STATUS_ERROR)
+		return;
 
 	while (stringbuild_ptr < stringbuild_end && *stringbuild_ptr != '\0')
 		stringbuild_ptr++;
+
+	if (result == MSGS_STATUS_BUFFER_FULL)
+		stringbuild_too_long = TRUE;
 }
 
 
@@ -279,13 +335,23 @@ void stringbuild_add_message(char *token)
 
 void stringbuild_add_message_param(char *token, char *a, char *b, char *c, char *d)
 {
-	if (stringbuild_remaining() <= 0)
-		return;
+	int space_available = stringbuild_remaining() + 1;
 
-	msgs_param_lookup(token, stringbuild_ptr, stringbuild_remaining(), a, b, c, d);
+	if (space_available <= 1) {
+		stringbuild_too_long = TRUE;
+		return;
+	}
+
+	enum msgs_status result = msgs_param_lookup_result(token, stringbuild_ptr, space_available, a, b, c, d);
+
+	if (result == MSGS_STATUS_ERROR)
+		return;
 
 	while (stringbuild_ptr < stringbuild_end && *stringbuild_ptr != '\0')
 		stringbuild_ptr++;
+
+	if (result == MSGS_STATUS_BUFFER_FULL)
+		stringbuild_too_long = TRUE;
 }
 
 
@@ -299,13 +365,13 @@ void stringbuild_add_message_param(char *token, char *a, char *b, char *c, char 
 
 void stringbuild_add_currency(amt_t value, osbool print_zeros)
 {
-	if (stringbuild_remaining() <= 0)
-		return;
-
-	currency_flexible_convert_to_string(value, stringbuild_ptr, stringbuild_remaining(), print_zeros);
-
-	while (stringbuild_ptr < stringbuild_end && *stringbuild_ptr != '\0')
-		stringbuild_ptr++;
+//	if (stringbuild_remaining() <= 0)
+//		return;
+//
+//	currency_flexible_convert_to_string(value, stringbuild_ptr, stringbuild_remaining(), print_zeros);
+//
+//	while (stringbuild_ptr < stringbuild_end && *stringbuild_ptr != '\0')
+//		stringbuild_ptr++;
 }
 
 
@@ -317,13 +383,13 @@ void stringbuild_add_currency(amt_t value, osbool print_zeros)
 
 void stringbuild_add_date(date_t date)
 {
-	if (stringbuild_remaining() <= 0)
-		return;
-
-	date_convert_to_string(date, stringbuild_ptr, stringbuild_remaining());
-
-	while (stringbuild_ptr < stringbuild_end && *stringbuild_ptr != '\0')
-		stringbuild_ptr++;
+//	if (stringbuild_remaining() <= 0)
+//		return;
+//
+//	date_convert_to_string(date, stringbuild_ptr, stringbuild_remaining());
+//
+//	while (stringbuild_ptr < stringbuild_end && *stringbuild_ptr != '\0')
+//		stringbuild_ptr++;
 }
 
 
@@ -336,12 +402,11 @@ void stringbuild_add_date(date_t date)
 
 void stringbuild_add_icon(wimp_w window, wimp_i icon)
 {
-	if (stringbuild_remaining() <= 0)
-		return;
-
-	icons_copy_text(window, icon, stringbuild_ptr, stringbuild_remaining());
-
-	while (stringbuild_ptr < stringbuild_end && *stringbuild_ptr != '\0')
-		stringbuild_ptr++;
+//	if (stringbuild_remaining() <= 0)
+//		return;
+//
+//	icons_copy_text(window, icon, stringbuild_ptr, stringbuild_remaining());
+//
+//	while (stringbuild_ptr < stringbuild_end && *stringbuild_ptr != '\0')
+//		stringbuild_ptr++;
 }
-

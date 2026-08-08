@@ -32,6 +32,10 @@
 #define CASHBOOK_STRINGBUILD
 
 #include "currency.h"
+#include "report.h"
+
+#include "oslib/types.h"
+#include "oslib/wimp.h"
 
 /**
  * Initialise a new stringbuild session, using a supplied memory buffer to
@@ -79,6 +83,25 @@ char *stringbuild_get_line(void);
 
 void stringbuild_report_line(struct report *report, int tab_bar);
 
+#ifdef UNIT_TESTING
+
+/**
+ * Return the remaining count for use in Unit Testing.
+ *
+ * \return			The value of stringbuild_remaining().
+ */
+
+int stringbuild_get_remaining(void);
+
+/**
+ * Return the too long status for use in Unit Testing.
+ *
+ * \return			The value of stringbuild_too_long.
+ */
+
+osbool stringbuild_get_too_long(void);
+
+#endif
 
 /**
  * Add a string to the end of the current line.
@@ -157,4 +180,3 @@ void stringbuild_add_date(date_t date);
 void stringbuild_add_icon(wimp_w window, wimp_i icon);
 
 #endif
-

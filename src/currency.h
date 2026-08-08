@@ -30,6 +30,8 @@
 #ifndef CASHBOOK_CURRENCY
 #define CASHBOOK_CURRENCY
 
+#include "oslib/types.h"
+
 /**
  * An amount of currency.
  */

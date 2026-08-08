@@ -88,7 +88,9 @@ static osbool stringbuild_too_long = FALSE;
 #define stringbuild_valid() ((stringbuild_buffer != NULL) && (stringbuild_ptr != NULL) && (stringbuild_end != NULL))
 
 /**
- * The number of bytes remainining in the buffer.
+ * The number of bytes remainining in the buffer, excluding the final
+ * terminating character (with a full buffer, *stringbuild_end would
+ * point to the terminating \0 character).
  */
 
 #define stringbuild_remaining() (stringbuild_end - stringbuild_ptr)
